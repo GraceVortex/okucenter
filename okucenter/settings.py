@@ -191,12 +191,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs/django_error.log',
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -205,12 +199,12 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'django.request': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'ERROR',
             'propagate': False,
         },
