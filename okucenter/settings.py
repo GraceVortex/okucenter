@@ -212,7 +212,18 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = not DEBUG and os.environ.get('RAILWAY_ENVIRONMENT', '') == 'production'
 
 # Настройка для Railway
 if 'RAILWAY_STATIC_URL' in os.environ:
     STATIC_URL = os.environ.get('RAILWAY_STATIC_URL', '/static/')
+
+# Настройка для файлов
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+
+# Настройка сессий
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 1 день
+SESSION_SAVE_EVERY_REQUEST = True
