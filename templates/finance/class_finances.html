@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}Финансы класса - {{ class.name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">{{ class.name }}</h1>
+            <p class="text-muted fs-5">Финансовая статистика и управление</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if user.is_admin or user.is_reception %}
+                <a href="{% url 'finance:add_transaction' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить транзакцию
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body p-4 text-center">
+                            <h5 class="text-muted mb-3">Общий доход</h5>
+                            <div class="display-4 fw-bold mb-3 text-success">
+                                {{ total_revenue }} ₸
+                            </div>
+                            <p class="text-muted mb-0">Суммарный доход от всех студентов класса</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body p-4 text-center">
+                            <h5 class="text-muted mb-3">Стоимость занятия</h5>
+                            <div class="display-4 fw-bold mb-3">
+                                {{ class.price_per_lesson }} ₸
+                            </div>
+                            <p class="text-muted mb-0">Фиксированная стоимость за одно занятие</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">Студенты класса</h4>
+                        <span class="badge bg-primary rounded-pill">{{ student_stats|length }}</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if student_stats %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Студент</th>
+                                        <th>Всего оплачено</th>
+                                        <th>Баланс</th>
+                                        <th class="pe-4">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for stat in student_stats %}
+                                        <tr>
+                                            <td class="ps-4">
+                                                <a href="{% url 'finance:student_balance' student_id=stat.student.id %}" class="text-decoration-none">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-circle-sm me-2 bg-primary">
+                                                            <span class="avatar-initials-sm">{{ stat.student.full_name|slice:":1" }}</span>
+                                                        </div>
+                                                        {{ stat.student.full_name }}
+                                                    </div>
+                                                </a>
+                                            </td>
+                                            <td class="fw-bold">{{ stat.total_payments }} ₸</td>
+                                            <td class="fw-bold {% if stat.student.balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                                                {{ stat.student.balance }} ₸
+                                            </td>
+                                            <td class="pe-4">
+                                                <a href="{% url 'finance:student_balance' student_id=stat.student.id %}" class="btn btn-sm btn-outline-primary rounded-pill">
+                                                    <i class="bi bi-eye me-1"></i> Детали
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people display-1 text-muted mb-3"></i>
+                            <h4 class="fw-bold">В этом классе нет студентов</h4>
+                            <p class="text-muted">Добавьте студентов, чтобы отслеживать финансы</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">История транзакций</h4>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-download me-1"></i> Экспорт
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Экспорт в Excel</a></li>
+                                <li><a class="dropdown-item" href="#">Экспорт в PDF</a></li>
+                                <li><a class="dropdown-item" href="#">Печать отчета</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Дата</th>
+                                        <th>Студент</th>
+                                        <th>Сумма</th>
+                                        <th>Тип</th>
+                                        <th class="pe-4">Описание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                        <tr>
+                                            <td class="ps-4">{{ transaction.date|date:"d.m.Y" }}</td>
+                                            <td>
+                                                <a href="{% url 'finance:student_balance' student_id=transaction.student.id %}" class="text-decoration-none">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-circle-sm me-2 bg-primary">
+                                                            <span class="avatar-initials-sm">{{ transaction.student.full_name|slice:":1" }}</span>
+                                                        </div>
+                                                        {{ transaction.student.full_name }}
+                                                    </div>
+                                                </a>
+                                            </td>
+                                            <td class="fw-bold {% if transaction.transaction_type == 'payment' %}text-danger{% else %}text-success{% endif %}">
+                                                {% if transaction.transaction_type == 'payment' %}-{% endif %}
+                                                {{ transaction.amount }} ₸
+                                            </td>
+                                            <td>
+                                                {% if transaction.transaction_type == 'payment' %}
+                                                    <span class="badge bg-danger rounded-pill">Оплата</span>
+                                                {% elif transaction.transaction_type == 'deposit' %}
+                                                    <span class="badge bg-success rounded-pill">Пополнение</span>
+                                                {% elif transaction.transaction_type == 'refund' %}
+                                                    <span class="badge bg-warning text-dark rounded-pill">Возврат</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="pe-4">{{ transaction.description }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-credit-card display-1 text-muted mb-3"></i>
+                            <h4 class="fw-bold">История транзакций пуста</h4>
+                            <p class="text-muted">Транзакции будут отображаться здесь после их создания</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-4">Информация о классе</h4>
+                    
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="avatar-circle me-3 bg-primary">
+                            <span class="avatar-initials">{{ class.name|slice:":1" }}</span>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">{{ class.name }}</h5>
+                            <p class="text-muted mb-0">Класс</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-top pt-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-person-badge text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Учитель</div>
+                                <div>{{ class.teacher.full_name }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-cash-coin text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Стоимость занятия</div>
+                                <div>{{ class.price_per_lesson }} ₸</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-info-circle text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Описание</div>
+                                <div>{{ class.description|default:"Нет описания" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="fw-bold mt-4 mb-3">Расписание</h5>
+                    {% if class.schedules.all %}
+                        <div class="list-group list-group-flush">
+                            {% for schedule in class.schedules.all %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            <i class="bi bi-calendar-week text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1 fw-bold">{{ schedule.get_day_of_week_display }}</h6>
+                                            <p class="mb-0 text-muted small">
+                                                {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }} 
+                                                <span class="ms-2">Кабинет: {{ schedule.room }}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-light text-center">
+                            <i class="bi bi-calendar-x text-muted fs-3 mb-2"></i>
+                            <p class="mb-0">Расписание не установлено</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-info-circle me-2"></i> Подробнее о классе
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Финансовая статистика</h4>
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="revenueChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+            
+            {% if user.is_admin or user.is_reception %}
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Быстрые действия</h4>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'finance:add_transaction' %}" class="btn btn-outline-success">
+                                <i class="bi bi-plus-circle me-2"></i> Добавить транзакцию
+                            </a>
+                            
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil-square me-2"></i> Редактировать класс
+                            </a>
+                            
+                            <a href="#" class="btn btn-outline-info">
+                                <i class="bi bi-printer me-2"></i> Распечатать отчет
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Подготовка данных для графика
+        let studentNames = [];
+        let studentPayments = [];
+        
+        {% for stat in student_stats %}
+            studentNames.push("{{ stat.student.full_name|escapejs }}");
+            studentPayments.push({{ stat.total_payments|default:0 }});
+        {% endfor %}
+        
+        // Создание графика
+        let ctx = document.getElementById('revenueChart').getContext('2d');
+        let chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: studentNames,
+                datasets: [{
+                    label: 'Оплата (₸)',
+                    data: studentPayments,
+                    backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Доход по студентам'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Сумма (₸)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Студенты'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    background-color: #007bff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-initials {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.avatar-circle-sm {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-initials-sm {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.btn:focus {
+    box-shadow: none;
+}
+</style>
+{% endblock %}

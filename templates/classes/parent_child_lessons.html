@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load classes_extras %}
+
+{% block title %}Уроки {{ student.full_name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Уроки {{ student.full_name }}</h1>
+    
+    {% if classes_data %}
+        <div class="accordion" id="classesAccordion">
+            {% for class_data in classes_data %}
+                <div class="accordion-item mb-3">
+                    <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                        <button class="accordion-button {% if forloop.counter > 1 %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="{% if forloop.counter == 1 %}true{% else %}false{% endif %}" aria-controls="collapse{{ forloop.counter }}">
+                            {{ class_data.class.name }} ({{ class_data.class.teacher.full_name }})
+                        </button>
+                    </h2>
+                    <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.counter == 1 %}show{% endif %}" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#classesAccordion">
+                        <div class="accordion-body">
+                            
+                            <!-- Таблица посещаемости и оценок -->
+                            <h4 class="mb-3">Посещаемость и оценки</h4>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-striped table-bordered">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Дата</th>
+                                            <th>Статус</th>
+                                            <th>Оценка за активность</th>
+                                            <th>Комментарий учителя</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for attendance_item in class_data.attendance_data %}
+                                        <tr>
+                                            <td>{{ attendance_item.attendance.date|date:"d.m.Y" }}</td>
+                                            <td>
+                                                {% if attendance_item.attendance.status == 'present' %}
+                                                    <span class="badge bg-success">Присутствовал</span>
+                                                {% elif attendance_item.attendance.status == 'absent' %}
+                                                    <span class="badge bg-danger">Отсутствовал</span>
+                                                {% elif attendance_item.attendance.status == 'excused' %}
+                                                    <span class="badge bg-warning">По уважительной причине</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Не отмечен</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if attendance_item.mark.activity_mark %}
+                                                    {% if attendance_item.mark.activity_mark == 'excellent' %}
+                                                        <span class="badge bg-success">Отлично</span>
+                                                    {% elif attendance_item.mark.activity_mark == 'normal' %}
+                                                        <span class="badge bg-primary">Нормально</span>
+                                                    {% elif attendance_item.mark.activity_mark == 'poor' %}
+                                                        <span class="badge bg-danger">Плохо</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">Нет оценки</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if attendance_item.mark.teacher_comment %}
+                                                    {{ attendance_item.mark.teacher_comment }}
+                                                {% else %}
+                                                    <span class="text-muted">Нет комментария</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            У ученика нет активных классов.
+        </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'core:home' %}" class="btn btn-secondary">Назад</a>
+    </div>
+</div>
+{% endblock %}

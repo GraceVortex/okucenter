@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Новое сообщение - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <a href="{% url 'messaging:inbox' %}" class="text-decoration-none mb-3 d-inline-block">
+                <i class="bi bi-arrow-left me-2"></i> Назад к списку сообщений
+            </a>
+            <h1 class="display-5 fw-bold">Новое сообщение</h1>
+            <p class="text-muted fs-5">Создание нового диалога с администрацией</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="recipient" class="form-label">Получатель</label>
+                            <select class="form-select" id="recipient" name="recipient" required>
+                                <option value="" selected disabled>Выберите получателя</option>
+                                {% for recipient in recipients %}
+                                    <option value="{{ recipient.id }}">
+                                        {{ recipient.get_full_name|default:recipient.username }}
+                                        {% if recipient.is_admin %}(Администратор){% elif recipient.is_reception %}(Ресепшн){% elif recipient.is_parent %}(Родитель){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Тема (необязательно)</label>
+                            <input type="text" class="form-control" id="subject" name="subject" placeholder="Введите тему сообщения">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Сообщение</label>
+                            <textarea class="form-control" id="content" name="content" rows="5" required placeholder="Введите текст сообщения"></textarea>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-2"></i> Отправить сообщение
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

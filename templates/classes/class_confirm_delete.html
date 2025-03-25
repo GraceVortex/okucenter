@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Удаление класса - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">Подтверждение удаления</h5>
+                </div>
+                <div class="card-body">
+                    <p>Вы уверены, что хотите удалить класс "{{ class.name }}"?</p>
+                    <p class="text-danger">Внимание: Это действие нельзя отменить. Все данные, связанные с этим классом (расписание, домашние задания, записи студентов) будут удалены.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-danger">Удалить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

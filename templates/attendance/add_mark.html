@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавление оценки - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Добавление оценки для {{ attendance.student.full_name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Информация о посещении:</h6>
+                        <p><strong>Дата:</strong> {{ attendance.date|date:"d.m.Y" }}</p>
+                        <p><strong>Класс:</strong> {{ attendance.class_obj.name }}</p>
+                        <p><strong>Время:</strong> {{ attendance.class_schedule.start_time|time:"H:i" }} - {{ attendance.class_schedule.end_time|time:"H:i" }}</p>
+                        <p><strong>Комната:</strong> {{ attendance.class_schedule.room }}</p>
+                        <p>
+                            <strong>Статус:</strong>
+                            {% if attendance.status == 'present' %}
+                                <span class="badge bg-success">Присутствовал</span>
+                            {% elif attendance.status == 'absent' %}
+                                <span class="badge bg-danger">Отсутствовал</span>
+                            {% elif attendance.status == 'excused' %}
+                                <span class="badge bg-warning text-dark">По уважительной причине</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.homework_mark.id_for_label }}" class="form-label">Оценка за домашнее задание</label>
+                            {{ form.homework_mark }}
+                            {% if form.homework_mark.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.homework_mark.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.activity_mark.id_for_label }}" class="form-label">Оценка за активность</label>
+                            {{ form.activity_mark }}
+                            {% if form.activity_mark.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.activity_mark.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.teacher_comment.id_for_label }}" class="form-label">Комментарий учителя</label>
+                            {{ form.teacher_comment }}
+                            {% if form.teacher_comment.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.teacher_comment.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Максимум 150 символов</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Добавляем классы Bootstrap к полям формы
+    document.addEventListener('DOMContentLoaded', function() {
+        const formFields = document.querySelectorAll('select, textarea');
+        formFields.forEach(field => {
+            field.classList.add('form-control');
+        });
+    });
+</script>
+{% endblock %}

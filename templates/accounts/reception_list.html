@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Ресепшенисты - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Ресепшенисты</h1>
+            <p class="text-muted fs-5">Список всех ресепшенистов образовательного центра</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if user.is_admin %}
+                <a href="{% url 'accounts:add_reception' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить ресепшениста
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if receptions %}
+        <div class="row">
+            {% for reception in receptions %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title fw-bold mb-0">{{ reception.full_name }}</h5>
+                                <span class="badge bg-info">Ресепшенист</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {% if reception.user.email %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-envelope text-primary me-2"></i>
+                                    <span>{{ reception.user.email }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if reception.phone_number %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-telephone text-primary me-2"></i>
+                                    <span>{{ reception.phone_number }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-calendar text-primary me-2"></i>
+                                    <span>Дата рождения: {{ reception.birth_date|date:"d.m.Y" }}</span>
+                                </div>
+                                
+                                {% if reception.docs_link %}
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-link-45deg text-primary me-2"></i>
+                                    <a href="{{ reception.docs_link }}" target="_blank">Документы</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if user.is_admin %}
+                                <div class="d-flex justify-content-end mt-3">
+                                    <a href="{% url 'accounts:edit_reception' reception.id %}" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="bi bi-pencil-square"></i> Редактировать
+                                    </a>
+                                    <a href="{% url 'accounts:delete_reception' reception.id %}" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Удалить
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-person-badge display-1 text-muted mb-3"></i>
+                <h3>Нет ресепшенистов</h3>
+                <p class="text-muted">Добавьте ресепшенистов, чтобы они отображались здесь</p>
+                
+                {% if user.is_admin %}
+                    <a href="{% url 'accounts:add_reception' %}" class="btn btn-primary mt-3">
+                        <i class="bi bi-plus-circle me-2"></i> Добавить ресепшениста
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

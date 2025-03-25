@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Подтверждение отмены урока - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Подтверждение отмены урока</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>Информация о запросе:</h6>
+                        <p><strong>Класс:</strong> {{ cancellation_request.class_obj.name }}</p>
+                        <p><strong>Учитель:</strong> {{ cancellation_request.teacher.user.get_full_name }}</p>
+                        <p><strong>Дата:</strong> {{ cancellation_request.date|date:"d.m.Y" }}</p>
+                        <p><strong>Время:</strong> {{ cancellation_request.class_schedule.start_time|time:"H:i" }} - {{ cancellation_request.class_schedule.end_time|time:"H:i" }}</p>
+                        <p><strong>Причина:</strong> {{ cancellation_request.reason }}</p>
+                        <p><strong>Требуется заменяющий учитель:</strong> {{ cancellation_request.needs_substitute|yesno:"Да,Нет" }}</p>
+                        {% if cancellation_request.substitute_teacher %}
+                            <p><strong>Предложенный заменяющий учитель:</strong> {{ cancellation_request.substitute_teacher.user.get_full_name }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.approve }}
+                            <label class="form-check-label" for="{{ form.approve.id_for_label }}">Подтвердить отмену урока</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.substitute_teacher.id_for_label }}" class="form-label">Назначить заменяющего учителя (опционально):</label>
+                            {{ form.substitute_teacher }}
+                            {% if form.substitute_teacher.errors %}
+                                <div class="text-danger">{{ form.substitute_teacher.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Если вы назначите заменяющего учителя, урок не будет отменен, а будет проведен другим учителем.</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'attendance:cancellation_requests_list' %}" class="btn btn-secondary">Назад</a>
+                            <button type="submit" class="btn btn-primary">Подтвердить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

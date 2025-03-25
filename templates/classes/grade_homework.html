@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Оценка домашнего задания - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Оценка домашнего задания</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Информация о задании:</h6>
+                        <p><strong>Класс:</strong> {{ class.name }}</p>
+                        <p><strong>Дата:</strong> {{ homework.date|date:"d.m.Y" }}</p>
+                        <p><strong>Описание:</strong> {{ homework.description }}</p>
+                        <p><strong>Студент:</strong> {{ student.full_name }}</p>
+                        <p><strong>Дата отправки:</strong> {{ submission.submission_date|date:"d.m.Y H:i" }}</p>
+                        
+                        {% if submission.file %}
+                            <p>
+                                <a href="{{ submission.file.url }}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="bi bi-download me-2"></i> Скачать файл студента
+                                </a>
+                            </p>
+                        {% endif %}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.completion_status.id_for_label }}" class="form-label">Статус выполнения</label>
+                            {{ form.completion_status }}
+                            {% if form.completion_status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.completion_status.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.teacher_comment.id_for_label }}" class="form-label">Комментарий (макс. 150 символов)</label>
+                            {{ form.teacher_comment }}
+                            {% if form.teacher_comment.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.teacher_comment.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <span id="comment-count">0</span>/150 символов
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary">Сохранить оценку</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Добавляем классы Bootstrap к полям формы
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusField = document.querySelector('select[name="completion_status"]');
+        const commentField = document.querySelector('textarea[name="teacher_comment"]');
+        
+        if (statusField) {
+            statusField.classList.add('form-select');
+        }
+        
+        if (commentField) {
+            commentField.classList.add('form-control');
+            
+            // Счетчик символов
+            const commentCount = document.getElementById('comment-count');
+            
+            commentField.addEventListener('input', function() {
+                const count = this.value.length;
+                commentCount.textContent = count;
+                
+                if (count > 150) {
+                    commentField.classList.add('is-invalid');
+                    commentCount.classList.add('text-danger');
+                } else {
+                    commentField.classList.remove('is-invalid');
+                    commentCount.classList.remove('text-danger');
+                }
+            });
+            
+            // Инициализация счетчика
+            commentCount.textContent = commentField.value.length;
+        }
+    });
+</script>
+{% endblock %}

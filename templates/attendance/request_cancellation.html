@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Запрос на отмену урока - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Запрос на отмену урока</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>Информация об уроке:</h6>
+                        <p><strong>Класс:</strong> {{ class_obj.name }}</p>
+                        <p><strong>Дата:</strong> {{ date|date:"d.m.Y" }}</p>
+                        <p><strong>Время:</strong> {{ class_schedule.start_time|time:"H:i" }} - {{ class_schedule.end_time|time:"H:i" }}</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_reason" class="form-label">Причина отмены:</label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="text-danger">{{ form.reason.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.needs_substitute }}
+                            <label class="form-check-label" for="id_needs_substitute">Требуется заменяющий учитель</label>
+                        </div>
+                        
+                        <div class="mb-3" id="substitute_teacher_div" style="display: none;">
+                            <label for="id_substitute_teacher" class="form-label">Выберите заменяющего учителя:</label>
+                            {{ form.substitute_teacher }}
+                            {% if form.substitute_teacher.errors %}
+                                <div class="text-danger">{{ form.substitute_teacher.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'classes:teacher_schedule' %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary">Отправить запрос</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const needsSubstituteCheckbox = document.getElementById('needs_substitute');
+        const substituteTeacherDiv = document.getElementById('substitute_teacher_div');
+        
+        // Функция для отображения/скрытия поля выбора заменяющего учителя
+        function toggleSubstituteTeacher() {
+            if (needsSubstituteCheckbox.checked) {
+                substituteTeacherDiv.style.display = 'block';
+            } else {
+                substituteTeacherDiv.style.display = 'none';
+            }
+        }
+        
+        // Вызываем функцию при загрузке страницы
+        toggleSubstituteTeacher();
+        
+        // Добавляем обработчик события изменения чекбокса
+        needsSubstituteCheckbox.addEventListener('change', toggleSubstituteTeacher);
+    });
+</script>
+{% endblock %}
+{% endblock %}

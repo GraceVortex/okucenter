@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Журнал отмененных посещений{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Журнал отмененных посещений</h5>
+                    <a href="{% url 'attendance:attendance_list' %}" class="btn btn-sm btn-light">
+                        <i class="bi bi-arrow-left"></i> К списку посещений
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Фильтры -->
+                    <div class="mb-4">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-3">
+                                <label for="{{ form.start_date.id_for_label }}" class="form-label">Начальная дата</label>
+                                {{ form.start_date }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.end_date.id_for_label }}" class="form-label">Конечная дата</label>
+                                {{ form.end_date }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.class_obj.id_for_label }}" class="form-label">Класс</label>
+                                {{ form.class_obj }}
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">Применить фильтры</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Таблица отмененных посещений -->
+                    {% if canceled_attendances %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Дата отмены</th>
+                                        <th>Студент</th>
+                                        <th>Класс</th>
+                                        <th>Дата занятия</th>
+                                        <th>Кем отменено</th>
+                                        <th>Причина</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for canceled in canceled_attendances %}
+                                        <tr>
+                                            <td>{{ canceled.canceled_at|date:"d.m.Y H:i" }}</td>
+                                            <td>{{ canceled.attendance.student.full_name }}</td>
+                                            <td>{{ canceled.attendance.class_obj.name }}</td>
+                                            <td>{{ canceled.attendance.date|date:"d.m.Y" }}</td>
+                                            <td>{{ canceled.canceled_by.get_full_name }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#reasonModal{{ canceled.id }}">
+                                                    Просмотреть
+                                                </button>
+                                                
+                                                <!-- Модальное окно с причиной -->
+                                                <div class="modal fade" id="reasonModal{{ canceled.id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Причина отмены посещения</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <p>{{ canceled.reason }}</p>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i> Нет данных об отмененных посещениях за выбранный период.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

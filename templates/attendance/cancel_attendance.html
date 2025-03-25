@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отмена посещения{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Отмена посещения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h6>Внимание!</h6>
+                        <p>Вы собираетесь отменить подтвержденное посещение. Это действие:</p>
+                        <ul>
+                            <li>Вернет деньги на счет студента, если они были списаны</li>
+                            <li>Отменит подтверждение посещения</li>
+                            <li>Запишет информацию в журнал отмененных посещений</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>Информация о посещении:</h6>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>Студент:</th>
+                                <td>{{ attendance.student.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Класс:</th>
+                                <td>{{ attendance.class_obj.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Дата:</th>
+                                <td>{{ attendance.date|date:"d.m.Y" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Статус:</th>
+                                <td>
+                                    {% if attendance.status == 'present' %}
+                                        <span class="badge bg-success">Присутствовал</span>
+                                    {% elif attendance.status == 'absent' %}
+                                        <span class="badge bg-danger">Отсутствовал</span>
+                                    {% elif attendance.status == 'excused' %}
+                                        <span class="badge bg-warning">По уважительной причине</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.reason.id_for_label }}" class="form-label">Причина отмены:</label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="text-danger">
+                                    {{ form.reason.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">{{ form.reason.help_text }}</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-danger">Подтвердить отмену посещения</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

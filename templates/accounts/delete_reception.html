@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Удаление ресепшениста - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">Удаление ресепшениста</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Внимание!</strong> Вы собираетесь удалить ресепшениста <strong>{{ reception.full_name }}</strong>. 
+                        Это действие нельзя будет отменить. Учетная запись пользователя также будет удалена.
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Информация о ресепшенисте</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>ФИО:</strong> {{ reception.full_name }}
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Имя пользователя:</strong> {{ reception.user.username }}
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Email:</strong> {{ reception.user.email|default:"Не указан" }}
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Телефон:</strong> {{ reception.phone_number|default:"Не указан" }}
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Дата рождения:</strong> {{ reception.birth_date|date:"d.m.Y" }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end">
+                            <a href="{% url 'accounts:reception_list' %}" class="btn btn-outline-secondary me-2">Отмена</a>
+                            <button type="submit" class="btn btn-danger">Подтвердить удаление</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

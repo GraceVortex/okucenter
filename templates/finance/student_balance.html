@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+
+{% block title %}Баланс студента - {{ student.full_name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">{{ student.full_name }}</h1>
+            <p class="text-muted fs-5">Управление финансами и баланс студента</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if user.is_admin or user.is_reception %}
+                <a href="{% url 'finance:add_transaction' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить транзакцию
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body p-4 text-center">
+                            <h5 class="text-muted mb-3">Текущий баланс</h5>
+                            <div class="display-4 fw-bold mb-3 {% if balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ balance }} ₸
+                            </div>
+                            {% if balance < 0 %}
+                                <div class="alert alert-danger py-2 mb-0">
+                                    <i class="bi bi-exclamation-triangle me-2"></i> Отрицательный баланс
+                                </div>
+                            {% else %}
+                                <div class="alert alert-success py-2 mb-0">
+                                    <i class="bi bi-check-circle me-2"></i> Положительный баланс
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <h5 class="text-muted mb-3">
+                                Финансовая статистика
+                                {% if active_filter == 'last_deposit' and period_start %}
+                                    <small class="d-block text-muted fs-6">с {{ period_start|date:"d.m.Y" }} по {{ period_end|date:"d.m.Y" }}</small>
+                                {% endif %}
+                            </h5>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-arrow-down text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Всего пополнено</span>
+                                        <span class="fw-bold">
+                                            {% if active_filter == 'last_deposit' %}
+                                                {{ period_deposits }} ₸
+                                            {% else %}
+                                                {{ total_deposits }} ₸
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-arrow-up text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Всего оплачено</span>
+                                        <span class="fw-bold">
+                                            {% if active_filter == 'last_deposit' %}
+                                                {{ period_payments }} ₸
+                                            {% else %}
+                                                {{ total_payments }} ₸
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">История транзакций</h4>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-funnel me-1"></i> Фильтр
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item {% if active_filter == 'last_deposit' %}active{% endif %}" href="?filter=last_deposit">С последнего пополнения</a></li>
+                                <li><a class="dropdown-item {% if active_filter == 'all' %}active{% endif %}" href="?filter=all">Все транзакции</a></li>
+                                <li><a class="dropdown-item {% if active_filter == 'deposits' %}active{% endif %}" href="?filter=deposits">Только пополнения</a></li>
+                                <li><a class="dropdown-item {% if active_filter == 'payments' %}active{% endif %}" href="?filter=payments">Только оплаты</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Дата</th>
+                                        <th>Сумма</th>
+                                        <th>Тип</th>
+                                        <th>Класс</th>
+                                        <th class="pe-4">Описание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                        <tr>
+                                            <td class="ps-4">{{ transaction.date|date:"d.m.Y" }}</td>
+                                            <td class="fw-bold {% if transaction.transaction_type == 'payment' %}text-danger{% else %}text-success{% endif %}">
+                                                {% if transaction.transaction_type == 'payment' %}-{% endif %}
+                                                {{ transaction.amount }} ₸
+                                            </td>
+                                            <td>
+                                                {% if transaction.transaction_type == 'payment' %}
+                                                    <span class="badge bg-danger rounded-pill">Оплата</span>
+                                                {% elif transaction.transaction_type == 'deposit' %}
+                                                    <span class="badge bg-success rounded-pill">Пополнение</span>
+                                                {% elif transaction.transaction_type == 'refund' %}
+                                                    <span class="badge bg-warning text-dark rounded-pill">Возврат</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if transaction.class_obj %}
+                                                    <a href="{% url 'classes:class_detail' class_id=transaction.class_obj.id %}" class="text-decoration-none">
+                                                        {{ transaction.class_obj.name }}
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="pe-4">{{ transaction.description }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-credit-card display-1 text-muted mb-3"></i>
+                            <h4 class="fw-bold">История транзакций пуста</h4>
+                            <p class="text-muted">У студента пока нет финансовых операций</p>
+                            
+                            {% if user.is_admin or user.is_reception %}
+                                <a href="{% url 'finance:add_transaction' %}" class="btn btn-primary mt-3">
+                                    <i class="bi bi-plus-circle me-2"></i> Добавить первую транзакцию
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-4">Информация о студенте</h4>
+                    
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="avatar-circle me-3">
+                            <span class="avatar-initials">{{ student.full_name|slice:":1" }}</span>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">{{ student.full_name }}</h5>
+                            <p class="text-muted mb-0">Студент</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-top pt-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-telephone text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Телефон</div>
+                                <div>{{ student.phone_number }}</div>
+                            </div>
+                        </div>
+                        
+                        {% if student.school %}
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-building text-primary me-3 fs-5"></i>
+                                <div>
+                                    <div class="text-muted small">Школа</div>
+                                    <div>{{ student.school }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if student.graduation_year %}
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-mortarboard text-primary me-3 fs-5"></i>
+                                <div>
+                                    <div class="text-muted small">Год выпуска</div>
+                                    <div>{{ student.graduation_year }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if student.parent %}
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-people text-primary me-3 fs-5"></i>
+                                <div>
+                                    <div class="text-muted small">Родитель</div>
+                                    <div>{{ student.parent.full_name }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-telephone text-primary me-3 fs-5"></i>
+                                <div>
+                                    <div class="text-muted small">Телефон родителя</div>
+                                    <div>{{ student.parent.phone_number }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">Классы</h4>
+                        <span class="badge bg-primary rounded-pill">{{ student.enrollments.all|length }}</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if student.enrollments.all %}
+                        <div class="list-group list-group-flush">
+                            {% for enrollment in student.enrollments.all %}
+                                {% if user.is_admin or user.is_reception or user.is_teacher %}
+                                <a href="{% url 'classes:class_detail' class_id=enrollment.class_obj.id %}" class="list-group-item list-group-item-action p-3">
+                                {% else %}
+                                <div class="list-group-item p-3">
+                                {% endif %}
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 fw-bold">{{ enrollment.class_obj.name }}</h6>
+                                            <p class="text-muted mb-0 small">Учитель: {{ enrollment.class_obj.teacher.full_name }}</p>
+                                        </div>
+                                        <span class="badge bg-primary rounded-pill">{{ enrollment.class_obj.price_per_lesson }} ₸</span>
+                                    </div>
+                                {% if user.is_admin or user.is_reception or user.is_teacher %}
+                                </a>
+                                {% else %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-book-half text-muted fs-1 mb-2"></i>
+                            <p class="text-muted mb-0">Студент не записан ни на один класс</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if user.is_admin or user.is_reception %}
+                    <div class="card-footer bg-white p-3">
+                        <a href="#" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-plus-circle me-2"></i> Записать на класс
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            {% if user.is_admin or user.is_reception %}
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Быстрые действия</h4>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'finance:add_transaction' %}" class="btn btn-outline-success">
+                                <i class="bi bi-cash-coin me-2"></i> Пополнить баланс
+                            </a>
+                            
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil-square me-2"></i> Редактировать данные
+                            </a>
+                            
+                            <a href="#" class="btn btn-outline-info">
+                                <i class="bi bi-printer me-2"></i> Распечатать отчет
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    background-color: #007bff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-initials {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+</style>
+{% endblock %}

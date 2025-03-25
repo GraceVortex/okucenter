@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+
+{% block title %}Расписание - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .schedule-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        margin-bottom: 30px;
+    }
+    
+    .schedule-table th, .schedule-table td {
+        border: none;
+        padding: 15px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    .schedule-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #343a40;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .schedule-table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .schedule-table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.03);
+    }
+    
+    .schedule-table tbody tr:not(:last-child) {
+        border-bottom: 1px solid #f2f2f2;
+    }
+    
+    .class-item {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-left: 4px solid #007bff;
+    }
+    
+    .class-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .class-item.math {
+        border-left-color: #007bff;
+    }
+    
+    .class-item.science {
+        border-left-color: #28a745;
+    }
+    
+    .class-item.language {
+        border-left-color: #dc3545;
+    }
+    
+    .class-item.art {
+        border-left-color: #fd7e14;
+    }
+    
+    .class-item.other {
+        border-left-color: #6c757d;
+    }
+    
+    .class-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .class-teacher {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+    
+    .class-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #212529;
+    }
+    
+    .day-header {
+        font-weight: 700;
+        color: #343a40;
+        margin-top: 40px;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+    }
+    
+    .time-slot {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .no-classes {
+        color: #adb5bd;
+        font-style: italic;
+    }
+    
+    .day-tab {
+        cursor: pointer;
+        padding: 10px 20px;
+        border-radius: 5px;
+        transition: all 0.2s ease;
+    }
+    
+    .day-tab.active {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .day-tab:hover:not(.active) {
+        background-color: #f8f9fa;
+    }
+    
+    .day-content {
+        display: none;
+    }
+    
+    .day-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Расписание занятий</h1>
+            <p class="text-muted fs-5">Общее расписание всех классов по комнатам и дням недели</p>
+        </div>
+    </div>
+    
+    <!-- Навигация по дням недели -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
+                <ul class="nav nav-pills" id="dayTabs" role="tablist">
+                    {% for day in days %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                                id="tab-{{ day|lower }}" 
+                                data-bs-toggle="pill" 
+                                data-bs-target="#content-{{ day|lower }}" 
+                                type="button" 
+                                role="tab" 
+                                aria-controls="content-{{ day|lower }}" 
+                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                            {{ day }}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Содержимое вкладок для каждого дня недели -->
+    <div class="tab-content" id="dayTabsContent">
+        {% for day in days %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+             id="content-{{ day|lower }}" 
+             role="tabpanel" 
+             aria-labelledby="tab-{{ day|lower }}">
+            
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-white p-4">
+                    <h2 class="mb-0 fw-bold">{{ day }}</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table schedule-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Время / Комната</th>
+                                    {% for room in rooms %}
+                                    <th>{{ room }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for time_slot in time_slots %}
+                                <tr>
+                                    <td class="time-slot">{{ time_slot }}</td>
+                                    {% for room in rooms %}
+                                    <td>
+                                        {% with classes=schedule_data|get_item:day|get_item:time_slot|get_item:room %}
+                                            {% if classes %}
+                                                {% for schedule in classes %}
+                                                <div class="class-item {% if schedule.class_obj.subject == 'math' %}math{% elif schedule.class_obj.subject == 'science' %}science{% elif schedule.class_obj.subject == 'language' %}language{% elif schedule.class_obj.subject == 'art' %}art{% else %}other{% endif %}">
+                                                    <div class="class-name">{{ schedule.class_obj.name }}</div>
+                                                    <div class="class-teacher">{{ schedule.class_obj.teacher.full_name }}</div>
+                                                </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="no-classes">Нет занятий</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-3">Условные обозначения</h4>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary me-2" style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                            <span>Математика</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success me-2" style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                            <span>Естественные науки</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-danger me-2" style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                            <span>Язык и литература</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-warning me-2" style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                            <span>Искусство</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-secondary me-2" style="width: 20px; height: 20px; border-radius: 4px;"></div>
+                            <span>Другие предметы</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-3">Информация</h4>
+                    <p>Расписание обновляется администрацией образовательного центра.</p>
+                    <p class="mb-0">Для получения дополнительной информации о занятиях, пожалуйста, обратитесь к администратору.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Дополнительный JavaScript, если потребуется
+</script>
+{% endblock %}

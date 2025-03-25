@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Преподаватели - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Преподаватели</h1>
+            <p class="text-muted fs-5">Список всех преподавателей образовательного центра</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if user.is_admin %}
+                <a href="{% url 'accounts:add_teacher' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Добавить преподавателя
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if teachers %}
+        <div class="row">
+            {% for teacher in teachers %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title fw-bold mb-0">{{ teacher.full_name }}</h5>
+                                <span class="badge bg-primary">Преподаватель</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {% if teacher.email %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-envelope text-primary me-2"></i>
+                                    <span>{{ teacher.email }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if teacher.phone %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-telephone text-primary me-2"></i>
+                                    <span>{{ teacher.phone }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if teacher.birth_date %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-calendar text-primary me-2"></i>
+                                    <span>{{ teacher.birth_date|date:"d.m.Y" }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if teacher.docs_link %}
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                    <a href="{{ teacher.docs_link }}" target="_blank">Документы</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if user.is_admin %}
+                            <div class="d-flex justify-content-end mt-auto">
+                                <a href="{% url 'accounts:edit_teacher' teacher.pk %}" class="btn btn-sm btn-outline-primary me-2">
+                                    <i class="bi bi-pencil"></i> Редактировать
+                                </a>
+                                <a href="{% url 'accounts:delete_teacher' teacher.pk %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-person-badge display-1 text-muted mb-3"></i>
+                <h3>Нет преподавателей</h3>
+                <p class="text-muted">В системе пока не зарегистрировано ни одного преподавателя</p>
+                
+                {% if user.is_admin %}
+                    <a href="{% url 'accounts:add_teacher' %}" class="btn btn-primary mt-3">
+                        <i class="bi bi-plus-circle me-2"></i> Добавить первого преподавателя
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+    
+    {% if user.is_admin %}
+        <div class="card mt-5">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-4">Управление преподавателями</h4>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-plus-circle-dotted fs-3 text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Добавление преподавателя</h6>
+                                <p class="text-muted mb-0 small">Регистрация нового преподавателя в системе</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-pencil-square fs-3 text-success"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Редактирование данных</h6>
+                                <p class="text-muted mb-0 small">Изменение информации о преподавателе</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-calendar-check fs-3 text-info"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Назначение классов</h6>
+                                <p class="text-muted mb-0 small">Привязка преподавателя к классам</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

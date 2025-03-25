@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Непроверенные задания - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'classes:student_classes' %}">Мои классы</a></li>
+                    <li class="breadcrumb-item active">Непроверенные задания</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Непроверенные домашние задания</h2>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Задания, ожидающие проверки</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if homework_data %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Класс</th>
+                                        <th>Задание</th>
+                                        <th>Отправлено</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in homework_data %}
+                                        <tr>
+                                            <td>{{ item.class.name }}</td>
+                                            <td>
+                                                <strong>{{ item.homework.title }}</strong>
+                                                <p class="small text-muted mb-0">{{ item.homework.description|truncatechars:50 }}</p>
+                                                {% if item.homework.file %}
+                                                    <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-secondary mt-1" target="_blank">
+                                                        <i class="bi bi-file-earmark-text"></i> Скачать задание
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ item.submitted_at|date:"d.m.Y H:i" }}
+                                                <p class="small text-muted mb-0">
+                                                    {% if item.homework.due_date %}
+                                                        {% if item.submitted_at.date <= item.homework.due_date %}
+                                                            <span class="text-success">
+                                                                <i class="bi bi-check-circle"></i> Вовремя
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="text-danger">
+                                                                <i class="bi bi-exclamation-circle"></i> Просрочено
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </p>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-warning">Ожидает проверки</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    {% if item.submission.file %}
+                                                        <a href="{{ item.submission.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                            <i class="bi bi-file-earmark-text"></i> Просмотреть
+                                                        </a>
+                                                    {% endif %}
+                                                    <button type="button" class="btn btn-sm btn-danger cancel-submission-btn" 
+                                                        data-bs-toggle="modal" data-bs-target="#cancelSubmissionModal" 
+                                                        data-submission-id="{{ item.submission.id }}"
+                                                        data-homework-title="{{ item.homework.title }}">
+                                                        Отменить отправку
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i> У вас нет непроверенных домашних заданий.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для отмены отправки домашнего задания -->
+<div class="modal fade" id="cancelSubmissionModal" tabindex="-1" aria-labelledby="cancelSubmissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelSubmissionModalLabel">Отмена отправки задания</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите отменить отправку этого задания? После отмены вы сможете отправить его заново.</p>
+                <input type="hidden" id="submissionId">
+                <div id="cancelResult" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет, оставить</button>
+                <button type="button" class="btn btn-danger" id="cancelSubmissionBtn">Да, отменить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработчик для кнопок "Отменить отправку"
+        const cancelButtons = document.querySelectorAll('.cancel-submission-btn');
+        cancelButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const submissionId = this.getAttribute('data-submission-id');
+                const homeworkTitle = this.getAttribute('data-homework-title');
+                document.getElementById('submissionId').value = submissionId;
+                document.getElementById('cancelSubmissionModalLabel').textContent = 'Отмена отправки: ' + homeworkTitle;
+                
+                // Скрываем сообщение о результате
+                const resultDiv = document.getElementById('cancelResult');
+                resultDiv.classList.add('d-none');
+                resultDiv.classList.remove('alert-success', 'alert-danger');
+            });
+        });
+        
+        // Обработчик для кнопки отмены отправки
+        document.getElementById('cancelSubmissionBtn').addEventListener('click', function() {
+            const submissionId = document.getElementById('submissionId').value;
+            const resultDiv = document.getElementById('cancelResult');
+            
+            // Отправка AJAX-запроса
+            fetch(`/classes/homework-submission/${submissionId}/cancel/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.classList.remove('d-none');
+                
+                if (data.success) {
+                    resultDiv.classList.add('alert-success');
+                    resultDiv.textContent = data.message;
+                    
+                    // Закрываем модальное окно через 2 секунды и перезагружаем страницу
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('cancelSubmissionModal'));
+                        modal.hide();
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    resultDiv.classList.add('alert-danger');
+                    resultDiv.textContent = data.message || 'Произошла ошибка при отмене отправки';
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.remove('d-none');
+                resultDiv.classList.add('alert-danger');
+                resultDiv.textContent = 'Произошла ошибка при отправке запроса';
+                console.error('Error:', error);
+            });
+        });
+    });
+</script>
+{% endblock %}

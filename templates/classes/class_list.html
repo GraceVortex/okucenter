@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Классы - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Классы</h1>
+            <p class="text-muted fs-5">Список всех доступных классов образовательного центра</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if user.is_admin or user.is_reception %}
+                <a href="{% url 'classes:create_class' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i> Создать класс
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if classes %}
+        <div class="row">
+            {% for class in classes %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title fw-bold mb-0">{{ class.name }}</h5>
+                                <span class="badge bg-primary">{{ class.price_per_lesson }} ₸</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-person-badge text-primary me-2"></i>
+                                    <span>{{ class.teacher.full_name }}</span>
+                                </div>
+                                
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-people text-primary me-2"></i>
+                                    <span>{{ class.students.count }} студентов</span>
+                                </div>
+                                
+                                {% if class.schedules.exists %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar-check text-primary me-2"></i>
+                                        <span>{{ class.schedules.count }} занятий в неделю</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if class.description %}
+                                <p class="card-text text-muted mb-4">{{ class.description|truncatechars:100 }}</p>
+                            {% endif %}
+                            
+                            <div class="mt-auto">
+                                <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-eye me-2"></i> Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-book-half display-1 text-muted mb-3"></i>
+                <h3>Нет доступных классов</h3>
+                <p class="text-muted">В системе пока не создано ни одного класса</p>
+                
+                {% if user.is_admin or user.is_reception %}
+                    <a href="{% url 'classes:create_class' %}" class="btn btn-primary mt-3">
+                        <i class="bi bi-plus-circle me-2"></i> Создать первый класс
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+    
+    {% if user.is_admin or user.is_reception %}
+        <div class="card mt-5">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-4">Управление классами</h4>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-plus-circle-dotted fs-3 text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Создание класса</h6>
+                                <p class="text-muted mb-0 small">Добавление нового класса в систему</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-person-plus fs-3 text-success"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Добавление студентов</h6>
+                                <p class="text-muted mb-0 small">Запись студентов на занятия</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="bi bi-calendar-plus fs-3 text-info"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Расписание занятий</h6>
+                                <p class="text-muted mb-0 small">Управление временем и местом проведения</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

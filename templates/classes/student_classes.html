@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои классы - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-5 fw-bold">Мои классы</h1>
+                <a href="{% url 'classes:unchecked_student_homework' %}" class="btn btn-warning">
+                    <i class="bi bi-exclamation-circle me-1"></i> Непроверенные задания
+                </a>
+            </div>
+            <p class="text-muted fs-5">Просмотр ваших классов и расписания</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if classes_with_info %}
+        <div class="row">
+            {% for class_info in classes_with_info %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ class_info.class.name }}</h5>
+                                <span class="badge bg-light text-dark">{{ class_info.class.teacher.full_name }}</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <h6 class="fw-bold mb-2">Описание:</h6>
+                                <p>{{ class_info.class.description|default:"Описание отсутствует" }}</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="fw-bold mb-2">Расписание занятий:</h6>
+                                {% if class_info.schedules %}
+                                    <ul class="list-group">
+                                    {% for schedule in class_info.schedules %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ schedule.get_day_of_week_display }}</strong>
+                                                {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">Кабинет {{ schedule.room }}</span>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">Расписание не установлено</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-book display-1 text-muted mb-3"></i>
+                <h3>Вы не записаны ни на один класс</h3>
+                <p class="text-muted">Свяжитесь с администратором для записи на занятия</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .card-header {
+        border-radius: 0.25rem 0.25rem 0 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Модальное окно для отправки домашнего задания -->
+<div class="modal fade" id="homeworkModal" tabindex="-1" aria-labelledby="homeworkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="homeworkModalLabel">Отправка домашнего задания</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="homeworkSubmissionForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" id="homeworkId" name="homework_id">
+                    <div class="mb-3">
+                        <label for="homeworkFile" class="form-label">Файл с выполненным заданием</label>
+                        <input type="file" class="form-control" id="homeworkFile" name="file" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="homeworkComment" class="form-label">Комментарий (необязательно)</label>
+                        <textarea class="form-control" id="homeworkComment" name="comment" rows="3"></textarea>
+                    </div>
+                </form>
+                <div id="submissionResult" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="submitHomeworkBtn">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработчик для кнопок "Сдать работу"
+        const submitButtons = document.querySelectorAll('.submit-homework-btn');
+        submitButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const homeworkId = this.getAttribute('data-homework-id');
+                const homeworkTitle = this.getAttribute('data-homework-title');
+                document.getElementById('homeworkId').value = homeworkId;
+                document.getElementById('homeworkModalLabel').textContent = 'Отправка задания: ' + homeworkTitle;
+                
+                // Сбрасываем форму и скрываем сообщение о результате
+                document.getElementById('homeworkSubmissionForm').reset();
+                const resultDiv = document.getElementById('submissionResult');
+                resultDiv.classList.add('d-none');
+                resultDiv.classList.remove('alert-success', 'alert-danger');
+            });
+        });
+        
+        // Обработчик для кнопки отправки формы
+        document.getElementById('submitHomeworkBtn').addEventListener('click', function() {
+            const form = document.getElementById('homeworkSubmissionForm');
+            const formData = new FormData(form);
+            const homeworkId = document.getElementById('homeworkId').value;
+            const resultDiv = document.getElementById('submissionResult');
+            
+            // Проверка заполнения формы
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Отправка AJAX-запроса
+            fetch(`/classes/homework/${homeworkId}/submit-ajax/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.classList.remove('d-none');
+                
+                if (data.success) {
+                    resultDiv.classList.add('alert-success');
+                    resultDiv.textContent = data.message;
+                    
+                    // Отключаем кнопку "Сдать работу" для этого задания
+                    const buttons = document.querySelectorAll(`.submit-homework-btn[data-homework-id="${homeworkId}"]`);
+                    buttons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.textContent = 'Работа сдана';
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-success');
+                    });
+                    
+                    // Закрываем модальное окно через 2 секунды
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('homeworkModal'));
+                        modal.hide();
+                    }, 2000);
+                } else {
+                    resultDiv.classList.add('alert-danger');
+                    resultDiv.textContent = data.message || 'Произошла ошибка при отправке задания';
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.remove('d-none');
+                resultDiv.classList.add('alert-danger');
+                resultDiv.textContent = 'Произошла ошибка при отправке запроса';
+                console.error('Error:', error);
+            });
+        });
+    });
+</script>
+{% endblock %}

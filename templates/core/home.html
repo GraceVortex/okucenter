@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    {% if user.is_authenticated %}
+        <div class="row mb-5">
+            <div class="col-md-8">
+                <h1 class="display-4 fw-bold">Добро пожаловать, {{ user.get_full_name|default:user.username }}</h1>
+                <p class="text-muted fs-5 mt-3">Система управления образовательным центром</p>
+            </div>
+            <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+                {% if user.is_admin or user.is_reception or user.is_teacher %}
+                <a href="{% url 'core:schedule' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-calendar-week me-2"></i> Расписание
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if user.is_admin %}
+            <div class="row mb-5">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-mortarboard display-1 text-primary mb-3"></i>
+                            <h3 class="card-title fw-bold">Студенты</h3>
+                            <p class="display-4 my-4">{{ admin_data.total_students }}</p>
+                            <a href="{% url 'accounts:student_list' %}" class="btn btn-outline-primary btn-lg w-100">
+                                <i class="bi bi-people me-2"></i> Управление студентами
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-person-video3 display-1 text-success mb-3"></i>
+                            <h3 class="card-title fw-bold">Учителя</h3>
+                            <p class="display-4 my-4">{{ admin_data.total_teachers }}</p>
+                            <a href="{% url 'accounts:teacher_list' %}" class="btn btn-outline-success btn-lg w-100">
+                                <i class="bi bi-person-badge me-2"></i> Управление учителями
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-book display-1 text-info mb-3"></i>
+                            <h3 class="card-title fw-bold">Классы</h3>
+                            <p class="display-4 my-4">{{ admin_data.total_classes }}</p>
+                            <a href="{% url 'classes:class_list' %}" class="btn btn-outline-info btn-lg w-100">
+                                <i class="bi bi-grid-3x3-gap me-2"></i> Управление классами
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold mb-0">Финансовая статистика</h4>
+                                <a href="{% url 'finance:transaction_list' %}" class="btn btn-sm btn-outline-primary">Подробнее</a>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h5 class="text-muted">Предконечный доход</h5>
+                                    <p class="display-6 fw-bold text-success">{{ admin_data.monthly_income|floatformat:2 }} ₸</p>
+                                </div>
+                                <div class="col-6">
+                                    <h5 class="text-muted">Общий баланс учеников</h5>
+                                    <p class="display-6 fw-bold text-primary">{{ admin_data.total_balance|floatformat:2 }} ₸</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold mb-0">Посещаемость</h4>
+                                <a href="{% url 'attendance:attendance_list' %}" class="btn btn-sm btn-outline-primary">Подробнее</a>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h5 class="text-muted">Сегодня</h5>
+                                    <p class="display-6 fw-bold text-success">{{ admin_data.today_attendance|default:"0" }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <h5 class="text-muted">Ожидают подтверждения</h5>
+                                    <p class="display-6 fw-bold text-warning">{{ pending_attendances|default:"0" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold">Ожидающие подтверждения</h4>
+                                <span class="badge bg-warning fs-5">{{ pending_attendances }}</span>
+                            </div>
+                            <p class="card-text text-muted mb-4">Уроки, отмеченные учителями и ожидающие подтверждения ресепшн</p>
+                            <a href="{% url 'attendance:attendance_list' %}" class="btn btn-warning">
+                                <i class="bi bi-check-all me-2"></i> Подтвердить посещаемость
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold">Запросы на отмену</h4>
+                                <span class="badge bg-danger fs-5">{{ pending_cancellations }}</span>
+                            </div>
+                            <p class="card-text text-muted mb-4">Запросы учителей на отмену уроков, ожидающие рассмотрения</p>
+                            <a href="{% url 'attendance:cancellation_requests_list' %}" class="btn btn-danger">
+                                <i class="bi bi-calendar-check me-2"></i> Обработать запросы
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        {% elif user.is_reception %}
+            <div class="row mb-5">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-4">
+                                <i class="bi bi-check2-circle display-1 text-warning mb-3"></i>
+                                <h3 class="card-title fw-bold">Ожидающие подтверждения</h3>
+                                <p class="display-4 my-4">{{ pending_attendances }}</p>
+                            </div>
+                            <a href="{% url 'attendance:attendance_list' %}" class="btn btn-warning btn-lg w-100">
+                                <i class="bi bi-check-all me-2"></i> Подтвердить посещаемость
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-4">
+                                <i class="bi bi-calendar-x display-1 text-danger mb-3"></i>
+                                <h3 class="card-title fw-bold">Запросы на отмену</h3>
+                                <p class="display-4 my-4">{{ pending_cancellations }}</p>
+                            </div>
+                            <a href="{% url 'attendance:cancellation_requests_list' %}" class="btn btn-danger btn-lg w-100">
+                                <i class="bi bi-calendar-check me-2"></i> Обработать запросы
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-4">
+                                <i class="bi bi-wallet2 display-1 text-success mb-3"></i>
+                                <h3 class="card-title fw-bold">Финансы</h3>
+                                <p class="card-text fs-5">Управление финансовыми операциями и транзакциями студентов</p>
+                            </div>
+                            <a href="{% url 'finance:transaction_list' %}" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-cash-coin me-2"></i> Финансовые операции
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-4">Расписание на сегодня</h4>
+                    <a href="{% url 'core:schedule' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-week me-2"></i> Просмотр полного расписания
+                    </a>
+                </div>
+            </div>
+            
+        {% elif user.is_teacher %}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold mb-0">Мои занятия сегодня</h4>
+                                <span class="badge bg-primary fs-6">{{ teacher_classes|length }}</span>
+                            </div>
+                            <a href="{% url 'classes:teacher_classes' %}" class="btn btn-primary">
+                                <i class="bi bi-calendar-check me-2"></i> Расписание занятий
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold mb-0">Посещаемость</h4>
+                                <a href="{% url 'attendance:attendance_list' %}" class="btn btn-sm btn-outline-primary">Подробнее</a>
+                            </div>
+                            <a href="{% url 'attendance:attendance_list' %}" class="btn btn-primary">
+                                <i class="bi bi-person-check me-2"></i> Отметить посещаемость
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="fw-bold mb-4">Мои классы</h3>
+            <div class="row">
+                {% for class in teacher_classes %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold">{{ class.name }}</h5>
+                                <p class="card-text">{{ class.description|truncatewords:20 }}</p>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <span class="badge bg-info">{{ class.students.count }} студентов</span>
+                                    <span class="text-muted">{{ class.price_per_lesson }} ₸ за урок</span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white border-top-0">
+                                <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-eye me-2"></i> Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-book-half display-1 text-muted mb-3"></i>
+                                <h4>У вас пока нет классов</h4>
+                                <p class="text-muted">Обратитесь к администратору для добавления классов</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+        {% elif user.is_student %}
+            <h3 class="fw-bold mb-4">Мои классы</h3>
+            <div class="row">
+                {% for enrollment in student_classes %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold">{{ enrollment.class_obj.name }}</h5>
+                                <p class="card-text">{{ enrollment.class_obj.description|truncatewords:20 }}</p>
+                                <div class="mt-3">
+                                    <p class="mb-1"><i class="bi bi-person-badge me-2"></i> {{ enrollment.class_obj.teacher.full_name }}</p>
+                                    <p class="mb-1"><i class="bi bi-cash me-2"></i> {{ enrollment.class_obj.price_per_lesson }} ₸ за урок</p>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white border-top-0">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'classes:all_student_homework' %}" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-journal-text me-2"></i> Домашние задания
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-book-half display-1 text-muted mb-3"></i>
+                                <h4>Вы не записаны ни на один класс</h4>
+                                <p class="text-muted">Обратитесь к администратору для записи на занятия</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+        {% elif user.is_parent %}
+            <div class="row mb-5">
+                <div class="col-md-12">
+                    <div class="card mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="card-title fw-bold mb-0">Мои дети</h4>
+                                <span class="badge bg-primary fs-6">{{ children|length }}</span>
+                            </div>
+                            <div class="list-group">
+                                {% for child in children %}
+                                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-1">{{ child.full_name }}</h5>
+                                            <p class="mb-1 text-muted">{{ child.enrollments.count }} классов</p>
+                                            <p class="mb-0">
+                                                <span class="fw-bold">Баланс:</span> 
+                                                {% if child.balance < 0 %}
+                                                    <span class="text-danger fw-bold">{{ child.balance }} ₸</span>
+                                                {% else %}
+                                                    <span class="text-success fw-bold">{{ child.balance }} ₸</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        <div class="d-flex">
+                                            <a href="{% url 'finance:student_balance' student_id=child.id %}" class="btn btn-sm btn-outline-success me-2">
+                                                <i class="bi bi-wallet2"></i> Баланс
+                                            </a>
+                                            <a href="{% url 'classes:parent_child_lessons' child.id %}" class="btn btn-sm btn-primary me-2">
+                                                <i class="bi bi-book"></i> Уроки и оценки
+                                            </a>
+                                            <a href="{% url 'classes:parent_child_homework' child.id %}" class="btn btn-sm btn-success">
+                                                <i class="bi bi-journal-check"></i> Домашние задания
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="text-center py-4">
+                                        <i class="bi bi-people display-1 text-muted mb-3"></i>
+                                        <h4>У вас пока нет детей в системе</h4>
+                                        <p class="text-muted">Обратитесь к администратору для добавления детей</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+    {% else %}
+        <div class="row align-items-center" style="min-height: 80vh;">
+            <div class="col-md-6">
+                <h1 class="display-3 fw-bold mb-4">Образовательный центр</h1>
+                <p class="fs-4 text-muted mb-5">Современная система управления образовательным процессом для студентов, учителей и администраторов</p>
+                <div class="d-grid gap-3 d-sm-flex">
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg px-5 py-3">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Войти в систему
+                    </a>
+                    <a href="#features" class="btn btn-outline-secondary btn-lg px-5 py-3">
+                        <i class="bi bi-info-circle me-2"></i> Узнать больше
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <img src="https://cdn-icons-png.flaticon.com/512/2436/2436636.png" alt="Образовательный центр" class="img-fluid" style="max-height: 400px;">
+            </div>
+        </div>
+        
+        <div id="features" class="row mt-5 pt-5">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold">Возможности системы</h2>
+                <p class="fs-5 text-muted">Все необходимые инструменты для эффективного управления образовательным процессом</p>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-calendar-check display-1 text-primary mb-3"></i>
+                        <h3 class="fw-bold">Управление посещаемостью</h3>
+                        <p class="text-muted">Отслеживание посещаемости студентов с двойной системой подтверждения</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-cash-coin display-1 text-success mb-3"></i>
+                        <h3 class="fw-bold">Финансовый учет</h3>
+                        <p class="text-muted">Автоматическое списание средств за посещение занятий и контроль баланса</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-people display-1 text-info mb-3"></i>
+                        <h3 class="fw-bold">Управление пользователями</h3>
+                        <p class="text-muted">Разграничение прав доступа для администраторов, учителей, студентов и родителей</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

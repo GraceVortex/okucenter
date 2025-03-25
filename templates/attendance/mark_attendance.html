@@ -1,0 +1,83 @@
+я {% extends 'base.html' %}
+{% load attendance_tags %}
+
+{% block title %}Отметка посещаемости - {{ class.name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">Отметка посещаемости для класса "{{ class.name }}" на {{ today|date:"d.m.Y" }}</h5>
+        </div>
+        <div class="card-body">
+            {% if students %}
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Студент</th>
+                                    <th>Расписание</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                    <tr>
+                                        <td>{{ student.full_name }}</td>
+                                        <td>
+                                            <select name="schedule_{{ student.id }}" class="form-select" required>
+                                                <option value="">Выберите расписание</option>
+                                                {% for schedule in schedules %}
+                                                    <option value="{{ schedule.id }}" 
+                                                        {% if attendance_dict and attendance_dict|get_item:student.id and attendance_dict|get_item:student.id.schedule.id == schedule.id %}selected{% endif %}>
+                                                        {{ schedule.get_day_of_week_display }}, {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}, Комната {{ schedule.room }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="status_{{ student.id }}" class="form-select" required>
+                                                <option value="">Выберите статус</option>
+                                                <option value="present" {% if attendance_dict and attendance_dict|get_item:student.id and attendance_dict|get_item:student.id.status == 'present' %}selected{% endif %}>Присутствовал</option>
+                                                <option value="absent" {% if attendance_dict and attendance_dict|get_item:student.id and attendance_dict|get_item:student.id.status == 'absent' %}selected{% endif %}>Отсутствовал</option>
+                                                <option value="excused" {% if attendance_dict and attendance_dict|get_item:student.id and attendance_dict|get_item:student.id.status == 'excused' %}selected{% endif %}>По уважительной причине</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-info">
+                    <p>В этом классе нет зарегистрированных студентов.</p>
+                </div>
+                <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Назад</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Функция для получения значения из словаря по ключу
+    // Добавляем фильтр для получения значения из словаря
+    // Этот код должен быть реализован в вашем custom_template_tags.py
+    // Здесь он приведен для справки
+    /*
+    @register.filter
+    def get_item(dictionary, key):
+        return dictionary.get(str(key))
+    */
+</script>
+{% endblock %}

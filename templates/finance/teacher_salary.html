@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load finance_extras %}
+
+{% block title %}Зарплата - {{ teacher.full_name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Зарплата преподавателя</h1>
+            <p class="text-muted fs-5">{{ teacher.full_name }}</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            <a href="{% url 'finance:teacher_salary_overall' %}{% if not user.is_teacher %}?teacher_id={{ teacher.id }}{% endif %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-calendar-range me-1"></i> История зарплат
+            </a>
+            {% if user.is_admin or user.is_reception %}
+                {% if not salary_data.is_paid %}
+                    <a href="{% url 'finance:mark_salary_paid' teacher_id=teacher.id year=current_month.year month=current_month.month %}" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i> Отметить как выплаченную
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Месячная навигация -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Выберите период</h5>
+        </div>
+        <div class="card-body">
+            {% for month in salary_months %}
+                <a href="{% url 'finance:teacher_salary' year=month.year month=month.month %}{% if not user.is_teacher %}?teacher_id={{ teacher.id }}{% endif %}" 
+                   class="btn {% if month == current_month %}btn-primary{% else %}btn-outline-secondary{% endif %} me-2 mb-2">
+                    {{ month|date:"d.m.Y" }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+</div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Информация о зарплате -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="card-title fw-bold mb-4">Информация о зарплате</h4>
+                            
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="display-4 fw-bold {% if salary_data.is_paid %}text-success{% else %}text-primary{% endif %}">
+                                    {{ salary_data.total }} ₸
+                                </div>
+                                {% if salary_data.is_paid %}
+                                    <span class="badge bg-success ms-3">Выплачено</span>
+                                {% else %}
+                                    <span class="badge bg-primary ms-3">Ожидает выплаты</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">Период</h6>
+                                <p class="mb-0 fs-5">{{ period_start|date:"d.m.Y" }} - {{ period_end|date:"d.m.Y" }}</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">Проведено занятий</h6>
+                                <p class="mb-0 fs-5">{{ salary_data.lessons_count }}</p>
+                            </div>
+                            
+                            {% if salary_data.is_paid %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">Дата выплаты</h6>
+                                    <p class="mb-0 fs-5">{{ salary_data.paid_date|date:"d.m.Y" }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            {% if is_current_month %}
+                                <div class="alert alert-info mt-4">
+                                    <h5 class="alert-heading"><i class="bi bi-info-circle me-2"></i> Текущий период</h5>
+                                    <p>Это зарплата за текущий период. Сумма будет обновляться по мере проведения и подтверждения занятий.</p>
+                                    <hr>
+                                    <p class="mb-0">После выплаты зарплаты за этот период, счетчик будет обнулен.</p>
+                                </div>
+                            {% endif %}
+                            
+                            {% if user.is_teacher %}
+                                <div class="card bg-light mt-4">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="bi bi-info-circle me-2"></i> Информация</h5>
+                                        <p>Зарплата рассчитывается автоматически на основе проведенных и подтвержденных занятий.</p>
+                                        <p>Если у вас есть вопросы по расчету зарплаты, обратитесь к администратору.</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if user.is_admin %}
+            <!-- Кнопка для администратора для просмотра детальной статистики -->
+            <div class="text-center mb-4">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#detailedStats" aria-expanded="false" aria-controls="detailedStats">
+                    <i class="bi bi-graph-up me-2"></i> Показать детальную статистику
+                </button>
+            </div>
+            
+            <!-- Детальная статистика (скрыта по умолчанию) -->
+            <div class="collapse" id="detailedStats">
+                <div class="card mb-4">
+                    <div class="card-body p-4">
+                        <h4 class="card-title fw-bold mb-4">Детальная статистика по классам</h4>
+                        
+                        {% if classes %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Класс</th>
+                                            <th>Стоимость урока</th>
+                                            <th>Тип оплаты</th>
+                                            <th>Процент/Фикс. оплата</th>
+                                            <th>Занятий</th>
+                                            <th class="text-end">Сумма</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for class in classes %}
+                                            <tr>
+                                                <td>{{ class.name }}</td>
+                                                <td>{{ class.price }} ₸</td>
+                                                <td>
+                                                    {% if class.payment_type == 'percentage' %}
+                                                        Процент
+                                                    {% else %}
+                                                        Фиксированная
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if class.payment_type == 'percentage' %}
+                                                        {{ class.percentage }}%
+                                                    {% else %}
+                                                        {{ class.fixed_payment }} ₸
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ class.attendances }}</td>
+                                                <td class="text-end fw-bold">{{ class.amount|floatformat:0 }} ₸</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-primary">
+                                            <td colspan="4" class="fw-bold">Итого</td>
+                                            <td>{{ attendances_count }}</td>
+                                            <td class="text-end fw-bold">{{ salary_data.total|floatformat:0 }} ₸</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
+                                <h5>Нет данных о проведенных занятиях</h5>
+                                <p class="text-muted">В этом периоде не было подтвержденных занятий</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // JavaScript для дополнительной функциональности, если потребуется
+</script>
+{% endblock %}

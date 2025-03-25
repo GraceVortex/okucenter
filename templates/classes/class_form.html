@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">{{ title }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Название класса</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.teacher.id_for_label }}" class="form-label">Учитель</label>
+                            {{ form.teacher }}
+                            {% if form.teacher.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.teacher.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.price_per_lesson.id_for_label }}" class="form-label">Стоимость занятия (тг)</label>
+                            {{ form.price_per_lesson }}
+                            {% if form.price_per_lesson.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.price_per_lesson.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Тип оплаты преподавателя</label>
+                            <div class="d-flex">
+                                {% for radio in form.teacher_payment_type %}
+                                <div class="form-check me-4">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.teacher_payment_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.teacher_payment_type.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 payment-field percentage-container">
+                            <label for="{{ form.teacher_percentage.id_for_label }}" class="form-label">{{ form.teacher_percentage.label }}</label>
+                            {{ form.teacher_percentage }}
+                            <small class="form-text text-muted">{{ form.teacher_percentage.help_text }}</small>
+                            {% if form.teacher_percentage.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.teacher_percentage.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 payment-field fixed-container">
+                            <label for="{{ form.teacher_fixed_payment.id_for_label }}" class="form-label">{{ form.teacher_fixed_payment.label }}</label>
+                            {{ form.teacher_fixed_payment }}
+                            <small class="form-text text-muted">{{ form.teacher_fixed_payment.help_text }}</small>
+                            {% if form.teacher_fixed_payment.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.teacher_fixed_payment.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Описание</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'classes:class_list' %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Добавляем классы Bootstrap к полям формы
+    document.addEventListener('DOMContentLoaded', function() {
+        const formFields = document.querySelectorAll('input, select, textarea');
+        formFields.forEach(field => {
+            if (!field.type || field.type !== 'radio') {
+                field.classList.add('form-control');
+            } else {
+                field.classList.add('form-check-input');
+            }
+        });
+        
+        // Функция для переключения видимости полей оплаты
+        function togglePaymentFields() {
+            const paymentType = document.querySelector('input[name="teacher_payment_type"]:checked').value;
+            const percentageContainer = document.querySelector('.percentage-container');
+            const fixedContainer = document.querySelector('.fixed-container');
+            
+            if (paymentType === 'percentage') {
+                percentageContainer.style.display = 'block';
+                fixedContainer.style.display = 'none';
+            } else {
+                percentageContainer.style.display = 'none';
+                fixedContainer.style.display = 'block';
+            }
+        }
+        
+        // Добавляем обработчики событий для переключения типа оплаты
+        const paymentTypeRadios = document.querySelectorAll('input[name="teacher_payment_type"]');
+        paymentTypeRadios.forEach(radio => {
+            radio.addEventListener('change', togglePaymentFields);
+        });
+        
+        // Инициализация при загрузке страницы
+        togglePaymentFields();
+    });
+</script>
+{% endblock %}

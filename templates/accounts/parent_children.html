@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои дети - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Мои дети</h1>
+            <p class="text-muted fs-5">Информация о ваших детях и их обучении</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if children %}
+        <div class="row">
+            {% for child in children %}
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="card-title fw-bold mb-0">{{ child.full_name }}</h4>
+                                <span class="badge bg-primary">{{ child.grade }} класс</span>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-calendar-date text-primary me-2"></i>
+                                    <span>Дата рождения: {{ child.birth_date|date:"d.m.Y" }}</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-building text-primary me-2"></i>
+                                    <span>Школа: {{ child.school }}</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-wallet2 text-primary me-2"></i>
+                                    <span>Баланс: 
+                                        {% if child.balance < 0 %}
+                                            <span class="text-danger fw-bold">{{ child.balance }} ₸</span>
+                                        {% else %}
+                                            <span class="text-success fw-bold">{{ child.balance }} ₸</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <h5 class="fw-bold mb-3">Классы</h5>
+                            {% if child.enrollments.exists %}
+                                <div class="list-group mb-4">
+                                    {% for enrollment in child.enrollments.all %}
+                                        <div class="list-group-item">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1">{{ enrollment.class_obj.name }}</h6>
+                                                    <p class="text-muted mb-1 small">Предмет: {{ enrollment.class_obj.subject }}</p>
+                                                    <p class="text-muted mb-0 small">Учитель: {{ enrollment.class_obj.teacher.full_name }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i> Ребенок не записан ни на один класс
+                                </div>
+                            {% endif %}
+                            
+                            <div class="d-flex mt-auto">
+                                <a href="{% url 'finance:student_balance' student_id=child.id %}" class="btn btn-outline-success flex-grow-1">
+                                    <i class="bi bi-cash-coin me-2"></i> Баланс
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-people display-1 text-muted mb-3"></i>
+                <h3>Нет зарегистрированных детей</h3>
+                <p class="text-muted">У вас пока нет зарегистрированных детей в системе</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

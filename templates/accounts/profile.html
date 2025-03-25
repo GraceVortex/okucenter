@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}Профиль - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Личный кабинет</h1>
+            <p class="text-muted fs-5">Управление вашим профилем и доступ к персональной информации</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="avatar-circle mb-3 mx-auto">
+                            <span class="avatar-initials">{{ user.get_full_name|slice:":1" }}</span>
+                        </div>
+                        <h4 class="fw-bold mb-1">{{ user.get_full_name }}</h4>
+                        <span class="badge bg-primary rounded-pill">{{ user.get_user_type_display }}</span>
+                    </div>
+                    
+                    <div class="border-top pt-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-person text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Имя пользователя</div>
+                                <div>{{ user.username }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-envelope text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Email</div>
+                                <div>{{ user.email }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-telephone text-primary me-3 fs-5"></i>
+                            <div>
+                                <div class="text-muted small">Телефон</div>
+                                <div>{{ user.phone_number }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="#" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-pencil-square me-2"></i> Редактировать профиль
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            {% if user.is_admin %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Панель администратора</h4>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <a href="{% url 'accounts:teacher_list' %}" class="card text-decoration-none h-100">
+                                    <div class="card-body text-center p-4">
+                                        <i class="bi bi-person-badge display-5 text-primary mb-3"></i>
+                                        <h5 class="fw-bold">Учителя</h5>
+                                        <p class="text-muted small mb-0">Управление учителями</p>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <a href="{% url 'accounts:student_list' %}" class="card text-decoration-none h-100">
+                                    <div class="card-body text-center p-4">
+                                        <i class="bi bi-mortarboard display-5 text-success mb-3"></i>
+                                        <h5 class="fw-bold">Студенты</h5>
+                                        <p class="text-muted small mb-0">Управление студентами</p>
+                                    </div>
+                                </a>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <a href="{% url 'accounts:parent_list' %}" class="card text-decoration-none h-100">
+                                    <div class="card-body text-center p-4">
+                                        <i class="bi bi-people display-5 text-info mb-3"></i>
+                                        <h5 class="fw-bold">Родители</h5>
+                                        <p class="text-muted small mb-0">Управление родителями</p>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Быстрые действия</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-plus-circle fs-3 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Создать новый класс</h6>
+                                        <p class="text-muted mb-0 small">Добавление нового класса в систему</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-calendar-plus fs-3 text-success"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Управление расписанием</h6>
+                                        <p class="text-muted mb-0 small">Настройка времени и места занятий</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-cash-coin fs-3 text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Финансовые операции</h6>
+                                        <p class="text-muted mb-0 small">Управление платежами и балансами</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-file-earmark-bar-graph fs-3 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Отчеты и аналитика</h6>
+                                        <p class="text-muted mb-0 small">Просмотр статистики и отчетов</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% elif user.is_teacher %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="fw-bold mb-0">Мои классы</h4>
+                            <a href="{% url 'core:schedule' %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-calendar-week me-2"></i> Расписание
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if teacher_classes %}
+                            <div class="list-group list-group-flush">
+                                {% for class in teacher_classes %}
+                                    <a href="{% url 'classes:class_detail' class_id=class.id %}" class="list-group-item list-group-item-action p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h5 class="fw-bold mb-1">{{ class.name }}</h5>
+                                                <p class="text-muted mb-0">{{ class.students.count }} студентов</p>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-primary rounded-pill">{{ class.price_per_lesson }} ₸</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-book-half display-1 text-muted mb-3"></i>
+                                <h5>У вас пока нет назначенных классов</h5>
+                                <p class="text-muted">Обратитесь к администратору для получения доступа к классам</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Инструменты учителя</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-check-circle fs-3 text-success"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Отметить посещаемость</h6>
+                                        <p class="text-muted mb-0 small">Учет присутствия студентов</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-pencil-square fs-3 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Выставить оценки</h6>
+                                        <p class="text-muted mb-0 small">Оценивание работы студентов</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-file-earmark-text fs-3 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Добавить домашнее задание</h6>
+                                        <p class="text-muted mb-0 small">Создание заданий для студентов</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-chat-left-text fs-3 text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Комментарии</h6>
+                                        <p class="text-muted mb-0 small">Обратная связь для студентов</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% elif user.is_student %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="fw-bold mb-0">Мои классы</h4>
+                            <div>
+                                <span class="badge bg-primary rounded-pill me-2">Баланс: {{ user.student.balance }} ₸</span>
+                                <a href="{% url 'core:schedule' %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-calendar-week me-2"></i> Расписание
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if student_classes %}
+                            <div class="list-group list-group-flush">
+                                {% for enrollment in student_classes %}
+                                    <a href="{% url 'classes:class_detail' class_id=enrollment.class_obj.id %}" class="list-group-item list-group-item-action p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h5 class="fw-bold mb-1">{{ enrollment.class_obj.name }}</h5>
+                                                <p class="text-muted mb-0">Учитель: {{ enrollment.class_obj.teacher.full_name }}</p>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-primary rounded-pill">{{ enrollment.class_obj.price_per_lesson }} ₸</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-book-half display-1 text-muted mb-3"></i>
+                                <h5>Вы пока не записаны ни на один класс</h5>
+                                <p class="text-muted">Обратитесь к администратору для записи на занятия</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Учебные материалы</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-file-earmark-text fs-3 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Домашние задания</h6>
+                                        <p class="text-muted mb-0 small">Просмотр и выполнение заданий</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-journal-check fs-3 text-success"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Оценки и прогресс</h6>
+                                        <p class="text-muted mb-0 small">Отслеживание успеваемости</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-cloud-arrow-up fs-3 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Загрузка работ</h6>
+                                        <p class="text-muted mb-0 small">Отправка выполненных заданий</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-chat-left-text fs-3 text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Комментарии учителей</h6>
+                                        <p class="text-muted mb-0 small">Обратная связь по работам</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 80px;
+    height: 80px;
+    background-color: #007bff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-initials {
+    color: white;
+    font-size: 36px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+</style>
+{% endblock %}

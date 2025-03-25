@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">{{ title }}</h1>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            <a href="{% url 'accounts:student_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i> Вернуться к списку
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body p-4">
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3">Данные пользователя</h5>
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">{{ form.username.label }}</label>
+                            <input type="text" class="form-control {% if form.username.errors %}is-invalid{% endif %}" 
+                                   id="id_username" name="username" value="{{ form.username.value|default:'' }}" required>
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">{{ form.password.label }}</label>
+                            <input type="password" class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+                                   id="id_password" name="password" value="{{ form.password.value|default:'' }}" 
+                                   {% if not form.instance.pk %}required{% endif %}>
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">
+                                    {% if form.instance.pk %}
+                                        Оставьте пустым, если не хотите менять пароль.
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_email" class="form-label">{{ form.email.label }}</label>
+                            <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                                   id="id_email" name="email" value="{{ form.email.value|default:'' }}">
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.email.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3">Личная информация</h5>
+                        
+                        <div class="mb-3">
+                            <label for="id_full_name" class="form-label">{{ form.full_name.label }}</label>
+                            <input type="text" class="form-control {% if form.full_name.errors %}is-invalid{% endif %}" 
+                                   id="id_full_name" name="full_name" value="{{ form.full_name.value|default:'' }}" required>
+                            {% if form.full_name.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.full_name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_birth_date" class="form-label">{{ form.birth_date.label }}</label>
+                            <input type="date" class="form-control {% if form.birth_date.errors %}is-invalid{% endif %}" 
+                                   id="id_birth_date" name="birth_date" value="{{ form.birth_date.value|date:'Y-m-d'|default:'' }}">
+                            {% if form.birth_date.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.birth_date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_phone_number" class="form-label">{{ form.phone_number.label }}</label>
+                            <input type="text" class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}" 
+                                   id="id_phone_number" name="phone_number" value="{{ form.phone_number.value|default:'' }}">
+                            {% if form.phone_number.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.phone_number.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3">Информация о школе</h5>
+                        
+                        <div class="mb-3">
+                            <label for="id_school" class="form-label">{{ form.school.label }}</label>
+                            <input type="text" class="form-control {% if form.school.errors %}is-invalid{% endif %}" 
+                                   id="id_school" name="school" value="{{ form.school.value|default:'' }}">
+                            {% if form.school.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.school.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_graduation_year" class="form-label">{{ form.graduation_year.label }}</label>
+                                    <input type="number" class="form-control {% if form.graduation_year.errors %}is-invalid{% endif %}" 
+                                           id="id_graduation_year" name="graduation_year" value="{{ form.graduation_year.value|default:'' }}">
+                                    {% if form.graduation_year.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.graduation_year.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_school_start_year" class="form-label">{{ form.school_start_year.label }}</label>
+                                    <input type="number" class="form-control {% if form.school_start_year.errors %}is-invalid{% endif %}" 
+                                           id="id_school_start_year" name="school_start_year" value="{{ form.school_start_year.value|default:'' }}">
+                                    {% if form.school_start_year.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.school_start_year.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3">Родитель</h5>
+                        
+                        <div class="mb-3">
+                            <label for="id_parent" class="form-label">{{ form.parent.label }}</label>
+                            <select class="form-select {% if form.parent.errors %}is-invalid{% endif %}" 
+                                    id="id_parent" name="parent">
+                                <option value="">---------</option>
+                                {% for parent_id, parent_name in form.fields.parent.choices %}
+                                    <option value="{{ parent_id }}" {% if form.parent.value|stringformat:"s" == parent_id|stringformat:"s" %}selected{% endif %}>
+                                        {{ parent_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.parent.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.parent.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Необязательное поле. Можно выбрать родителя из списка или оставить пустым.</div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="id_create_parent" name="create_parent" 
+                                   {% if form.create_parent.value %}checked{% endif %}>
+                            <label class="form-check-label" for="id_create_parent">{{ form.create_parent.label }}</label>
+                        </div>
+                        
+                        <div id="parent_fields" class="border p-3 rounded mb-3" style="display: none;">
+                            <h6 class="fw-bold mb-3">Данные нового родителя</h6>
+                            
+                            <div class="mb-3">
+                                <label for="id_parent_full_name" class="form-label">{{ form.parent_full_name.label }}</label>
+                                <input type="text" class="form-control {% if form.parent_full_name.errors %}is-invalid{% endif %}" 
+                                       id="id_parent_full_name" name="parent_full_name" value="{{ form.parent_full_name.value|default:'' }}">
+                                {% if form.parent_full_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.parent_full_name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_parent_phone_number" class="form-label">{{ form.parent_phone_number.label }}</label>
+                                <input type="text" class="form-control {% if form.parent_phone_number.errors %}is-invalid{% endif %}" 
+                                       id="id_parent_phone_number" name="parent_phone_number" value="{{ form.parent_phone_number.value|default:'' }}">
+                                {% if form.parent_phone_number.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.parent_phone_number.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_parent_username" class="form-label">{{ form.parent_username.label }}</label>
+                                <input type="text" class="form-control {% if form.parent_username.errors %}is-invalid{% endif %}" 
+                                       id="id_parent_username" name="parent_username" value="{{ form.parent_username.value|default:'' }}">
+                                {% if form.parent_username.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.parent_username.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_parent_password" class="form-label">{{ form.parent_password.label }}</label>
+                                <input type="password" class="form-control {% if form.parent_password.errors %}is-invalid{% endif %}" 
+                                       id="id_parent_password" name="parent_password" value="{{ form.parent_password.value|default:'' }}">
+                                {% if form.parent_password.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.parent_password.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_parent_email" class="form-label">{{ form.parent_email.label }}</label>
+                                <input type="email" class="form-control {% if form.parent_email.errors %}is-invalid{% endif %}" 
+                                       id="id_parent_email" name="parent_email" value="{{ form.parent_email.value|default:'' }}">
+                                {% if form.parent_email.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.parent_email.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'accounts:student_list' %}" class="btn btn-outline-secondary me-2">Отмена</a>
+                    <button type="submit" class="btn btn-primary">{{ submit_text }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Валидация формы
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+        
+        // Показать/скрыть поля для создания нового родителя
+        const createParentCheckbox = document.getElementById('id_create_parent');
+        const parentSelect = document.getElementById('id_parent');
+        const parentFields = document.getElementById('parent_fields');
+        
+        function toggleParentFields() {
+            if (createParentCheckbox.checked) {
+                parentFields.style.display = 'block';
+                parentSelect.disabled = true;
+            } else {
+                parentFields.style.display = 'none';
+                parentSelect.disabled = false;
+            }
+        }
+        
+        createParentCheckbox.addEventListener('change', toggleParentFields);
+        
+        // Инициализация при загрузке страницы
+        toggleParentFields();
+    });
+</script>
+{% endblock %}

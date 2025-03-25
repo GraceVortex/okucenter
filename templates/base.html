@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Образовательный центр{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --apple-bg: #ffffff;
+            --apple-text: #1d1d1f;
+            --apple-primary: #0071e3;
+            --apple-secondary: #f5f5f7;
+            --apple-border: #d2d2d7;
+            --apple-success: #4cd964;
+            --apple-warning: #ff9500;
+            --apple-danger: #ff3b30;
+            --apple-info: #5ac8fa;
+            --apple-gray: #86868b;
+            --apple-light-gray: #f5f5f7;
+            --apple-dark-gray: #515154;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--apple-bg);
+            color: var(--apple-text);
+            line-height: 1.5;
+            font-weight: 400;
+        }
+        
+        .navbar {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: saturate(180%) blur(20px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--apple-text) !important;
+            font-size: 1.3rem;
+        }
+        
+        .nav-link {
+            color: var(--apple-text) !important;
+            font-size: 0.9rem;
+            font-weight: 400;
+            padding: 0.5rem 1rem;
+            transition: color 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--apple-primary) !important;
+        }
+        
+        .dropdown-menu {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: none;
+            padding: 0.5rem;
+        }
+        
+        .dropdown-item {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--apple-secondary);
+        }
+        
+        .btn {
+            border-radius: 980px;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--apple-primary);
+            border-color: var(--apple-primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0062cc;
+            border-color: #0062cc;
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--apple-primary);
+            color: var(--apple-primary);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--apple-primary);
+            color: white;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid var(--apple-border);
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .card-header.bg-primary {
+            background: linear-gradient(135deg, var(--apple-primary), #0091ff) !important;
+            color: white;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid var(--apple-border);
+            padding: 0.625rem 1rem;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--apple-primary);
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
+        }
+        
+        .form-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--apple-dark-gray);
+            margin-bottom: 0.5rem;
+        }
+        
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table th {
+            font-weight: 500;
+            color: var(--apple-dark-gray);
+            border-bottom: 1px solid var(--apple-border);
+            padding: 1rem;
+        }
+        
+        .table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--apple-border);
+        }
+        
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(245, 245, 247, 0.5);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 113, 227, 0.05);
+        }
+        
+        .badge {
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            border-radius: 980px;
+        }
+        
+        .badge.bg-success {
+            background-color: var(--apple-success) !important;
+        }
+        
+        .badge.bg-warning {
+            background-color: var(--apple-warning) !important;
+        }
+        
+        .badge.bg-danger {
+            background-color: var(--apple-danger) !important;
+        }
+        
+        .badge.bg-info {
+            background-color: var(--apple-info) !important;
+        }
+        
+        .badge.bg-secondary {
+            background-color: var(--apple-gray) !important;
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+        }
+        
+        .alert-success {
+            background-color: rgba(76, 217, 100, 0.1);
+            color: var(--apple-success);
+        }
+        
+        .alert-warning {
+            background-color: rgba(255, 149, 0, 0.1);
+            color: var(--apple-warning);
+        }
+        
+        .alert-danger {
+            background-color: rgba(255, 59, 48, 0.1);
+            color: var(--apple-danger);
+        }
+        
+        .alert-info {
+            background-color: rgba(90, 200, 250, 0.1);
+            color: var(--apple-info);
+        }
+        
+        /* Анимации и переходы */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .card {
+                border-radius: 12px;
+            }
+            
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'core:home' %}">Образовательный центр</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        {% if user.is_admin %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="usersDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-people me-1"></i> Пользователи
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'accounts:teacher_list' %}"><i class="bi bi-person-badge me-2"></i>Преподаватели</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:reception_list' %}"><i class="bi bi-headset me-2"></i>Ресепшенисты</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:student_list' %}"><i class="bi bi-mortarboard me-2"></i>Студенты</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:parent_list' %}"><i class="bi bi-people me-2"></i>Родители</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:class_list' %}">Классы</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">Посещаемость</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'finance:transaction_list' %}">Финансы</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'finance:admin_salary_summary' %}">
+                                    <i class="bi bi-cash-stack me-1"></i> Зарплаты
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
+                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
+                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
+                                </a>
+                            </li>
+                        {% elif user.is_reception %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">Посещаемость</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
+                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'finance:transaction_list' %}">Финансы</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
+                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% elif user.is_teacher %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:teacher_classes' %}">Мои классы</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:teacher_schedule' %}">
+                                    <i class="bi bi-calendar-week me-1"></i> Расписание
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">Посещаемость</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:substitute_classes_list' %}">
+                                    <i class="bi bi-person-plus-fill me-1"></i> Уроки замены
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'finance:teacher_salary' %}">
+                                    <i class="bi bi-cash-coin me-1"></i> Моя зарплата
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
+                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
+                                </a>
+                            </li>
+                        {% elif user.is_student %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:student_classes' %}">Мои классы</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:all_student_homework' %}">Мои домашние задания</a>
+                            </li>
+                        {% elif user.is_parent %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:parent_dashboard' %}">
+                                    <i class="bi bi-speedometer2 me-1"></i> Общее
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:parent_children' %}">Дети</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
+                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-1"></i> {{ user.get_full_name|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Профиль</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Выйти</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:login' %}"><i class="bi bi-box-arrow-in-right me-1"></i> Вход</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="fade-in">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-5 py-4 bg-light">
+        <div class="container text-center">
+            <p class="mb-0 text-muted">&copy; {% now "Y" %} Образовательный центр. Все права защищены.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% if user.is_authenticated %}
+    <script>
+        // Предотвращение использования кнопки "Назад" в браузере после входа
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, null, window.location.href);
+        };
+    </script>
+    {% endif %}
+    
+    <script>
+        // Добавляем анимацию для элементов при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,413 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ class.name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">{{ class.name }}</h1>
+            <p class="text-muted fs-5">Преподаватель: {{ class.teacher.full_name }}</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if user.is_admin or user.is_reception or user.is_teacher and class.teacher.user == user %}
+                <a href="{% url 'classes:update_class' class_id=class.id %}" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-pencil me-1"></i> Редактировать
+                </a>
+                {% if user.is_admin or user.is_reception %}
+                    <a href="{% url 'classes:delete_class' class_id=class.id %}" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i> Удалить
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Информация о классе -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title fw-bold mb-0">Информация о классе</h4>
+                        <div>
+                            <span class="badge bg-primary fs-5">{{ class.price_per_lesson }} ₸ за урок</span>
+                            {% if user.is_admin or user.is_reception %}
+                            <span class="badge bg-success fs-5 ms-2">{{ class.teacher_percentage }}% преподавателю</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-badge fs-4 text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Преподаватель</h6>
+                                    <p class="mb-0 fs-5">{{ class.teacher.full_name }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-people fs-4 text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Количество студентов</h6>
+                                    <p class="mb-0 fs-5">{{ enrollments|length }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% if user.is_admin or user.is_reception %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-percent fs-4 text-success me-3"></i>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Процент преподавателя</h6>
+                                    <p class="mb-0 fs-5">{{ class.teacher_percentage }}%</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-cash-coin fs-4 text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Стоимость урока</h6>
+                                    <p class="mb-0 fs-5">{{ class.price_per_lesson }} ₸</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if class.description %}
+                        <div class="mt-4">
+                            <h5 class="fw-bold mb-3">Описание</h5>
+                            <p class="mb-0">{{ class.description }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Расписание занятий -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title fw-bold mb-0">Расписание занятий</h4>
+                        {% if user.is_admin or user.is_reception or user.is_teacher and class.teacher.user == user %}
+                            <a href="{% url 'classes:add_schedule' class_id=class.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-plus-circle me-1"></i> Добавить расписание
+                            </a>
+                        {% endif %}
+                    </div>
+                    
+                    {% if schedules %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th class="fw-bold">День</th>
+                                        <th class="fw-bold">Время</th>
+                                        <th class="fw-bold">Комната</th>
+                                        {% if user.is_admin or user.is_reception or user.is_teacher and class.teacher.user == user %}
+                                            <th class="fw-bold text-end">Действия</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in schedules %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-light text-dark p-2">{{ schedule.get_day_of_week_display }}</span>
+                                            </td>
+                                            <td>
+                                                <i class="bi bi-clock me-1 text-muted"></i>
+                                                {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}
+                                            </td>
+                                            <td>
+                                                <i class="bi bi-door-open me-1 text-muted"></i>
+                                                Комната {{ schedule.room }}
+                                            </td>
+                                            {% if user.is_admin or user.is_reception or user.is_teacher and class.teacher.user == user %}
+                                                <td class="text-end">
+                                                    <a href="{% url 'classes:update_schedule' schedule_id=schedule.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="{% url 'classes:delete_schedule' schedule_id=schedule.id %}" class="btn btn-sm btn-outline-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
+                            <h5>Расписание занятий не добавлено</h5>
+                            <p class="text-muted">Здесь будет отображаться информация о времени и месте проведения занятий</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Домашние задания -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title fw-bold mb-0">Домашние задания</h4>
+                        {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                            <a href="{% url 'classes:add_homework' class_id=class.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-plus-circle me-1"></i> Добавить задание
+                            </a>
+                        {% endif %}
+                    </div>
+                    
+                    {% if homeworks %}
+                        <div class="accordion" id="homeworkAccordion">
+                            {% for homework in homeworks %}
+                                <div class="accordion-item border-0 mb-3">
+                                    <h2 class="accordion-header" id="heading{{ homework.id }}">
+                                        <button class="accordion-button collapsed shadow-sm rounded" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ homework.id }}" aria-expanded="false" aria-controls="collapse{{ homework.id }}">
+                                            <div class="d-flex align-items-center w-100">
+                                                <div class="me-auto">
+                                                    <i class="bi bi-calendar-date me-2"></i>
+                                                    <span class="fw-bold">{{ homework.date|date:"d.m.Y" }}</span>
+                                                </div>
+                                                <div class="text-muted">
+                                                    {{ homework.description|truncatechars:50 }}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse{{ homework.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ homework.id }}" data-bs-parent="#homeworkAccordion">
+                                        <div class="accordion-body p-4 shadow-sm rounded-bottom">
+                                            <p class="mb-4">{{ homework.description }}</p>
+                                            
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                {% if homework.file %}
+                                                    <a href="{{ homework.file.url }}" class="btn btn-outline-primary" target="_blank">
+                                                        <i class="bi bi-download me-2"></i> Скачать файл
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">Файл не прикреплен</span>
+                                                {% endif %}
+                                                
+                                                {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                                                    <div>
+                                                        <a href="{% url 'classes:update_homework' homework_id=homework.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <a href="{% url 'classes:delete_homework' homework_id=homework.id %}" class="btn btn-sm btn-outline-danger">
+                                                            <i class="bi bi-trash"></i>
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if user.is_student %}
+                                                <hr class="my-4">
+                                                {% if submissions %}
+                                                    {% for submission in submissions %}
+                                                        {% if submission.homework == homework %}
+                                                            <div class="card bg-light border-0 p-3">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <h6 class="fw-bold mb-1">Ваше задание отправлено</h6>
+                                                                        <p class="text-muted mb-0">
+                                                                            <i class="bi bi-clock me-1"></i>
+                                                                            {{ submission.submission_date|date:"d.m.Y H:i" }}
+                                                                        </p>
+                                                                    </div>
+                                                                    <a href="{{ submission.file.url }}" class="btn btn-outline-success" target="_blank">
+                                                                        <i class="bi bi-download me-2"></i> Скачать ваш файл
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <div class="text-center">
+                                                        <p class="mb-3">Вы еще не отправили выполненное задание</p>
+                                                        <a href="{% url 'classes:submit_homework' homework_id=homework.id %}" class="btn btn-primary">
+                                                            <i class="bi bi-upload me-2"></i> Отправить задание
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            {% endif %}
+                                            
+                                            {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                                                {% for hw_with_sub in homeworks_with_submissions %}
+                                                    {% if hw_with_sub.homework.id == homework.id %}
+                                                        <hr class="my-4">
+                                                        <h6 class="fw-bold mb-3">Отправленные задания ({{ hw_with_sub.count }})</h6>
+                                                        {% if hw_with_sub.count > 0 %}
+                                                            <div class="list-group">
+                                                                {% for submission in hw_with_sub.submissions %}
+                                                                    <div class="list-group-item list-group-item-action">
+                                                                        <div class="d-flex justify-content-between align-items-center">
+                                                                            <div>
+                                                                                <h6 class="mb-1">{{ submission.student.full_name }}</h6>
+                                                                                <p class="text-muted mb-0 small">
+                                                                                    <i class="bi bi-clock me-1"></i>
+                                                                                    {{ submission.submission_date|date:"d.m.Y H:i" }}
+                                                                                </p>
+                                                                                {% if submission.completion_status %}
+                                                                                    <p class="mb-0 mt-1">
+                                                                                        <span class="badge 
+                                                                                            {% if submission.completion_status == 'completed' %}bg-success
+                                                                                            {% elif submission.completion_status == 'partially_completed' %}bg-warning
+                                                                                            {% else %}bg-danger{% endif %}">
+                                                                                            {{ submission.get_completion_status_display }}
+                                                                                        </span>
+                                                                                    </p>
+                                                                                    {% if submission.teacher_comment %}
+                                                                                        <p class="small text-muted mt-1 mb-0">
+                                                                                            <i class="bi bi-chat-left-text me-1"></i>
+                                                                                            {{ submission.teacher_comment }}
+                                                                                        </p>
+                                                                                    {% endif %}
+                                                                                {% endif %}
+                                                                            </div>
+                                                                            <div>
+                                                                                <a href="{{ submission.file.url }}" class="btn btn-sm btn-outline-primary me-1" target="_blank">
+                                                                                    <i class="bi bi-download me-1"></i> Скачать
+                                                                                </a>
+                                                                                <a href="{% url 'classes:grade_homework' submission_id=submission.id %}" class="btn btn-sm btn-outline-success">
+                                                                                    <i class="bi bi-check-circle me-1"></i> Оценить
+                                                                                </a>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="text-muted text-center">
+                                                                <p>Пока никто не отправил выполненное задание</p>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
+                            <h5>Домашние задания не добавлены</h5>
+                            <p class="text-muted">Здесь будут отображаться домашние задания для этого класса</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Информация о студентах -->
+            <div class="card mb-4 sticky-top" style="top: 20px;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title fw-bold mb-0">Студенты класса</h4>
+                        {% if user.is_admin or user.is_reception %}
+                            <a href="{% url 'classes:add_student' class_id=class.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-plus-circle me-1"></i> Добавить
+                            </a>
+                        {% endif %}
+                    </div>
+                    
+                    {% if enrollments %}
+                        <div class="list-group">
+                            {% for enrollment in enrollments %}
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 mb-2 shadow-sm">
+                                    <div>
+                                        {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                                            <a href="{% url 'classes:student_homework' class_id=class.id student_id=enrollment.student.id %}" class="text-decoration-none">
+                                                <h6 class="mb-1">{{ enrollment.student.full_name }}</h6>
+                                            </a>
+                                        {% else %}
+                                            <h6 class="mb-1">{{ enrollment.student.full_name }}</h6>
+                                        {% endif %}
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            С {{ enrollment.enrollment_date|date:"d.m.Y" }}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                                            <a href="{% url 'classes:student_homework' class_id=class.id student_id=enrollment.student.id %}" class="btn btn-sm btn-outline-primary me-1" title="Домашние задания">
+                                                <i class="bi bi-journal-text"></i>
+                                            </a>
+                                        {% endif %}
+                                        {% if user.is_admin or user.is_reception %}
+                                            <a href="{% url 'classes:remove_student' enrollment_id=enrollment.id %}" class="btn btn-sm btn-outline-danger" title="Удалить студента">
+                                                <i class="bi bi-person-dash"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people display-1 text-muted mb-3"></i>
+                            <h5>Нет зарегистрированных студентов</h5>
+                            <p class="text-muted">В этом классе пока нет студентов</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Статистика класса -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-4">Статистика класса</h4>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="bi bi-calendar-check fs-3 text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1 text-muted">Проведено занятий</h6>
+                            <p class="mb-0 fs-5 fw-bold">{{ class_stats.total_lessons|default:"0" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="bi bi-person-check fs-3 text-success"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1 text-muted">Средняя посещаемость</h6>
+                            <p class="mb-0 fs-5 fw-bold">{{ class_stats.avg_attendance|default:"0" }}%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="bi bi-journal-check fs-3 text-info"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1 text-muted">Выполнено заданий</h6>
+                            <p class="mb-0 fs-5 fw-bold">{{ class_stats.completed_homeworks|default:"0" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">{{ title }} для класса "{{ class.name }}"</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if not is_update %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Дни недели</label>
+                            <div class="row">
+                                {% for value, text in form.days_of_week.field.choices %}
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="days_of_week" value="{{ value }}" class="form-check-input" id="day_{{ value }}">
+                                            <label class="form-check-label" for="day_{{ value }}">{{ text }}</label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.days_of_week.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.days_of_week.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Временной интервал</label>
+                            <select name="time_slot" class="form-select">
+                                {% for value, text in form.time_slot.field.choices %}
+                                    <option value="{{ value }}" {% if form.time_slot.value == value %}selected{% endif %}>{{ text }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.time_slot.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.time_slot.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text text-muted mt-2">
+                                <i class="bi bi-info-circle me-1"></i> Продолжительность занятия: 1 час 30 минут
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.room.id_for_label }}" class="form-label fw-bold">Комната</label>
+                            {{ form.room }}
+                            {% if form.room.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.room.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if not is_update %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            <strong>Подсказка:</strong> Вы можете выбрать несколько дней недели для создания регулярного расписания.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Внимание:</strong> Вы редактируете расписание на {{ schedule.get_day_of_week_display }}.
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-calendar-plus me-1"></i> {% if is_update %}Обновить{% else %}Сохранить{% endif %} расписание
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Добавляем классы Bootstrap к полям формы
+    document.addEventListener('DOMContentLoaded', function() {
+        const formFields = document.querySelectorAll('input[type="text"], textarea, select:not([name="time_slot"])');
+        formFields.forEach(field => {
+            field.classList.add('form-control');
+        });
+    });
+</script>
+{% endblock %}
