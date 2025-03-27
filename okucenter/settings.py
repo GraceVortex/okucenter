@@ -147,7 +147,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
@@ -155,6 +155,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Настройка WhiteNoise для статических файлов
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Настройка для Railway - проверка наличия директории static
+import os
+if not os.path.exists(BASE_DIR / 'static'):
+    os.makedirs(BASE_DIR / 'static', exist_ok=True)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
