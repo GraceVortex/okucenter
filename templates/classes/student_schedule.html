@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Расписание занятий - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="display-5 fw-bold">Расписание занятий</h1>
+                <div>
+                    <a href="{% url 'classes:student_past_lessons' %}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-clock-history me-1"></i> Прошедшие уроки
+                    </a>
+                    <a href="{% url 'classes:student_classes' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-grid me-1"></i> Мои классы
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted fs-5">Ваше расписание занятий с возможностью навигации по неделям</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">
+                            {{ start_of_week|date:"d.m.Y" }} - {{ end_of_week|date:"d.m.Y" }}
+                        </h4>
+                        <div class="btn-group">
+                            <a href="{% url 'classes:student_schedule' %}?week_offset={{ prev_week_offset }}" class="btn btn-outline-primary">
+                                <i class="bi bi-chevron-left"></i> Предыдущая неделя
+                            </a>
+                            <a href="{% url 'classes:student_schedule' %}" class="btn btn-primary">
+                                Текущая неделя
+                            </a>
+                            <a href="{% url 'classes:student_schedule' %}?week_offset={{ next_week_offset }}" class="btn btn-outline-primary">
+                                Следующая неделя <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 14.28%">Понедельник</th>
+                                    <th style="width: 14.28%">Вторник</th>
+                                    <th style="width: 14.28%">Среда</th>
+                                    <th style="width: 14.28%">Четверг</th>
+                                    <th style="width: 14.28%">Пятница</th>
+                                    <th style="width: 14.28%">Суббота</th>
+                                    <th style="width: 14.28%">Воскресенье</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="height: 150px;">
+                                    {% for day in calendar_days %}
+                                        <td class="{% if day.is_today %}bg-light{% endif %} {% if day.is_weekend %}text-muted{% endif %} align-top">
+                                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 {% if day.is_today %}bg-primary text-white rounded{% else %}border-bottom{% endif %}">
+                                                <span class="fw-bold">{{ day.date|date:"d.m" }}</span>
+                                                {% if day.is_today %}
+                                                    <span class="badge bg-warning">Сегодня</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if day.schedules %}
+                                                {% for schedule_info in day.schedules %}
+                                                    <div class="card mb-2 
+                                                        {% if schedule_info.is_past %}
+                                                            border-secondary
+                                                        {% elif schedule_info.attendance and schedule_info.attendance.is_canceled %}
+                                                            border-secondary
+                                                        {% elif schedule_info.cancellation_request %}
+                                                            border-warning
+                                                        {% elif schedule_info.has_enough_balance %}
+                                                            border-primary
+                                                        {% else %}
+                                                            border-danger
+                                                        {% endif %}">
+                                                        <div class="card-body p-2">
+                                                            <h6 class="card-title mb-1">{{ schedule_info.schedule.class_obj.name }}</h6>
+                                                            <p class="card-text small mb-1">
+                                                                <i class="bi bi-clock"></i> {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
+                                                            </p>
+                                                            <p class="card-text small mb-1">
+                                                                <i class="bi bi-geo-alt"></i> {{ schedule_info.schedule.room }}
+                                                            </p>
+                                                            <p class="card-text small mb-1">
+                                                                <i class="bi bi-person"></i> {{ schedule_info.schedule.class_obj.teacher.full_name }}
+                                                            </p>
+                                                            
+                                                            {% if schedule_info.is_past %}
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-secondary">Урок прошел</span>
+                                                                    
+                                                                    {% if is_self_managed and schedule_info.mark %}
+                                                                        <div class="mt-1">
+                                                                            {% if schedule_info.mark.activity_mark == 'excellent' %}
+                                                                                <span class="badge bg-success">Активность: Отлично</span>
+                                                                            {% elif schedule_info.mark.activity_mark == 'normal' %}
+                                                                                <span class="badge bg-info">Активность: Нормально</span>
+                                                                            {% elif schedule_info.mark.activity_mark == 'poor' %}
+                                                                                <span class="badge bg-warning">Активность: Слабо</span>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                        
+                                                                        {% if schedule_info.mark.teacher_comment %}
+                                                                            <div class="mt-1 small">
+                                                                                <strong>Комментарий:</strong> {{ schedule_info.mark.teacher_comment }}
+                                                                            </div>
+                                                                        {% endif %}
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if schedule_info.classwork_files %}
+                                                                        <div class="mt-1">
+                                                                            {% for file in schedule_info.classwork_files %}
+                                                                                <a href="{{ file.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                                                    <i class="bi bi-file-earmark"></i> {{ file.title }}
+                                                                                </a>
+                                                                            {% endfor %}
+                                                                        </div>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if schedule_info.homework %}
+                                                                        <div class="mt-1">
+                                                                            <a href="{% url 'classes:submit_homework' schedule_info.homework.id %}" class="btn btn-sm btn-outline-success">
+                                                                                <i class="bi bi-journal-text"></i> Домашнее задание
+                                                                            </a>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% elif schedule_info.attendance and schedule_info.attendance.is_canceled %}
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-secondary">Урок отменен</span>
+                                                                </div>
+                                                            {% elif schedule_info.attendance and schedule_info.attendance.status == 'present' %}
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-success">Посещение отмечено</span>
+                                                                </div>
+                                                            {% elif schedule_info.cancellation_request %}
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-warning">Запрос на отмену</span>
+                                                                    <p class="small text-muted mt-1 mb-0">Статус: 
+                                                                        {% if schedule_info.cancellation_request.status == 'pending' %}
+                                                                            <span class="text-warning">Ожидает подтверждения</span>
+                                                                        {% elif schedule_info.cancellation_request.status == 'approved' %}
+                                                                            <span class="text-success">Подтвержден</span>
+                                                                        {% elif schedule_info.cancellation_request.status == 'rejected' %}
+                                                                            <span class="text-danger">Отклонен</span>
+                                                                        {% endif %}
+                                                                    </p>
+                                                                </div>
+                                                            {% else %}
+                                                                <div class="mt-2">
+                                                                    {% if schedule_info.has_enough_balance %}
+                                                                        <span class="badge bg-primary">Баланс: {{ student.balance }} ₸</span>
+                                                                        <span class="badge bg-success">Стоимость: {{ schedule_info.class_price }} ₸</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-danger">Недостаточно средств</span>
+                                                                        <p class="small text-danger mt-1 mb-0">
+                                                                            Баланс: {{ student.balance }} ₸<br>
+                                                                            Стоимость: {{ schedule_info.class_price }} ₸
+                                                                        </p>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if is_self_managed and not schedule_info.is_past and not schedule_info.attendance.is_canceled and not schedule_info.cancellation_request %}
+                                                                        <div class="mt-2">
+                                                                            <a href="{% url 'attendance:student_cancel_lesson' schedule_info.schedule.class_obj.id schedule_info.schedule.id day.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger">
+                                                                                <i class="bi bi-calendar-x"></i> Отменить
+                                                                            </a>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                <p class="text-muted small text-center mt-3">Нет занятий</p>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Информация о цветовой индикации</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold">Статус урока</h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="card border-primary me-3" style="width: 50px; height: 30px;"></div>
+                                <span>Достаточно средств на балансе</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="card border-danger me-3" style="width: 50px; height: 30px;"></div>
+                                <span>Недостаточно средств на балансе</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="card border-warning me-3" style="width: 50px; height: 30px;"></div>
+                                <span>Запрос на отмену урока</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="card border-secondary me-3" style="width: 50px; height: 30px;"></div>
+                                <span>Урок прошел или отменен</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="fw-bold">Текущий баланс</h5>
+                            <div class="alert {% if student.balance > 0 %}alert-success{% else %}alert-danger{% endif %} d-flex align-items-center">
+                                <i class="bi {% if student.balance > 0 %}bi-wallet2{% else %}bi-wallet2{% endif %} me-3 fs-4"></i>
+                                <div>
+                                    <h5 class="alert-heading mb-1">{{ student.balance }} ₸</h5>
+                                    {% if student.balance <= 0 %}
+                                        <p class="mb-0">Пожалуйста, пополните баланс</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if is_self_managed %}
+                                <div class="mt-3">
+                                    <h5 class="fw-bold">Оценки за активность</h5>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-success me-2 p-2">Отлично</span>
+                                        <span>Высокая активность на занятии</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-info me-2 p-2">Нормально</span>
+                                        <span>Средняя активность на занятии</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-warning me-2 p-2">Слабо</span>
+                                        <span>Низкая активность на занятии</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
