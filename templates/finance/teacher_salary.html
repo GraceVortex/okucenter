@@ -4,6 +4,90 @@
 
 {% block title %}Зарплата - {{ teacher.full_name }} - Образовательный центр{% endblock %}
 
+{% block extra_css %}
+<style>
+    .salary-card {
+        transition: transform 0.2s;
+    }
+    .salary-card:hover {
+        transform: translateY(-5px);
+    }
+    .period-btn {
+        transition: all 0.3s;
+    }
+    .period-btn:hover {
+        transform: scale(1.05);
+    }
+    .stat-card {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+    }
+    .stat-card:hover {
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+    .salary-amount {
+        background: linear-gradient(45deg, #2196F3, #1976D2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    .status-badge.paid {
+        background-color: #4CAF50;
+        color: white;
+    }
+    .status-badge.pending {
+        background-color: #2196F3;
+        color: white;
+    }
+    .period-selector {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(33, 150, 243, 0.05);
+    }
+    
+    /* Стили для кастомного модального окна */
+    .custom-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1050;
+    }
+    
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1051;
+    }
+    
+    .custom-modal-content {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 500px;
+        width: 100%;
+        z-index: 1052;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     {% if messages %}
@@ -15,41 +99,116 @@
         {% endfor %}
     {% endif %}
 
-    <div class="row mb-4">
+    <div class="row mb-4 align-items-center">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Зарплата преподавателя</h1>
-            <p class="text-muted fs-5">{{ teacher.full_name }}</p>
+            <div class="d-flex align-items-center">
+                <div class="me-4">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                        <i class="bi bi-person-circle text-white" style="font-size: 32px;"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="display-5 fw-bold mb-0">Зарплата преподавателя</h1>
+                    <p class="text-muted fs-5 mb-0">{{ teacher.full_name }}</p>
+                </div>
+            </div>
         </div>
-        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
-            <a href="{% url 'finance:teacher_salary_overall' %}{% if not user.is_teacher %}?teacher_id={{ teacher.id }}{% endif %}" class="btn btn-outline-primary me-2">
+        <div class="col-md-4 text-end">
+            <a href="{% url 'finance:teacher_salary_overall' %}{% if not user.is_teacher %}?teacher_id={{ teacher.id }}{% endif %}" 
+               class="btn btn-outline-primary me-2 period-btn">
                 <i class="bi bi-calendar-range me-1"></i> История зарплат
             </a>
             {% if user.is_admin or user.is_reception %}
-                {% if not salary_data.is_paid %}
-                    <a href="{% url 'finance:mark_salary_paid' teacher_id=teacher.id year=current_month.year month=current_month.month %}" class="btn btn-success">
-                        <i class="bi bi-check-circle me-1"></i> Отметить как выплаченную
-                    </a>
+                {% if salary_data.payment_status != 'paid' %}
+                    <div class="btn-group">
+                        <a href="{% url 'finance:mark_salary_paid' teacher_id=teacher.id year=current_month.year month=current_month.month %}" 
+                           class="btn btn-success period-btn">
+                            <i class="bi bi-check-circle me-1"></i> Выплатить полностью
+                        </a>
+                        <button type="button" class="btn btn-primary period-btn" onclick="showCustomModal('advanceDialog')">
+                            <i class="bi bi-cash-coin me-1"></i> Выплатить аванс
+                        </button>
+                    </div>
                 {% endif %}
             {% endif %}
         </div>
     </div>
 
     <!-- Месячная навигация -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+    <div class="period-selector mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-calendar3 text-primary me-2" style="font-size: 24px;"></i>
             <h5 class="mb-0">Выберите период</h5>
         </div>
-        <div class="card-body">
+        <div class="d-flex flex-wrap">
             {% for month in salary_months %}
                 <a href="{% url 'finance:teacher_salary' year=month.year month=month.month %}{% if not user.is_teacher %}?teacher_id={{ teacher.id }}{% endif %}" 
-                   class="btn {% if month == current_month %}btn-primary{% else %}btn-outline-secondary{% endif %} me-2 mb-2">
+                   class="period-btn btn {% if month == current_month %}btn-primary{% else %}btn-outline-secondary{% endif %} me-2 mb-2">
+                    <i class="bi bi-calendar-event me-1"></i>
                     {{ month|date:"d.m.Y" }}
                 </a>
             {% endfor %}
         </div>
     </div>
+
+    <!-- Ключевые показатели -->
+    <div class="row mb-4">
+        <!-- Карточка с зарплатой -->
+        <div class="col-md-6 mb-4">
+            <div class="stat-card card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="card-title fw-bold mb-0">Сумма к выплате</h5>
+                        <span class="status-badge {% if salary_data.payment_status == 'paid' %}paid{% else %}pending{% endif %}">
+                            {% if salary_data.payment_status == 'paid' %}
+                                <i class="bi bi-check-circle me-1"></i> Выплачено
+                            {% else %}
+                                <i class="bi bi-clock me-1"></i> Ожидает выплаты
+                            {% endif %}
+                        </span>
+                    </div>
+                    <h2 class="salary-amount display-4 mb-3">{{ salary_data.total }} ₸</h2>
+                    <div class="text-muted">
+                        <p class="mb-1"><i class="bi bi-calendar3 me-2"></i>{{ period_start|date:"d.m.Y" }} - {{ period_end|date:"d.m.Y" }}</p>
+                        <p class="mb-0"><i class="bi bi-book me-2"></i>{{ salary_data.lessons_count }} занятий</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка со статистикой -->
+        <div class="col-md-6 mb-4">
+            <div class="stat-card card h-100">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4">Статистика за период</h5>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                                    <i class="bi bi-people text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Всего групп</h6>
+                                    <h4 class="mb-0">{{ classes|length }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                                    <i class="bi bi-calendar2-check text-success"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Занятий</h6>
+                                    <h4 class="mb-0">{{ attendances_count }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
     <div class="row">
         <div class="col-md-12">
@@ -61,10 +220,10 @@
                             <h4 class="card-title fw-bold mb-4">Информация о зарплате</h4>
                             
                             <div class="d-flex align-items-center mb-4">
-                                <div class="display-4 fw-bold {% if salary_data.is_paid %}text-success{% else %}text-primary{% endif %}">
+                                <div class="display-4 fw-bold {% if salary_data.payment_status == 'paid' %}text-success{% else %}text-primary{% endif %}">
                                     {{ salary_data.total }} ₸
                                 </div>
-                                {% if salary_data.is_paid %}
+                                {% if salary_data.payment_status == 'paid' %}
                                     <span class="badge bg-success ms-3">Выплачено</span>
                                 {% else %}
                                     <span class="badge bg-primary ms-3">Ожидает выплаты</span>
@@ -81,11 +240,50 @@
                                 <p class="mb-0 fs-5">{{ salary_data.lessons_count }}</p>
                             </div>
                             
-                            {% if salary_data.is_paid %}
+                            {% if salary_data.advance_amount > 0 %}
+                                <div class="alert alert-info mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-cash-coin fs-3 me-3 text-primary"></i>
+                                        <div>
+                                            <h5 class="fw-bold mb-1">Выплаченный аванс</h5>
+                                            <p class="mb-0 fs-5 fw-bold">{{ salary_data.advance_amount }} ₸ <span class="fw-normal text-muted">({{ salary_data.advance_paid_date|date:"d.m.Y" }})</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if salary_data.paid_amount > 0 and salary_data.paid_amount != salary_data.advance_amount %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">Всего выплачено</h6>
+                                    <p class="mb-0 fs-5">{{ salary_data.paid_amount }} ₸</p>
+                                </div>
+                            {% endif %}
+                            
+                            {% if salary_data.advance_amount > 0 and salary_data.payment_status != 'paid' %}
+                                <div class="alert alert-warning mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-triangle fs-3 me-3 text-warning"></i>
+                                        <div>
+                                            <h5 class="fw-bold mb-1">Осталось выплатить</h5>
+                                            <p class="mb-0 fs-5 fw-bold">{{ salary_data.total|subtract:salary_data.advance_amount }} ₸</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if salary_data.payment_status == 'paid' %}
                                 <div class="mb-3">
                                     <h6 class="text-muted mb-2">Дата выплаты</h6>
                                     <p class="mb-0 fs-5">{{ salary_data.paid_date|date:"d.m.Y" }}</p>
                                 </div>
+                                {% if salary_data.confirmed_by %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">Подтвердил выплату</h6>
+                                    <p class="mb-0 fs-5">
+                                        <i class="bi bi-person-check me-1"></i> {{ salary_data.confirmed_by.get_full_name }}
+                                    </p>
+                                </div>
+                                {% endif %}
                             {% endif %}
                         </div>
                         
@@ -123,14 +321,17 @@
             
             <!-- Детальная статистика (скрыта по умолчанию) -->
             <div class="collapse" id="detailedStats">
-                <div class="card mb-4">
+                <div class="stat-card mb-4">
                     <div class="card-body p-4">
-                        <h4 class="card-title fw-bold mb-4">Детальная статистика по классам</h4>
+                        <div class="d-flex align-items-center mb-4">
+                            <i class="bi bi-graph-up text-primary me-2" style="font-size: 24px;"></i>
+                            <h4 class="card-title fw-bold mb-0">Детальная статистика по классам</h4>
+                        </div>
                         
                         {% if classes %}
                             <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>Класс</th>
                                             <th>Стоимость урока</th>
@@ -143,23 +344,35 @@
                                     <tbody>
                                         {% for class in classes %}
                                             <tr>
-                                                <td>{{ class.name }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                                            <i class="bi bi-people-fill text-primary"></i>
+                                                        </div>
+                                                        {{ class.name }}
+                                                    </div>
+                                                </td>
                                                 <td>{{ class.price }} ₸</td>
                                                 <td>
                                                     {% if class.payment_type == 'percentage' %}
-                                                        Процент
+                                                        <span class="badge bg-info">Процент</span>
                                                     {% else %}
-                                                        Фиксированная
+                                                        <span class="badge bg-warning">Фиксированная</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>
                                                     {% if class.payment_type == 'percentage' %}
-                                                        {{ class.percentage }}%
+                                                        <span class="text-info">{{ class.percentage }}%</span>
                                                     {% else %}
-                                                        {{ class.fixed_payment }} ₸
+                                                        <span class="text-warning">{{ class.fixed_payment }} ₸</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>{{ class.attendances }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-calendar2-check text-success me-2"></i>
+                                                        {{ class.attendances }}
+                                                    </div>
+                                                </td>
                                                 <td class="text-end fw-bold">{{ class.amount|floatformat:0 }} ₸</td>
                                             </tr>
                                         {% endfor %}
@@ -167,7 +380,12 @@
                                     <tfoot>
                                         <tr class="table-primary">
                                             <td colspan="4" class="fw-bold">Итого</td>
-                                            <td>{{ attendances_count }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-calendar2-check text-primary me-2"></i>
+                                                    {{ attendances_count }}
+                                                </div>
+                                            </td>
                                             <td class="text-end fw-bold">{{ salary_data.total|floatformat:0 }} ₸</td>
                                         </tr>
                                     </tfoot>
@@ -175,8 +393,10 @@
                             </div>
                         {% else %}
                             <div class="text-center py-5">
-                                <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
-                                <h5>Нет данных о проведенных занятиях</h5>
+                                <div class="mb-4">
+                                    <i class="bi bi-calendar-x text-muted" style="font-size: 64px;"></i>
+                                </div>
+                                <h5 class="fw-bold">Нет данных о проведенных занятиях</h5>
                                 <p class="text-muted">В этом периоде не было подтвержденных занятий</p>
                             </div>
                         {% endif %}
@@ -187,10 +407,129 @@
         </div>
     </div>
 </div>
+<!-- Кастомный диалог для выплаты аванса -->
+<div id="advanceDialog" class="custom-modal" style="display: none;">
+    <div class="custom-modal-overlay" onclick="hideCustomModal('advanceDialog')"></div>
+    <div class="custom-modal-content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Выплата аванса</h5>
+                <button type="button" class="btn-close" onclick="hideCustomModal('advanceDialog')"></button>
+            </div>
+            <form action="{% url 'finance:pay_salary_advance' teacher_id=teacher.id year=current_month.year month=current_month.month %}" method="post">
+                {% csrf_token %}
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="advance_amount" class="form-label">Сумма аванса</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="advance_amount" name="advance_amount" min="1" step="1" required>
+                            <span class="input-group-text">₸</span>
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i> Максимальная сумма зарплаты: {{ salary_data.total|floatformat:0 }} ₸
+                        </div>
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i> Вы можете выплатить аванс, превышающий сумму зарплаты. В этом случае у учителя будет отрицательный баланс.
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-end">
+                    <button type="button" class="btn btn-secondary me-2" onclick="hideCustomModal('advanceDialog')">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-cash-coin me-1"></i> Выплатить аванс
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // JavaScript для дополнительной функциональности, если потребуется
+    // Функция для отображения кастомного модального окна
+    function showCustomModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    }
+    
+    // Функция для скрытия кастомного модального окна
+    function hideCustomModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    // JavaScript для дополнительной функциональности
+    document.addEventListener('DOMContentLoaded', function() {
+        // Устанавливаем максимальную сумму аванса по умолчанию равной сумме зарплаты
+        const advanceInput = document.getElementById('advance_amount');
+        if (advanceInput) {
+            advanceInput.value = '{{ salary_data.total|floatformat:0 }}';
+        }
+        
+        // Функция для обработки закрытия модальных окон
+        // Находим все кнопки закрытия модальных окон
+        const closeButtons = document.querySelectorAll('[data-bs-dismiss="modal"]');
+        
+        // Добавляем обработчик для каждой кнопки
+        closeButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                // Находим ближайшее модальное окно
+                const modal = this.closest('.modal');
+                if (modal) {
+                    // Закрываем модальное окно
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
+                
+                // Удаляем класс modal-open у body и класс modal-backdrop
+                setTimeout(function() {
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                    
+                    // Удаляем фоновый затемненный элемент
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(function(backdrop) {
+                        backdrop.remove();
+                    });
+                }, 300);
+            });
+        });
+        
+        // Обработка нажатия клавиши Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                // Находим все открытые модальные окна
+                const openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(function(modal) {
+                    // Закрываем модальное окно
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                });
+                
+                // Удаляем класс modal-open у body и класс modal-backdrop
+                setTimeout(function() {
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                    
+                    // Удаляем фоновый затемненный элемент
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(function(backdrop) {
+                        backdrop.remove();
+                    });
+                }, 300);
+            }
+        });
+    });
 </script>
 {% endblock %}

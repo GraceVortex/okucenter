@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Статистика воронки продаж{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Статистика воронки продаж</h1>
+        <div>
+            <a href="{% url 'crm:sales_funnel' %}" class="btn btn-outline-primary">
+                <i class="fas fa-filter"></i> Воронка продаж
+            </a>
+            <a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-tachometer-alt"></i> Дашборд
+            </a>
+        </div>
+    </div>
+    
+    <!-- Общая статистика -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Общая статистика</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="funnel-visualization">
+                                {% for stat in stage_stats %}
+                                <div class="funnel-stage-stat" style="width: {{ stat.percentage|add:30 }}%; background-color: {{ stat.stage.color }};">
+                                    <span class="funnel-stage-name">{{ stat.stage.name }}</span>
+                                    <span class="funnel-stage-count">{{ stat.count }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Этап</th>
+                                            <th>Количество лидов</th>
+                                            <th>Процент</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in stage_stats %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ stat.stage.color }}">
+                                                    {{ stat.stage.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ stat.count }}</td>
+                                            <td>{{ stat.percentage }}%</td>
+                                        </tr>
+                                        {% endfor %}
+                                        <tr class="table-light">
+                                            <th>Всего</th>
+                                            <th>{{ total_leads }}</th>
+                                            <th>100%</th>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Конверсия между этапами -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Конверсия между этапами</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Из этапа</th>
+                                    <th>В этап</th>
+                                    <th>Конверсия</th>
+                                    <th>Целевая конверсия</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for conversion in conversion_stats %}
+                                <tr>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ conversion.from_stage.color }}">
+                                            {{ conversion.from_stage.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ conversion.to_stage.color }}">
+                                            {{ conversion.to_stage.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ conversion.conversion_rate }}%</td>
+                                    <td>{{ conversion.goal }}%</td>
+                                    <td>
+                                        {% if conversion.conversion_rate >= conversion.goal %}
+                                            <span class="badge bg-success">Достигнута</span>
+                                        {% elif conversion.conversion_rate >= conversion.goal|floatformat:0|add:"-10" %}
+                                            <span class="badge bg-warning">Близко</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Не достигнута</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Нет данных о конверсии</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Статистика по источникам -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Статистика по источникам лидов</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Источник</th>
+                                            <th>Всего лидов</th>
+                                            <th>Конвертировано</th>
+                                            <th>Конверсия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in source_stats %}
+                                        <tr>
+                                            <td>{{ stat.source.name }}</td>
+                                            <td>{{ stat.total }}</td>
+                                            <td>{{ stat.converted }}</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar {% if stat.conversion_rate >= 50 %}bg-success{% elif stat.conversion_rate >= 30 %}bg-info{% elif stat.conversion_rate >= 10 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                         role="progressbar" 
+                                                         style="width: {{ stat.conversion_rate }}%;" 
+                                                         aria-valuenow="{{ stat.conversion_rate }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                        {{ stat.conversion_rate }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center">Нет данных по источникам</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="source-chart-container">
+                                <canvas id="sourceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .funnel-visualization {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    
+    .funnel-stage-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        color: white;
+        border-radius: 5px;
+        min-width: 30%;
+        transition: width 0.5s ease;
+    }
+    
+    .funnel-stage-name {
+        font-weight: bold;
+    }
+    
+    .funnel-stage-count {
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+    }
+    
+    .source-chart-container {
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Данные для графика источников
+        const sourceData = {
+            labels: [
+                {% for stat in source_stats %}
+                    '{{ stat.source.name }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Конверсия (%)',
+                data: [
+                    {% for stat in source_stats %}
+                        {{ stat.conversion_rate }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(199, 199, 199, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        // Создаем график
+        const sourceChart = new Chart(
+            document.getElementById('sourceChart'),
+            {
+                type: 'pie',
+                data: sourceData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Конверсия по источникам'
+                        }
+                    }
+                }
+            }
+        );
+    });
+</script>
+{% endblock %}

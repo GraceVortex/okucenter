@@ -3,6 +3,47 @@
 
 {% block title %}Добавление ресепшениста - Образовательный центр{% endblock %}
 
+{% block extra_css %}
+<style>
+    #camera-container {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        position: relative;
+        display: none;
+    }
+    #video {
+        width: 100%;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+    }
+    #canvas {
+        display: none;
+    }
+    #capture-btn {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+    #photo-preview {
+        width: 100%;
+        max-width: 400px;
+        margin: 10px auto;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        display: none;
+    }
+    .camera-controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -21,9 +62,70 @@
                         {% endfor %}
                     {% endif %}
                     
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-                        {{ form|crispy }}
+                        
+                        <!-- Отображаем все поля формы, кроме face_image -->
+                        {% for field in form %}
+                            {% if field.name != 'face_image' %}
+                                {{ field|as_crispy_field }}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Специальный блок для загрузки фото -->
+                        <div class="mb-3">
+                            <label class="form-label">Фото для FaceID</label>
+                            
+                            <!-- Вкладки для выбора способа добавления фото -->
+                            <ul class="nav nav-tabs mb-3" id="photoTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-content" type="button" role="tab" aria-controls="upload-content" aria-selected="true">
+                                        <i class="bi bi-upload me-1"></i> Загрузить фото
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera-content" type="button" role="tab" aria-controls="camera-content" aria-selected="false">
+                                        <i class="bi bi-camera me-1"></i> Сделать фото
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <!-- Содержимое вкладок -->
+                            <div class="tab-content" id="photoTabsContent">
+                                <!-- Вкладка загрузки файла -->
+                                <div class="tab-pane fade show active" id="upload-content" role="tabpanel" aria-labelledby="upload-tab">
+                                    <div class="input-group mb-3">
+                                        <input type="file" class="form-control" id="{{ form.face_image.id_for_label }}" name="{{ form.face_image.html_name }}" accept="image/*">
+                                    </div>
+                                    <small class="form-text text-muted">Выберите файл с фотографией для распознавания лица.</small>
+                                </div>
+                                
+                                <!-- Вкладка камеры -->
+                                <div class="tab-pane fade" id="camera-content" role="tabpanel" aria-labelledby="camera-tab">
+                                    <button type="button" class="btn btn-primary" id="take-photo-btn">
+                                        <i class="bi bi-camera me-1"></i> Открыть камеру
+                                    </button>
+                                    <small class="form-text text-muted d-block mt-2">Нажмите, чтобы сделать снимок с веб-камеры.</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Контейнер для камеры -->
+                        <div id="camera-container" class="mb-3">
+                            <video id="video" autoplay></video>
+                            <canvas id="canvas"></canvas>
+                            <button type="button" id="capture-btn" class="btn btn-primary"><i class="bi bi-camera"></i> Сделать снимок</button>
+                        </div>
+                        
+                        <!-- Предпросмотр фото -->
+                        <div class="mb-3">
+                            <img id="photo-preview" src="#" alt="Предпросмотр фото">
+                            <div class="camera-controls" id="camera-controls" style="display: none;">
+                                <button type="button" class="btn btn-outline-secondary" id="retake-btn">Переснять</button>
+                                <button type="button" class="btn btn-success" id="use-photo-btn">Использовать фото</button>
+                            </div>
+                        </div>
+                        
                         <div class="d-flex justify-content-end mt-4">
                             <a href="{% url 'accounts:reception_list' %}" class="btn btn-outline-secondary me-2">Отмена</a>
                             <button type="submit" class="btn btn-primary">Добавить ресепшениста</button>
@@ -34,4 +136,112 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const takePhotoBtn = document.getElementById('take-photo-btn');
+        const cameraContainer = document.getElementById('camera-container');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const photoPreview = document.getElementById('photo-preview');
+        const fileInput = document.getElementById('{{ form.face_image.id_for_label }}');
+        const retakeBtn = document.getElementById('retake-btn');
+        const usePhotoBtn = document.getElementById('use-photo-btn');
+        const cameraControls = document.getElementById('camera-controls');
+        
+        let stream = null;
+        
+        // Функция для запуска камеры
+        takePhotoBtn.addEventListener('click', function() {
+            cameraContainer.style.display = 'block';
+            
+            // Запрашиваем доступ к камере
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    video.play();
+                })
+                .catch(function(err) {
+                    console.error('Ошибка доступа к камере:', err);
+                    alert('Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения.');
+                });
+        });
+        
+        // Функция для захвата фото
+        captureBtn.addEventListener('click', function() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Преобразуем canvas в изображение
+            const imageData = canvas.toDataURL('image/jpeg');
+            photoPreview.src = imageData;
+            photoPreview.style.display = 'block';
+            cameraControls.style.display = 'flex';
+            
+            // Останавливаем видеопоток
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // Скрываем контейнер с камерой
+            cameraContainer.style.display = 'none';
+        });
+        
+        // Функция для повторного снимка
+        retakeBtn.addEventListener('click', function() {
+            photoPreview.style.display = 'none';
+            cameraControls.style.display = 'none';
+            cameraContainer.style.display = 'block';
+            
+            // Запрашиваем доступ к камере снова
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    video.play();
+                })
+                .catch(function(err) {
+                    console.error('Ошибка доступа к камере:', err);
+                    alert('Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения.');
+                });
+        });
+        
+        // Функция для использования фото
+        usePhotoBtn.addEventListener('click', function() {
+            // Преобразуем canvas в blob
+            canvas.toBlob(function(blob) {
+                // Создаем файл из blob
+                const file = new File([blob], 'camera_photo.jpg', { type: 'image/jpeg' });
+                
+                // Создаем новый FileList с нашим файлом
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                
+                // Уведомляем пользователя
+                alert('Фото успешно сохранено!');
+            }, 'image/jpeg');
+        });
+        
+        // Обработка изменения файла через стандартный input
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoPreview.src = e.target.result;
+                    photoPreview.style.display = 'block';
+                    cameraControls.style.display = 'none'; // Скрываем контроллы камеры при загрузке файла
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        });
+    });
+</script>
 {% endblock %}

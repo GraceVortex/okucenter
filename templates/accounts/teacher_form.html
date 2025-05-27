@@ -27,7 +27,7 @@
 
     <div class="card shadow-sm mb-5">
         <div class="card-body p-4">
-            <form method="post" class="needs-validation" novalidate>
+            <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                 {% csrf_token %}
                 
                 <div class="row mb-4">
@@ -65,15 +65,95 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
-                                <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
-                                       id="{{ form.email.id_for_label }}" 
-                                       name="{{ form.email.html_name }}" 
+                                <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                                       id="{{ form.email.id_for_label }}"
+                                       name="{{ form.email.html_name }}"
                                        value="{{ form.email.value|default:'' }}">
                                 {% if form.email.errors %}
                                     <div class="invalid-feedback">
                                         {{ form.email.errors.0 }}
                                     </div>
                                 {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.face_image.id_for_label }}" class="form-label">{{ form.face_image.label }}</label>
+                                
+                                <!-- Вкладки для выбора способа добавления фото -->
+                                <ul class="nav nav-tabs mb-3" id="photoTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-content" type="button" role="tab" aria-controls="upload-content" aria-selected="true">
+                                            <i class="bi bi-upload me-1"></i> Загрузить фото
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera-content" type="button" role="tab" aria-controls="camera-content" aria-selected="false">
+                                            <i class="bi bi-camera me-1"></i> Сделать фото
+                                        </button>
+                                    </li>
+                                </ul>
+                                
+                                <!-- Содержимое вкладок -->
+                                <div class="tab-content" id="photoTabsContent">
+                                    <!-- Вкладка загрузки файла -->
+                                    <div class="tab-pane fade show active" id="upload-content" role="tabpanel" aria-labelledby="upload-tab">
+                                        <div class="mb-3">
+                                            <input type="file" class="form-control {% if form.face_image.errors %}is-invalid{% endif %}" 
+                                                id="{{ form.face_image.id_for_label }}" 
+                                                name="{{ form.face_image.html_name }}" 
+                                                accept="image/*">
+                                            <small class="form-text text-muted">Выберите файл с фотографией для распознавания лица.</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Вкладка камеры -->
+                                    <div class="tab-pane fade" id="camera-content" role="tabpanel" aria-labelledby="camera-tab">
+                                        <div class="border p-2 rounded mb-3">
+                                            <div id="camera-container" class="text-center">
+                                                <video id="video" width="100%" height="300" autoplay style="border-radius: 8px;"></video>
+                                                <canvas id="canvas" width="100%" height="300" style="display: none; border-radius: 8px;"></canvas>
+                                                <img id="captured-photo" style="display: none; max-width: 100%; border-radius: 8px;" />
+                                            </div>
+                                            <div class="mt-2 text-center">
+                                                <button type="button" id="start-camera-btn" class="btn btn-outline-primary">Включить камеру</button>
+                                                <button type="button" id="capture-btn" class="btn btn-primary" style="display: none;">Сделать фото</button>
+                                                <button type="button" id="retake-btn" class="btn btn-secondary" style="display: none;">Переснять</button>
+                                                <button type="button" id="use-photo-btn" class="btn btn-success" style="display: none;">Использовать фото</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                                {% if form.face_image.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.face_image.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Модальное окно для кадрирования изображения -->
+                                <div id="cropper-modal">
+                                    <div class="cropper-modal-content">
+                                        <div class="cropper-modal-header">
+                                            <h4>Кадрирование изображения</h4>
+                                            <button type="button" class="cropper-close">&times;</button>
+                                        </div>
+                                        <div class="cropper-modal-body">
+                                            <div class="cropper-container">
+                                                <img id="image-to-crop" class="image-to-crop" src="#" alt="Изображение для кадрирования">
+                                            </div>
+                                            <div class="cropper-controls">
+                                                <button type="button" class="btn btn-outline-secondary" id="rotate-left-btn">
+                                                    <i class="bi bi-arrow-counterclockwise"></i> Повернуть влево
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" id="rotate-right-btn">
+                                                    <i class="bi bi-arrow-clockwise"></i> Повернуть вправо
+                                                </button>
+                                                <button type="button" class="btn btn-primary" id="crop-btn">
+                                                    <i class="bi bi-crop"></i> Обрезать
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -111,16 +191,18 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.phone_number.id_for_label }}" class="form-label">{{ form.phone_number.label }} <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}" 
+                                <input type="tel" class="form-control phone-mask {% if form.phone_number.errors %}is-invalid{% endif %}" 
                                        id="{{ form.phone_number.id_for_label }}" 
                                        name="{{ form.phone_number.html_name }}" 
                                        value="{{ form.phone_number.value|default:'' }}" 
+                                       placeholder="+7 707 777 77 77"
                                        required>
                                 {% if form.phone_number.errors %}
                                     <div class="invalid-feedback">
                                         {{ form.phone_number.errors.0 }}
                                     </div>
                                 {% endif %}
+                                <div class="form-text">Введите номер телефона в формате +7 707 777 77 77</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.docs_link.id_for_label }}" class="form-label">{{ form.docs_link.label }}</label>
@@ -151,7 +233,445 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<!-- Cropper.js CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<style>
+    /* Стили для контейнера кадрирования */
+    .cropper-container {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    /* Стили для изображения */
+    .image-to-crop {
+        max-width: 100%;
+        display: block;
+    }
+    
+    /* Стили для кнопок управления кадрированием */
+    .cropper-controls {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    /* Скрываем контейнер кадрирования по умолчанию */
+    #cropper-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1050;
+        overflow: auto;
+    }
+    
+    .cropper-modal-content {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+    }
+    
+    .cropper-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .cropper-modal-header h4 {
+        margin: 0;
+    }
+    
+    .cropper-close {
+        font-size: 24px;
+        cursor: pointer;
+        background: none;
+        border: none;
+    }
+</style>
+{% endblock %}
+
 {% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Новая логика камеры, загрузки файлов и кадрирования ---
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const capturedPhoto = document.getElementById('captured-photo');
+    const startCameraBtn = document.getElementById('start-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const retakeBtn = document.getElementById('retake-btn');
+    const usePhotoBtn = document.getElementById('use-photo-btn');
+    const faceImageInput = document.getElementById('{{ form.face_image.id_for_label }}');
+    const uploadTab = document.getElementById('upload-tab');
+    const cameraTab = document.getElementById('camera-tab');
+    
+    // Элементы для кадрирования
+    const cropperModal = document.getElementById('cropper-modal');
+    const imageToCrop = document.getElementById('image-to-crop');
+    const cropBtn = document.getElementById('crop-btn');
+    const rotateLeftBtn = document.getElementById('rotate-left-btn');
+    const rotateRightBtn = document.getElementById('rotate-right-btn');
+    const cropperCloseBtn = document.querySelector('.cropper-close');
+    
+    let stream = null;
+    let cropper = null; // Экземпляр Cropper.js
+    
+    // Функция для запуска камеры
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            } 
+        })
+        .then(function(mediaStream) {
+            stream = mediaStream;
+            video.srcObject = mediaStream;
+            video.style.display = 'block';
+            captureBtn.style.display = 'inline-block';
+            startCameraBtn.style.display = 'none';
+            console.log('Камера успешно запущена');
+        })
+        .catch(function(error) {
+            console.error('Ошибка доступа к камере:', error);
+            alert('Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения браузера.');
+        });
+    }
+    
+    // Функция для остановки камеры
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+                console.log('Трек камеры остановлен');
+            });
+            video.srcObject = null;
+            stream = null;
+        }
+    }
+    
+    // Обработчик кнопки "Включить камеру"
+    startCameraBtn.addEventListener('click', function() {
+        startCamera();
+    });
+    
+    // Обработчик переключения на вкладку камеры
+    cameraTab.addEventListener('click', function() {
+        // Останавливаем камеру при переключении вкладок
+        stopCamera();
+        // Сбрасываем интерфейс камеры
+        video.style.display = 'block';
+        capturedPhoto.style.display = 'none';
+        startCameraBtn.style.display = 'inline-block';
+        captureBtn.style.display = 'none';
+        retakeBtn.style.display = 'none';
+        usePhotoBtn.style.display = 'none';
+    });
+    
+    // Обработчик переключения на вкладку загрузки файла
+    uploadTab.addEventListener('click', function() {
+        // Останавливаем камеру при переключении вкладок
+        stopCamera();
+    });
+    
+    // Обработчик кнопки "Сделать фото"
+    captureBtn.addEventListener('click', function() {
+        try {
+            // Проверяем, что видео поток активен
+            if (!video.srcObject || !video.srcObject.active) {
+                console.error('Видеопоток не активен');
+                alert('Ошибка: видеопоток не активен. Пожалуйста, разрешите доступ к камере.');
+                return;
+            }
+            
+            // Делаем снимок с видео
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Преобразуем в data URL и отображаем
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            capturedPhoto.src = dataUrl;
+            
+            // Обновляем интерфейс
+            video.style.display = 'none';
+            capturedPhoto.style.display = 'block';
+            captureBtn.style.display = 'none';
+            retakeBtn.style.display = 'inline-block';
+            usePhotoBtn.style.display = 'inline-block';
+            
+            console.log('Снимок успешно сделан');
+        } catch (err) {
+            console.error('Ошибка при создании снимка:', err);
+            alert('Ошибка при создании снимка: ' + err);
+        }
+    });
+    
+    // Обработчик кнопки "Переснять"
+    retakeBtn.addEventListener('click', function() {
+        // Очищаем данные изображения
+        capturedPhoto.src = '';
+        
+        // Очищаем файловый ввод
+        faceImageInput.value = '';
+        
+        // Обновляем интерфейс
+        video.style.display = 'block';
+        capturedPhoto.style.display = 'none';
+        startCameraBtn.style.display = 'inline-block';
+        captureBtn.style.display = 'none';
+        retakeBtn.style.display = 'none';
+        usePhotoBtn.style.display = 'none';
+    });
+    
+    // Обработчик кнопки "Использовать фото"
+    usePhotoBtn.addEventListener('click', function() {
+        if (!capturedPhoto.src) {
+            alert('Ошибка: снимок не найден!');
+            return;
+        }
+        
+        try {
+            fetch(capturedPhoto.src)
+              .then(res => res.arrayBuffer())
+              .then(buf => {
+                const file = new File([buf], 'faceid_photo.png', {type: 'image/jpeg'});
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                faceImageInput.files = dt.files;
+                
+                // Останавливаем камеру и обновляем интерфейс
+                stopCamera();
+                startCameraBtn.style.display = 'inline-block';
+                captureBtn.style.display = 'none';
+                retakeBtn.style.display = 'none';
+                usePhotoBtn.style.display = 'none';
+                capturedPhoto.style.display = 'none';
+                
+                alert('Фото успешно сохранено!');
+              })
+              .catch(error => {
+                console.error('Ошибка при сохранении фото:', error);
+                alert('Ошибка при сохранении фото: ' + error);
+              });
+        } catch (err) {
+            console.error('Ошибка при использовании фото:', err);
+            alert('Ошибка при использовании фото: ' + err);
+        }
+    });
+    
+    // Останавливаем камеру при уходе со страницы
+    window.addEventListener('beforeunload', stopCamera);
+    
+    // Функция для инициализации кадрирования
+    function initCropper(imageUrl) {
+        // Отображаем модальное окно
+        cropperModal.style.display = 'block';
+        
+        // Устанавливаем изображение для кадрирования
+        imageToCrop.src = imageUrl;
+        
+        // Уничтожаем предыдущий экземпляр Cropper, если он существует
+        if (cropper) {
+            cropper.destroy();
+        }
+        
+        // Создаем новый экземпляр Cropper
+        // Ожидаем загрузку изображения
+        imageToCrop.onload = function() {
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: 1, // Соотношение сторон 1:1 для фото лица
+                viewMode: 1,    // Ограничиваем область кадрирования размерами изображения
+                guides: true,   // Показываем направляющие линии
+                center: true,   // Показываем центральный индикатор
+                highlight: false, // Не подсвечиваем область вне кадра
+                cropBoxResizable: true, // Разрешаем изменять размер области кадрирования
+                minCropBoxWidth: 100,  // Минимальная ширина области кадрирования
+                minCropBoxHeight: 100, // Минимальная высота области кадрирования
+                ready: function() {
+                    console.log('Cropper.js готов');
+                }
+            });
+        };
+    }
+    
+    // Функция для закрытия модального окна кадрирования
+    function closeCropperModal() {
+        cropperModal.style.display = 'none';
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+    }
+    
+    // Обработчик изменения файла
+    faceImageInput.addEventListener('change', function() {
+        if (faceImageInput.files && faceImageInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Запускаем кадрирование изображения
+                initCropper(e.target.result);
+            };
+            reader.readAsDataURL(faceImageInput.files[0]);
+        }
+    });
+    
+    // Обработчик кнопки закрытия модального окна
+    cropperCloseBtn.addEventListener('click', closeCropperModal);
+    
+    // Обработчик кнопки поворота влево
+    rotateLeftBtn.addEventListener('click', function() {
+        if (cropper) {
+            cropper.rotate(-90); // Поворачиваем на 90 градусов против часовой стрелки
+        }
+    });
+    
+    // Обработчик кнопки поворота вправо
+    rotateRightBtn.addEventListener('click', function() {
+        if (cropper) {
+            cropper.rotate(90); // Поворачиваем на 90 градусов по часовой стрелке
+        }
+    });
+    
+    // Обработчик кнопки обрезки
+    cropBtn.addEventListener('click', function() {
+        if (cropper) {
+            // Получаем обрезанное изображение в формате data URL
+            const croppedCanvas = cropper.getCroppedCanvas({
+                width: 300,     // Ширина выходного изображения
+                height: 300,    // Высота выходного изображения
+                minWidth: 100,   // Минимальная ширина
+                minHeight: 100,  // Минимальная высота
+                maxWidth: 4096,  // Максимальная ширина
+                maxHeight: 4096, // Максимальная высота
+                fillColor: '#fff', // Цвет фона
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            
+            // Преобразуем в data URL
+            const croppedImageUrl = croppedCanvas.toDataURL('image/jpeg');
+            
+            // Отображаем обрезанное изображение в предпросмотре
+            capturedPhoto.src = croppedImageUrl;
+            capturedPhoto.style.display = 'block';
+            
+            // Переключаемся на вкладку камеры, чтобы показать предпросмотр
+            new bootstrap.Tab(cameraTab).show();
+            
+            // Скрываем видео и показываем кнопки управления
+            video.style.display = 'none';
+            startCameraBtn.style.display = 'inline-block';
+            captureBtn.style.display = 'none';
+            retakeBtn.style.display = 'inline-block';
+            usePhotoBtn.style.display = 'inline-block';
+            
+            // Создаем File из обрезанного изображения
+            croppedCanvas.toBlob(function(blob) {
+                const file = new File([blob], 'cropped_face.jpg', { type: 'image/jpeg' });
+                
+                // Создаем новый FileList с нашим файлом
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                faceImageInput.files = dataTransfer.files;
+            }, 'image/jpeg');
+            
+            // Закрываем модальное окно
+            closeCropperModal();
+        }
+    });
+    
+    // Добавляем обработчик кнопки снимка с камеры для кадрирования
+    captureBtn.addEventListener('click', function() {
+        try {
+            // Проверяем, что видео поток активен
+            if (!video.srcObject || !video.srcObject.active) {
+                console.error('Видеопоток не активен');
+                alert('Ошибка: видеопоток не активен. Пожалуйста, разрешите доступ к камере.');
+                return;
+            }
+            
+            // Делаем снимок с видео
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Преобразуем в data URL
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            
+            // Останавливаем камеру
+            stopCamera();
+            
+            // Запускаем кадрирование снимка
+            initCropper(dataUrl);
+            
+            console.log('Снимок успешно сделан и отправлен на кадрирование');
+        } catch (err) {
+            console.error('Ошибка при создании снимка:', err);
+            alert('Ошибка при создании снимка: ' + err);
+        }
+    });
+    
+    console.log('Камера, загрузка файлов и кадрирование JS инициализированы');
+});
+</script>
+<!-- Bootstrap Bundle JS (Popper + Modal) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+
+<!-- Cropper.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<!-- IMask JS для маски ввода телефона -->
+<script src="https://unpkg.com/imask"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Применяем маску к полю телефона
+        var phoneInputs = document.querySelectorAll('.phone-mask');
+        phoneInputs.forEach(function(el) {
+            IMask(el, {
+                mask: '+{7} 000 000 00 00',
+                lazy: false,  // Показывать маску сразу
+                placeholderChar: '_'
+            });
+        });
+    });
+</script>
+
+<!-- Добавляем стили для камеры -->
+<style>
+    /* Стили для контейнера камеры */
+    #camera-container {
+        position: relative;
+        min-height: 300px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    /* Стили для видео и фото */
+    #video, #captured-photo {
+        width: 100%;
+        max-height: 300px;
+        object-fit: cover;
+    }
+    
+    /* Стили для кнопок камеры */
+    #start-camera-btn, #capture-btn, #retake-btn, #use-photo-btn {
+        margin: 0 5px;
+        font-weight: 500;
+    }
+</style>
+
 <script>
     // Валидация формы на стороне клиента
     (function () {

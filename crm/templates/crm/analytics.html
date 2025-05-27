@@ -1,0 +1,564 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Аналитика продаж</h5>
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            {{ period_display }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item {% if period == 'week' %}active{% endif %}" href="?period=week">Неделя</a></li>
+            <li><a class="dropdown-item {% if period == 'month' %}active{% endif %}" href="?period=month">Месяц</a></li>
+            <li><a class="dropdown-item {% if period == 'quarter' %}active{% endif %}" href="?period=quarter">Квартал</a></li>
+            <li><a class="dropdown-item {% if period == 'year' %}active{% endif %}" href="?period=year">Год</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#customPeriodModal">Выбрать период</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <!-- Статистика продаж -->
+          <div class="col-md-3">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Общая сумма сделок</h6>
+                <h3 class="mb-0">{{ total_amount }} {{ currency }}</h3>
+                <p class="text-muted mb-0">
+                  {% if total_amount_diff > 0 %}
+                  <span class="text-success"><i class="bi bi-arrow-up"></i> {{ total_amount_diff }}%</span>
+                  {% elif total_amount_diff < 0 %}
+                  <span class="text-danger"><i class="bi bi-arrow-down"></i> {{ total_amount_diff|abs }}%</span>
+                  {% else %}
+                  <span class="text-muted">0%</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Выигранные сделки</h6>
+                <h3 class="mb-0">{{ won_amount }} {{ currency }}</h3>
+                <p class="text-muted mb-0">
+                  {% if won_amount_diff > 0 %}
+                  <span class="text-success"><i class="bi bi-arrow-up"></i> {{ won_amount_diff }}%</span>
+                  {% elif won_amount_diff < 0 %}
+                  <span class="text-danger"><i class="bi bi-arrow-down"></i> {{ won_amount_diff|abs }}%</span>
+                  {% else %}
+                  <span class="text-muted">0%</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Средний чек</h6>
+                <h3 class="mb-0">{{ avg_deal_amount }} {{ currency }}</h3>
+                <p class="text-muted mb-0">
+                  {% if avg_deal_amount_diff > 0 %}
+                  <span class="text-success"><i class="bi bi-arrow-up"></i> {{ avg_deal_amount_diff }}%</span>
+                  {% elif avg_deal_amount_diff < 0 %}
+                  <span class="text-danger"><i class="bi bi-arrow-down"></i> {{ avg_deal_amount_diff|abs }}%</span>
+                  {% else %}
+                  <span class="text-muted">0%</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card mb-3">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Конверсия сделок</h6>
+                <h3 class="mb-0">{{ deal_conversion }}%</h3>
+                <p class="text-muted mb-0">
+                  {% if deal_conversion_diff > 0 %}
+                  <span class="text-success"><i class="bi bi-arrow-up"></i> {{ deal_conversion_diff }}%</span>
+                  {% elif deal_conversion_diff < 0 %}
+                  <span class="text-danger"><i class="bi bi-arrow-down"></i> {{ deal_conversion_diff|abs }}%</span>
+                  {% else %}
+                  <span class="text-muted">0%</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- График продаж -->
+        <div class="chart-container mt-4" style="height: 300px;">
+          <canvas id="salesChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Воронка продаж -->
+  <div class="col-md-6">
+    <div class="card card-crm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Воронка продаж</h5>
+        <div class="btn-group">
+          <a href="{% url 'crm:deal_kanban' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-kanban"></i> Канбан
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 400px;">
+          <canvas id="funnelChart"></canvas>
+        </div>
+        <div class="table-responsive mt-4">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Этап</th>
+                <th>Кол-во сделок</th>
+                <th>Сумма</th>
+                <th>Конверсия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for stage in funnel_data %}
+              <tr>
+                <td>{{ stage.name }}</td>
+                <td>{{ stage.count }}</td>
+                <td>{{ stage.amount }} {{ currency }}</td>
+                <td>
+                  {% if stage.conversion %}
+                  {{ stage.conversion }}%
+                  {% else %}
+                  -
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Источники лидов -->
+  <div class="col-md-6">
+    <div class="card card-crm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Источники лидов</h5>
+        <div class="btn-group">
+          <a href="{% url 'crm:lead_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-list"></i> Список лидов
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 400px;">
+          <canvas id="leadSourcesChart"></canvas>
+        </div>
+        <div class="table-responsive mt-4">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Источник</th>
+                <th>Кол-во лидов</th>
+                <th>Конверсия в сделки</th>
+                <th>Сумма сделок</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for source in lead_sources_data %}
+              <tr>
+                <td>{{ source.name }}</td>
+                <td>{{ source.count }}</td>
+                <td>{{ source.conversion }}%</td>
+                <td>{{ source.amount }} {{ currency }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Эффективность менеджеров -->
+  <div class="col-md-12">
+    <div class="card card-crm mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Эффективность менеджеров</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Менеджер</th>
+                <th>Всего сделок</th>
+                <th>Выигранные сделки</th>
+                <th>Конверсия</th>
+                <th>Сумма выигранных</th>
+                <th>Средний чек</th>
+                <th>Активности</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for manager in managers_data %}
+              <tr>
+                <td>{{ manager.name }}</td>
+                <td>{{ manager.total_deals }}</td>
+                <td>{{ manager.won_deals }}</td>
+                <td>{{ manager.conversion }}%</td>
+                <td>{{ manager.won_amount }} {{ currency }}</td>
+                <td>{{ manager.avg_deal }} {{ currency }}</td>
+                <td>{{ manager.activities }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Длительность цикла продаж -->
+  <div class="col-md-6">
+    <div class="card card-crm mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Длительность цикла продаж</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 300px;">
+          <canvas id="salesCycleChart"></canvas>
+        </div>
+        <div class="table-responsive mt-4">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Этап</th>
+                <th>Средняя длительность</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for stage in sales_cycle_data %}
+              <tr>
+                <td>{{ stage.name }}</td>
+                <td>{{ stage.duration }} дней</td>
+              </tr>
+              {% endfor %}
+              <tr class="table-primary">
+                <td><strong>Весь цикл</strong></td>
+                <td><strong>{{ total_sales_cycle }} дней</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Активности -->
+  <div class="col-md-6">
+    <div class="card card-crm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Активности</h5>
+        <div class="btn-group">
+          <a href="{% url 'crm:activity_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-list"></i> Список активностей
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 300px;">
+          <canvas id="activitiesChart"></canvas>
+        </div>
+        <div class="table-responsive mt-4">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Тип активности</th>
+                <th>Количество</th>
+                <th>Завершено</th>
+                <th>Конверсия в сделки</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for activity in activities_data %}
+              <tr>
+                <td>{{ activity.name }}</td>
+                <td>{{ activity.count }}</td>
+                <td>{{ activity.completed }}</td>
+                <td>{{ activity.conversion }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для выбора периода -->
+<div class="modal fade" id="customPeriodModal" tabindex="-1" aria-labelledby="customPeriodModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="customPeriodModalLabel">Выбор периода</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="get" action="">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="start_date" class="form-label">Начальная дата</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+          </div>
+          <div class="mb-3">
+            <label for="end_date" class="form-label">Конечная дата</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Применить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // График продаж
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(salesCtx, {
+      type: 'line',
+      data: {
+        labels: {{ sales_chart_labels|safe }},
+        datasets: [
+          {
+            label: 'Общая сумма сделок',
+            data: {{ sales_chart_data.total|safe }},
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: 'Выигранные сделки',
+            data: {{ sales_chart_data.won|safe }},
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return value + ' {{ currency }}';
+              }
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.raw + ' {{ currency }}';
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // График воронки продаж
+    const funnelCtx = document.getElementById('funnelChart').getContext('2d');
+    const funnelChart = new Chart(funnelCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ funnel_labels|safe }},
+        datasets: [{
+          label: 'Количество сделок',
+          data: {{ funnel_counts|safe }},
+          backgroundColor: [
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 99, 132, 0.7)'
+          ],
+          borderColor: [
+            'rgba(54, 162, 235, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 99, 132, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        scales: {
+          x: {
+            beginAtZero: true
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              afterLabel: function(context) {
+                const amounts = {{ funnel_amounts|safe }};
+                return `Сумма: ${amounts[context.dataIndex]} {{ currency }}`;
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // График источников лидов
+    const leadSourcesCtx = document.getElementById('leadSourcesChart').getContext('2d');
+    const leadSourcesChart = new Chart(leadSourcesCtx, {
+      type: 'pie',
+      data: {
+        labels: {{ lead_sources_labels|safe }},
+        datasets: [{
+          data: {{ lead_sources_counts|safe }},
+          backgroundColor: [
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(201, 203, 207, 0.7)'
+          ],
+          borderColor: [
+            'rgba(54, 162, 235, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 99, 132, 1)',
+            'rgba(201, 203, 207, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              afterLabel: function(context) {
+                const conversions = {{ lead_sources_conversions|safe }};
+                const amounts = {{ lead_sources_amounts|safe }};
+                return [
+                  `Конверсия: ${conversions[context.dataIndex]}%`,
+                  `Сумма сделок: ${amounts[context.dataIndex]} {{ currency }}`
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // График длительности цикла продаж
+    const salesCycleCtx = document.getElementById('salesCycleChart').getContext('2d');
+    const salesCycleChart = new Chart(salesCycleCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ sales_cycle_labels|safe }},
+        datasets: [{
+          label: 'Средняя длительность (дни)',
+          data: {{ sales_cycle_durations|safe }},
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Дни'
+            }
+          }
+        }
+      }
+    });
+    
+    // График активностей
+    const activitiesCtx = document.getElementById('activitiesChart').getContext('2d');
+    const activitiesChart = new Chart(activitiesCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ activities_labels|safe }},
+        datasets: [{
+          data: {{ activities_counts|safe }},
+          backgroundColor: [
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(153, 102, 255, 0.7)'
+          ],
+          borderColor: [
+            'rgba(54, 162, 235, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(153, 102, 255, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              afterLabel: function(context) {
+                const completed = {{ activities_completed|safe }};
+                const conversions = {{ activities_conversions|safe }};
+                return [
+                  `Завершено: ${completed[context.dataIndex]}`,
+                  `Конверсия: ${conversions[context.dataIndex]}%`
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

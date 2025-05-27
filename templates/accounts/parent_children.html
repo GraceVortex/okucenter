@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}Мои дети - Образовательный центр{% endblock %}
+{% block title %}Запросы на отмену - Образовательный центр{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Мои дети</h1>
-            <p class="text-muted fs-5">Информация о ваших детях и их обучении</p>
+            <h1 class="display-5 fw-bold">Запросы на отмену</h1>
+            <p class="text-muted fs-5">Управление запросами на отмену занятий</p>
         </div>
     </div>
 
@@ -19,76 +19,71 @@
             </div>
         {% endfor %}
     {% endif %}
-
-    {% if children %}
-        <div class="row">
-            {% for child in children %}
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h4 class="card-title fw-bold mb-0">{{ child.full_name }}</h4>
-                                <span class="badge bg-primary">{{ child.grade }} класс</span>
+    
+    <!-- Предстоящие занятия детей -->
+    {% for child_data in children_with_lessons %}
+        {% if child_data.upcoming_lessons %}
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white p-4">
+                            <h4 class="fw-bold mb-0">Предстоящие занятия: {{ child_data.child.full_name }}</h4>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th scope="col">Класс</th>
+                                            <th scope="col">Дата</th>
+                                            <th scope="col">Время</th>
+                                            <th scope="col">Кабинет</th>
+                                            <th scope="col">Учитель</th>
+                                            <th scope="col">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lesson in child_data.upcoming_lessons %}
+                                            <tr>
+                                                <td>{{ lesson.class.name }}</td>
+                                                <td>{{ lesson.date|date:"d.m.Y" }}</td>
+                                                <td>{{ lesson.schedule.start_time|time:"H:i" }} - {{ lesson.schedule.end_time|time:"H:i" }}</td>
+                                                <td>{{ lesson.schedule.room }}</td>
+                                                <td>{{ lesson.class.teacher.full_name }}</td>
+                                                <td>
+                                                    {% if lesson.can_cancel %}
+                                                        <a href="{% url 'attendance:parent_cancel_lesson' child_data.child.id lesson.class.id lesson.schedule.id lesson.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger">
+                                                            <i class="bi bi-calendar-x me-1"></i> Отменить
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Нельзя отменить</span>
+                                                        <small class="text-muted d-block">Менее 24 часов до начала</small>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
-                            
-                            <div class="mb-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-calendar-date text-primary me-2"></i>
-                                    <span>Дата рождения: {{ child.birth_date|date:"d.m.Y" }}</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-building text-primary me-2"></i>
-                                    <span>Школа: {{ child.school }}</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="bi bi-wallet2 text-primary me-2"></i>
-                                    <span>Баланс: 
-                                        {% if child.balance < 0 %}
-                                            <span class="text-danger fw-bold">{{ child.balance }} ₸</span>
-                                        {% else %}
-                                            <span class="text-success fw-bold">{{ child.balance }} ₸</span>
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <h5 class="fw-bold mb-3">Классы</h5>
-                            {% if child.enrollments.exists %}
-                                <div class="list-group mb-4">
-                                    {% for enrollment in child.enrollments.all %}
-                                        <div class="list-group-item">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h6 class="mb-1">{{ enrollment.class_obj.name }}</h6>
-                                                    <p class="text-muted mb-1 small">Предмет: {{ enrollment.class_obj.subject }}</p>
-                                                    <p class="text-muted mb-0 small">Учитель: {{ enrollment.class_obj.teacher.full_name }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="alert alert-info">
-                                    <i class="bi bi-info-circle me-2"></i> Ребенок не записан ни на один класс
-                                </div>
-                            {% endif %}
-                            
-                            <div class="d-flex mt-auto">
-                                <a href="{% url 'finance:student_balance' student_id=child.id %}" class="btn btn-outline-success flex-grow-1">
-                                    <i class="bi bi-cash-coin me-2"></i> Баланс
-                                </a>
+                        </div>
+                        <div class="card-footer bg-white p-3">
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                <strong>Важно!</strong> Запрос на отмену занятия должен быть создан не менее чем за 24 часа до начала занятия.
                             </div>
                         </div>
                     </div>
                 </div>
-            {% endfor %}
-        </div>
-    {% else %}
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {% if not children_with_lessons %}
         <div class="card">
             <div class="card-body text-center py-5">
-                <i class="bi bi-people display-1 text-muted mb-3"></i>
-                <h3>Нет зарегистрированных детей</h3>
-                <p class="text-muted">У вас пока нет зарегистрированных детей в системе</p>
+                <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
+                <h3>Нет предстоящих занятий</h3>
+                <p class="text-muted">У ваших детей нет предстоящих занятий, которые можно отменить</p>
             </div>
         </div>
     {% endif %}

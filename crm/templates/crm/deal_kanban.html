@@ -1,0 +1,269 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-body">
+        <!-- Фильтры и поиск -->
+        <div class="row">
+          <div class="col-md-4">
+            <form method="get" id="pipelineForm">
+              <div class="mb-3">
+                <label for="pipeline" class="form-label">Воронка продаж</label>
+                <select name="pipeline" id="pipeline" class="form-select" onchange="this.form.submit()">
+                  {% for p in pipelines %}
+                  <option value="{{ p.id }}" {% if selected_pipeline == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </form>
+          </div>
+          <div class="col-md-4">
+            <form method="get" id="statusForm">
+              <input type="hidden" name="pipeline" value="{{ selected_pipeline }}">
+              <div class="mb-3">
+                <label for="status" class="form-label">Статус сделок</label>
+                <select name="status" id="status" class="form-select" onchange="this.form.submit()">
+                  <option value="open" {% if selected_status == 'open' %}selected{% endif %}>Открытые</option>
+                  <option value="won" {% if selected_status == 'won' %}selected{% endif %}>Выигранные</option>
+                  <option value="lost" {% if selected_status == 'lost' %}selected{% endif %}>Проигранные</option>
+                </select>
+              </div>
+            </form>
+          </div>
+          <div class="col-md-4">
+            <form method="get" id="searchForm">
+              <input type="hidden" name="pipeline" value="{{ selected_pipeline }}">
+              <input type="hidden" name="status" value="{{ selected_status }}">
+              <div class="mb-3">
+                <label for="q" class="form-label">Поиск сделок</label>
+                <div class="input-group">
+                  <input type="text" name="q" id="q" class="form-control" placeholder="Поиск..." value="{{ search_query }}">
+                  <button type="submit" class="btn btn-outline-secondary">
+                    <i class="bi bi-search"></i>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4>Воронка продаж: {{ pipeline.name }}</h4>
+      <a href="{% url 'crm:deal_create' %}?pipeline={{ pipeline.id }}" class="btn btn-primary">
+        <i class="bi bi-plus"></i> Добавить сделку
+      </a>
+    </div>
+    
+    <!-- Канбан-доска -->
+    <div class="kanban-container">
+      {% for stage in stages %}
+      <div class="kanban-column" data-stage-id="{{ stage.id }}">
+        <div class="kanban-column-header" style="background-color: {{ stage.color }}; color: white;">
+          <span>{{ stage.name }}</span>
+          <span class="badge bg-light text-dark">{{ deals_by_stage|get_item:stage.id|length }}</span>
+        </div>
+        <div class="kanban-column-body" id="stage-{{ stage.id }}">
+          {% for deal in deals_by_stage|get_item:stage.id %}
+          <div class="kanban-card" data-deal-id="{{ deal.id }}">
+            <div class="kanban-card-title">
+              <a href="{% url 'crm:deal_detail' deal.id %}">{{ deal.title }}</a>
+            </div>
+            <div class="kanban-card-subtitle">
+              {% if deal.contact %}
+              <div><i class="bi bi-person"></i> {{ deal.contact.full_name }}</div>
+              {% endif %}
+              {% if deal.company %}
+              <div><i class="bi bi-building"></i> {{ deal.company.name }}</div>
+              {% endif %}
+            </div>
+            <div class="kanban-card-footer">
+              <div>
+                <strong>{{ deal.amount }} {{ deal.currency }}</strong>
+              </div>
+              <div>
+                {% if deal.expected_close_date %}
+                <i class="bi bi-calendar"></i> {{ deal.expected_close_date|date:"d.m.Y" }}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center p-3 text-muted">
+            <p>Нет сделок</p>
+            <a href="{% url 'crm:deal_create' %}?pipeline={{ pipeline.id }}&stage={{ stage.id }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-plus"></i> Добавить
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-md-12">
+        <div class="alert alert-info">
+          Для этой воронки не настроены этапы. Пожалуйста, создайте этапы воронки.
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для быстрого просмотра сделки -->
+<div class="modal fade" id="quickViewDealModal" tabindex="-1" aria-labelledby="quickViewDealModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="quickViewDealModalLabel">Просмотр сделки</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <a href="#" class="btn btn-primary" id="viewDealDetailBtn">Подробнее</a>
+        <a href="#" class="btn btn-outline-primary" id="editDealBtn">Редактировать</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация Sortable.js для каждой колонки канбана
+    const stageColumns = document.querySelectorAll('.kanban-column-body');
+    
+    stageColumns.forEach(column => {
+      new Sortable(column, {
+        group: 'deals',
+        animation: 150,
+        ghostClass: 'kanban-card-ghost',
+        chosenClass: 'kanban-card-chosen',
+        dragClass: 'kanban-card-drag',
+        onEnd: function(evt) {
+          const dealId = evt.item.getAttribute('data-deal-id');
+          const newStageId = evt.to.closest('.kanban-column').getAttribute('data-stage-id');
+          const oldStageId = evt.from.closest('.kanban-column').getAttribute('data-stage-id');
+          
+          if (newStageId !== oldStageId) {
+            updateDealStage(dealId, newStageId);
+          }
+        }
+      });
+    });
+    
+    // Функция для обновления этапа сделки через AJAX
+    function updateDealStage(dealId, stageId) {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      
+      fetch('{% url "crm:deal_change_stage" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `deal_id=${dealId}&stage_id=${stageId}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Обновление счетчиков в заголовках колонок
+          updateColumnCounters();
+        } else {
+          // Если произошла ошибка, перезагружаем страницу
+          alert('Произошла ошибка при обновлении этапа сделки. Страница будет перезагружена.');
+          window.location.reload();
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при обновлении этапа сделки. Страница будет перезагружена.');
+        window.location.reload();
+      });
+    }
+    
+    // Функция для обновления счетчиков в заголовках колонок
+    function updateColumnCounters() {
+      const columns = document.querySelectorAll('.kanban-column');
+      
+      columns.forEach(column => {
+        const stageId = column.getAttribute('data-stage-id');
+        const cardsCount = column.querySelectorAll('.kanban-card').length;
+        const counterBadge = column.querySelector('.kanban-column-header .badge');
+        
+        if (counterBadge) {
+          counterBadge.textContent = cardsCount;
+        }
+      });
+    }
+    
+    // Обработка клика по карточке сделки для быстрого просмотра
+    const dealCards = document.querySelectorAll('.kanban-card');
+    const quickViewModal = new bootstrap.Modal(document.getElementById('quickViewDealModal'));
+    
+    dealCards.forEach(card => {
+      card.addEventListener('dblclick', function(e) {
+        e.preventDefault();
+        const dealId = this.getAttribute('data-deal-id');
+        
+        // Обновляем ссылки в модальном окне
+        document.getElementById('viewDealDetailBtn').href = `{% url 'crm:deal_detail' 0 %}`.replace('0', dealId);
+        document.getElementById('editDealBtn').href = `{% url 'crm:deal_update' 0 %}`.replace('0', dealId);
+        
+        // Загружаем данные сделки через AJAX
+        loadDealData(dealId);
+        
+        // Показываем модальное окно
+        quickViewModal.show();
+      });
+    });
+    
+    // Функция для загрузки данных сделки через AJAX
+    function loadDealData(dealId) {
+      const modalBody = document.querySelector('#quickViewDealModal .modal-body');
+      modalBody.innerHTML = `
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+          </div>
+        </div>
+      `;
+      
+      fetch(`{% url 'crm:deal_detail_ajax' %}?deal_id=${dealId}`, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.text())
+      .then(html => {
+        modalBody.innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        modalBody.innerHTML = `
+          <div class="alert alert-danger">
+            Произошла ошибка при загрузке данных сделки.
+          </div>
+        `;
+      });
+    }
+  });
+</script>
+{% endblock %}

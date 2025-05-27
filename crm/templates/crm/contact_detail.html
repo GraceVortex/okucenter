@@ -1,0 +1,512 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-8">
+    <!-- Основная информация о контакте -->
+    <div class="card card-crm">
+      <div class="card-body">
+        <div class="detail-header">
+          <div class="detail-avatar">
+            {{ contact.first_name|first }}{{ contact.last_name|first }}
+          </div>
+          <div class="detail-info">
+            <h4 class="detail-title">{{ contact.full_name }}</h4>
+            <div class="detail-subtitle">
+              <span class="badge bg-primary">{{ contact.get_contact_type_display }}</span>
+              {% if contact.company %}
+              <span class="ms-2">
+                <i class="bi bi-building"></i> 
+                <a href="{% url 'crm:company_detail' contact.company.id %}">{{ contact.company.name }}</a>
+              </span>
+              {% endif %}
+            </div>
+            <div class="detail-actions mt-2">
+              <a href="{% url 'crm:contact_update' contact.id %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil"></i> Редактировать
+              </a>
+              <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete('{% url 'crm:contact_delete' contact.id %}')">
+                <i class="bi bi-trash"></i> Удалить
+              </button>
+              <div class="dropdown d-inline-block">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-plus"></i> Создать
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                  <li><a class="dropdown-item" href="{% url 'crm:deal_create' %}?contact={{ contact.id }}">Сделку</a></li>
+                  <li><a class="dropdown-item" href="{% url 'crm:task_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}">Задачу</a></li>
+                  <li><a class="dropdown-item" href="{% url 'crm:call_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}">Звонок</a></li>
+                  <li><a class="dropdown-item" href="{% url 'crm:meeting_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}">Встречу</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <hr>
+        
+        <!-- Контактная информация -->
+        <div class="row">
+          <div class="col-md-6">
+            <h5 class="mb-3">Контактная информация</h5>
+            <table class="table table-sm">
+              <tbody>
+                <tr>
+                  <th style="width: 30%"><i class="bi bi-telephone"></i> Телефон</th>
+                  <td>{{ contact.phone|default:"Не указан" }}</td>
+                </tr>
+                <tr>
+                  <th><i class="bi bi-envelope"></i> Email</th>
+                  <td>{{ contact.email|default:"Не указан" }}</td>
+                </tr>
+                <tr>
+                  <th><i class="bi bi-briefcase"></i> Должность</th>
+                  <td>{{ contact.position|default:"Не указана" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h5 class="mb-3">Дополнительная информация</h5>
+            <table class="table table-sm">
+              <tbody>
+                <tr>
+                  <th style="width: 30%"><i class="bi bi-person"></i> Ответственный</th>
+                  <td>
+                    {% if contact.responsible %}
+                    {{ contact.responsible.get_full_name }}
+                    {% else %}
+                    Не назначен
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <th><i class="bi bi-calendar"></i> Создан</th>
+                  <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+                <tr>
+                  <th><i class="bi bi-calendar-check"></i> Обновлен</th>
+                  <td>{{ contact.updated_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        {% if contact.notes %}
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <h5 class="mb-3">Примечания</h5>
+            <div class="p-3 bg-light rounded">
+              {{ contact.notes|linebreaks }}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Сделки контакта -->
+    <div class="card card-crm mt-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Сделки</h5>
+        <a href="{% url 'crm:deal_create' %}?contact={{ contact.id }}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus"></i> Добавить сделку
+        </a>
+      </div>
+      <div class="card-body">
+        {% if deals %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Название</th>
+                <th>Этап</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+                <th>Дата создания</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for deal in deals %}
+              <tr>
+                <td>
+                  <a href="{% url 'crm:deal_detail' deal.id %}">{{ deal.title }}</a>
+                </td>
+                <td>
+                  {% if deal.stage %}
+                  <span class="badge" style="background-color: {{ deal.stage.color }}">{{ deal.stage.name }}</span>
+                  {% else %}
+                  -
+                  {% endif %}
+                </td>
+                <td>{{ deal.amount }} {{ deal.currency }}</td>
+                <td>
+                  {% if deal.status == 'open' %}
+                  <span class="badge bg-primary">{{ deal.get_status_display }}</span>
+                  {% elif deal.status == 'won' %}
+                  <span class="badge bg-success">{{ deal.get_status_display }}</span>
+                  {% elif deal.status == 'lost' %}
+                  <span class="badge bg-danger">{{ deal.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ deal.created_at|date:"d.m.Y" }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'crm:deal_detail' deal.id %}" class="btn btn-outline-primary" title="Просмотр">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{% url 'crm:deal_update' deal.id %}" class="btn btn-outline-secondary" title="Редактировать">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <p class="text-muted">У этого контакта пока нет сделок</p>
+          <a href="{% url 'crm:deal_create' %}?contact={{ contact.id }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Добавить сделку
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Активности контакта -->
+    <div class="card card-crm mt-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Активности</h5>
+        <div class="dropdown">
+          <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="dropdownActivitiesButton" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-plus"></i> Добавить
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownActivitiesButton">
+            <li><a class="dropdown-item" href="{% url 'crm:task_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}">Задачу</a></li>
+            <li><a class="dropdown-item" href="{% url 'crm:call_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}">Звонок</a></li>
+            <li><a class="dropdown-item" href="{% url 'crm:meeting_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}">Встречу</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if activities %}
+        <div class="activity-list">
+          {% for activity in activities %}
+          <div class="activity-list-item">
+            <div class="activity-header">
+              <div class="activity-title">
+                {% if activity.activity_type == 'task' %}
+                <i class="bi bi-check-square text-primary"></i>
+                {% elif activity.activity_type == 'call' %}
+                <i class="bi bi-telephone text-success"></i>
+                {% elif activity.activity_type == 'meeting' %}
+                <i class="bi bi-calendar-event text-info"></i>
+                {% elif activity.activity_type == 'email' %}
+                <i class="bi bi-envelope text-warning"></i>
+                {% elif activity.activity_type == 'note' %}
+                <i class="bi bi-sticky text-secondary"></i>
+                {% else %}
+                <i class="bi bi-asterisk"></i>
+                {% endif %}
+                <a href="{% url 'crm:activity_detail' activity.id %}">{{ activity.title }}</a>
+              </div>
+              <div class="activity-date">
+                {% if activity.due_date %}
+                {{ activity.due_date|date:"d.m.Y H:i" }}
+                {% else %}
+                {{ activity.created_at|date:"d.m.Y H:i" }}
+                {% endif %}
+              </div>
+            </div>
+            <div class="activity-body">
+              {{ activity.description|truncatechars:100 }}
+            </div>
+            <div class="activity-footer">
+              <div>
+                <span class="badge {% if activity.status == 'completed' %}bg-success{% elif activity.status == 'not_started' %}bg-secondary{% elif activity.status == 'in_progress' %}bg-primary{% elif activity.status == 'deferred' %}bg-warning{% elif activity.status == 'cancelled' %}bg-danger{% endif %}">
+                  {{ activity.get_status_display }}
+                </span>
+                <span class="ms-2">
+                  <i class="bi bi-person"></i> 
+                  {% if activity.assigned_to %}
+                  {{ activity.assigned_to.get_full_name }}
+                  {% else %}
+                  Не назначен
+                  {% endif %}
+                </span>
+              </div>
+              <div>
+                <a href="{% url 'crm:activity_detail' activity.id %}" class="btn btn-sm btn-link">Подробнее</a>
+                {% if activity.status != 'completed' %}
+                <a href="{% url 'crm:activity_complete' activity.id %}" class="btn btn-sm btn-outline-success">Завершить</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <p class="text-muted">У этого контакта пока нет активностей</p>
+          <div class="btn-group">
+            <a href="{% url 'crm:task_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}" class="btn btn-primary btn-sm">
+              <i class="bi bi-check-square"></i> Добавить задачу
+            </a>
+            <a href="{% url 'crm:call_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}" class="btn btn-success btn-sm">
+              <i class="bi bi-telephone"></i> Добавить звонок
+            </a>
+            <a href="{% url 'crm:meeting_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}" class="btn btn-info btn-sm">
+              <i class="bi bi-calendar-event"></i> Добавить встречу
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <!-- Социальные аккаунты -->
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Социальные аккаунты</h5>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSocialAccountModal">
+          <i class="bi bi-plus"></i> Добавить
+        </button>
+      </div>
+      <div class="card-body">
+        {% if social_accounts %}
+        <ul class="list-group list-group-flush">
+          {% for account in social_accounts %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              {% if account.account_type == 'whatsapp' %}
+              <i class="bi bi-whatsapp text-success"></i>
+              {% elif account.account_type == 'instagram' %}
+              <i class="bi bi-instagram text-danger"></i>
+              {% elif account.account_type == 'telegram' %}
+              <i class="bi bi-telegram text-primary"></i>
+              {% elif account.account_type == 'facebook' %}
+              <i class="bi bi-facebook text-primary"></i>
+              {% elif account.account_type == 'vk' %}
+              <i class="bi bi-chat-fill text-primary"></i>
+              {% else %}
+              <i class="bi bi-globe"></i>
+              {% endif %}
+              <span class="ms-2">{{ account.get_account_type_display }}: {{ account.username }}</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+              {% if account.url %}
+              <a href="{{ account.url }}" target="_blank" class="btn btn-outline-primary" title="Открыть">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </a>
+              {% endif %}
+              <button type="button" class="btn btn-outline-danger" title="Удалить" 
+                      onclick="confirmDeleteSocialAccount({{ account.id }})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3">
+          <p class="text-muted">Социальные аккаунты не добавлены</p>
+          <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSocialAccountModal">
+            <i class="bi bi-plus"></i> Добавить аккаунт
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Беседы -->
+    <div class="card card-crm mt-4">
+      <div class="card-header">
+        <h5 class="mb-0">Беседы</h5>
+      </div>
+      <div class="card-body">
+        {% if conversations %}
+        <ul class="list-group list-group-flush">
+          {% for conversation in conversations %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              {% if conversation.channel == 'whatsapp' %}
+              <i class="bi bi-whatsapp text-success"></i>
+              {% elif conversation.channel == 'instagram' %}
+              <i class="bi bi-instagram text-danger"></i>
+              {% elif conversation.channel == 'telegram' %}
+              <i class="bi bi-telegram text-primary"></i>
+              {% elif conversation.channel == 'email' %}
+              <i class="bi bi-envelope text-warning"></i>
+              {% elif conversation.channel == 'sms' %}
+              <i class="bi bi-chat-text text-info"></i>
+              {% else %}
+              <i class="bi bi-chat"></i>
+              {% endif %}
+              <span class="ms-2">{{ conversation.get_channel_display }}</span>
+              {% if conversation.get_unread_messages_count > 0 %}
+              <span class="badge bg-danger ms-2">{{ conversation.get_unread_messages_count }}</span>
+              {% endif %}
+            </div>
+            <a href="{% url 'crm:conversation_detail' conversation.id %}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-chat-dots"></i> Открыть
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3">
+          <p class="text-muted">У этого контакта нет активных бесед</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- История изменений -->
+    <div class="card card-crm mt-4">
+      <div class="card-header">
+        <h5 class="mb-0">История изменений</h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <strong>Создание контакта</strong>
+              </div>
+              <div class="text-muted">{{ contact.created_at|date:"d.m.Y H:i" }}</div>
+            </div>
+            <div class="text-muted">
+              {% if contact.responsible %}
+              Ответственный: {{ contact.responsible.get_full_name }}
+              {% else %}
+              Система
+              {% endif %}
+            </div>
+          </li>
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <strong>Последнее обновление</strong>
+              </div>
+              <div class="text-muted">{{ contact.updated_at|date:"d.m.Y H:i" }}</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Подтверждение удаления</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Вы уверены, что хотите удалить контакт "{{ contact.full_name }}"? Это действие нельзя отменить.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <form id="deleteForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно добавления социального аккаунта -->
+<div class="modal fade" id="addSocialAccountModal" tabindex="-1" aria-labelledby="addSocialAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addSocialAccountModalLabel">Добавление социального аккаунта</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'crm:add_social_account' contact.id %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="account_type" class="form-label">Тип аккаунта</label>
+            <select class="form-select" id="account_type" name="account_type" required>
+              <option value="">Выберите тип аккаунта</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+              <option value="telegram">Telegram</option>
+              <option value="facebook">Facebook</option>
+              <option value="vk">ВКонтакте</option>
+              <option value="other">Другое</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="username" class="form-label">Имя пользователя / Номер телефона</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="account_id" class="form-label">ID аккаунта (если известен)</label>
+            <input type="text" class="form-control" id="account_id" name="account_id">
+          </div>
+          <div class="mb-3">
+            <label for="url" class="form-label">URL профиля</label>
+            <input type="url" class="form-control" id="url" name="url">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Добавить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления социального аккаунта -->
+<div class="modal fade" id="deleteSocialAccountModal" tabindex="-1" aria-labelledby="deleteSocialAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteSocialAccountModalLabel">Подтверждение удаления</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Вы уверены, что хотите удалить этот социальный аккаунт? Это действие нельзя отменить.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <form id="deleteSocialAccountForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  function confirmDelete(url) {
+    document.getElementById('deleteForm').action = url;
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+  
+  function confirmDeleteSocialAccount(accountId) {
+    document.getElementById('deleteSocialAccountForm').action = "{% url 'crm:delete_social_account' 0 %}".replace('0', accountId);
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteSocialAccountModal'));
+    deleteModal.show();
+  }
+</script>
+{% endblock %}

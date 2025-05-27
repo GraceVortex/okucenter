@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_update %}Редактирование лида{% else %}Добавление лида{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{% if is_update %}Редактирование лида: {{ lead.full_name }}{% else %}Добавление нового лида{% endif %}</h1>
+        <a href="{% if is_update %}{% url 'crm:lead_detail' lead.id %}{% else %}{% url 'crm:lead_list' %}{% endif %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> {% if is_update %}К деталям лида{% else %}К списку лидов{% endif %}
+        </a>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                
+                <!-- Основная информация -->
+                <div class="col-12">
+                    <h5>Основная информация</h5>
+                    <hr>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="full_name" class="form-label">ФИО <span class="text-danger">*</span></label>
+                    <input type="text" name="full_name" id="full_name" class="form-control" required value="{{ lead.full_name|default:'' }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="phone_number" class="form-label">Телефон <span class="text-danger">*</span></label>
+                    <input type="tel" name="phone_number" id="phone_number" class="form-control" required value="{{ lead.phone_number|default:'' }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" name="email" id="email" class="form-control" value="{{ lead.email|default:'' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="source" class="form-label">Источник</label>
+                    <select name="source" id="source" class="form-select">
+                        <option value="">Выберите источник</option>
+                        {% for source in lead_sources %}
+                            <option value="{{ source.id }}" {% if lead.source.id == source.id %}selected{% endif %}>{{ source.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                {% if is_update %}
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Статус</label>
+                    <select name="status" id="status" class="form-select">
+                        {% for status_key, status_name in lead_statuses.items %}
+                            <option value="{{ status_key }}" {% if lead.status == status_key %}selected{% endif %}>{{ status_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="assigned_to" class="form-label">Ответственный маркетолог</label>
+                    <select name="assigned_to" id="assigned_to" class="form-select">
+                        <option value="">Не назначен</option>
+                        {% for marketer in marketers %}
+                            <option value="{{ marketer.id }}" {% if lead.assigned_to.id == marketer.id %}selected{% endif %}>{{ marketer.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <!-- Информация о школьнике -->
+                <div class="col-12 mt-4">
+                    <h5>Информация о школьнике</h5>
+                    <hr>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="birth_date" class="form-label">Дата рождения</label>
+                    <input type="date" name="birth_date" id="birth_date" class="form-control" value="{{ lead.birth_date|date:'Y-m-d'|default:'' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="school" class="form-label">Школа</label>
+                    <input type="text" name="school" id="school" class="form-control" value="{{ lead.school|default:'' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="current_grade" class="form-label">Текущий класс</label>
+                    <select name="current_grade" id="current_grade" class="form-select">
+                        <option value="">Выберите класс</option>
+                        {% for i in "123456789"|make_list %}
+                            <option value="{{ i }}" {% if lead.current_grade == i|add:"0" %}selected{% endif %}>{{ i }} класс</option>
+                        {% endfor %}
+                        {% for i in "10 11"|split:" " %}
+                            <option value="{{ i }}" {% if lead.current_grade == i|add:"0" %}selected{% endif %}>{{ i }} класс</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Информация о родителе -->
+                <div class="col-12 mt-4">
+                    <h5>Информация о родителе</h5>
+                    <hr>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="parent_name" class="form-label">ФИО родителя</label>
+                    <input type="text" name="parent_name" id="parent_name" class="form-control" value="{{ lead.parent_name|default:'' }}">
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="parent_phone" class="form-label">Телефон родителя</label>
+                    <input type="tel" name="parent_phone" id="parent_phone" class="form-control" value="{{ lead.parent_phone|default:'' }}">
+                </div>
+                
+                <!-- Дополнительная информация -->
+                <div class="col-12 mt-4">
+                    <h5>Дополнительная информация</h5>
+                    <hr>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="interested_subjects" class="form-label">Интересующие предметы</label>
+                    <input type="text" name="interested_subjects" id="interested_subjects" class="form-control" value="{{ lead.interested_subjects|default:'' }}">
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="notes" class="form-label">Примечания</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="4">{{ lead.notes|default:'' }}</textarea>
+                </div>
+                
+                <!-- Кнопки действий -->
+                <div class="col-12 mt-4 d-flex justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="history.back()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        {% if is_update %}Сохранить изменения{% else %}Создать лида{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Маска для телефона
+    document.addEventListener('DOMContentLoaded', function() {
+        var phoneInputs = document.querySelectorAll('input[type="tel"]');
+        
+        if (typeof IMask !== 'undefined') {
+            phoneInputs.forEach(function(input) {
+                IMask(input, {
+                    mask: '+{7} 000 000 00 00'
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

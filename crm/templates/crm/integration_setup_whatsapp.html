@@ -1,0 +1,220 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-whatsapp text-success"></i> Настройка интеграции с WhatsApp
+        </h5>
+        <a href="{% url 'crm:integration_detail' integration.id %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-left"></i> Назад
+        </a>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'crm:integration_setup' integration.id %}">
+          {% csrf_token %}
+          
+          <div class="alert alert-info">
+            <h5 class="alert-heading">Инструкция по настройке</h5>
+            <p>Для интеграции с WhatsApp Business API вам необходимо:</p>
+            <ol>
+              <li>Зарегистрироваться в <a href="https://developers.facebook.com/" target="_blank">Facebook for Developers</a></li>
+              <li>Создать приложение в Facebook Developer Portal</li>
+              <li>Настроить WhatsApp Business API в вашем приложении</li>
+              <li>Получить необходимые ключи и токены доступа</li>
+            </ol>
+            <p>Подробную инструкцию можно найти в <a href="https://developers.facebook.com/docs/whatsapp/api/getting-started" target="_blank">официальной документации</a>.</p>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="api_key" class="form-label">API Key / Access Token</label>
+                <input type="text" class="form-control" id="api_key" name="api_key" 
+                       value="{{ integration.settings.api_key|default:'' }}" required>
+                <div class="form-text">Токен доступа к WhatsApp Business API</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="phone_number_id" class="form-label">Phone Number ID</label>
+                <input type="text" class="form-control" id="phone_number_id" name="phone_number_id" 
+                       value="{{ integration.settings.phone_number_id|default:'' }}" required>
+                <div class="form-text">ID номера телефона в WhatsApp Business API</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="business_account_id" class="form-label">Business Account ID</label>
+                <input type="text" class="form-control" id="business_account_id" name="business_account_id" 
+                       value="{{ integration.settings.business_account_id|default:'' }}" required>
+                <div class="form-text">ID вашего бизнес-аккаунта в WhatsApp Business</div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="webhook_verify_token" class="form-label">Webhook Verify Token</label>
+                <input type="text" class="form-control" id="webhook_verify_token" name="webhook_verify_token" 
+                       value="{{ integration.settings.webhook_verify_token|default:'' }}" required>
+                <div class="form-text">Токен для верификации вебхука</div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Webhook URL</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" value="{{ request.scheme }}://{{ request.get_host }}{% url 'crm:whatsapp_webhook' %}" readonly>
+                  <button class="btn btn-outline-secondary" type="button" onclick="copyWebhookUrl()">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+                <div class="form-text">URL вебхука, который нужно указать в настройках WhatsApp Business API</div>
+              </div>
+              
+              <div class="alert alert-warning">
+                <h6 class="alert-heading">Важно!</h6>
+                <p class="mb-0">Для работы вебхуков ваш сайт должен быть доступен из интернета по HTTPS-протоколу.</p>
+              </div>
+            </div>
+          </div>
+          
+          <h5 class="mb-3">Тестирование подключения</h5>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="test_phone" class="form-label">Номер телефона для тестирования</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="test_phone" placeholder="Например: +77001234567">
+                  <button class="btn btn-outline-primary" type="button" onclick="testWhatsAppConnection()">
+                    Проверить
+                  </button>
+                </div>
+                <div class="form-text">Введите номер телефона в международном формате для отправки тестового сообщения</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div id="test-result"></div>
+            </div>
+          </div>
+          
+          <div class="d-flex justify-content-between">
+            <a href="{% url 'crm:integration_detail' integration.id %}" class="btn btn-outline-secondary">Отмена</a>
+            <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header">
+        <h5 class="mb-0">Дополнительная информация</h5>
+      </div>
+      <div class="card-body">
+        <h6>Настройка шаблонов сообщений</h6>
+        <p>WhatsApp Business API позволяет отправлять сообщения с использованием предварительно одобренных шаблонов. Для создания и настройки шаблонов:</p>
+        <ol>
+          <li>Перейдите в <a href="https://business.facebook.com/" target="_blank">Facebook Business Manager</a></li>
+          <li>Выберите ваш бизнес-аккаунт</li>
+          <li>Перейдите в раздел "WhatsApp Manager"</li>
+          <li>Выберите "Message Templates" и создайте новые шаблоны</li>
+        </ol>
+        
+        <h6 class="mt-4">Ограничения WhatsApp Business API</h6>
+        <ul>
+          <li>Вы можете отправлять сообщения только пользователям, которые ранее писали вам или дали согласие на получение сообщений</li>
+          <li>Для инициации диалога необходимо использовать одобренные шаблоны сообщений</li>
+          <li>Существуют ограничения на количество отправляемых сообщений в зависимости от вашего тарифа</li>
+        </ul>
+        
+        <h6 class="mt-4">Полезные ссылки</h6>
+        <ul>
+          <li><a href="https://developers.facebook.com/docs/whatsapp/api/reference" target="_blank">WhatsApp Business API Reference</a></li>
+          <li><a href="https://developers.facebook.com/docs/whatsapp/message-templates" target="_blank">WhatsApp Message Templates</a></li>
+          <li><a href="https://developers.facebook.com/docs/whatsapp/api/webhooks" target="_blank">WhatsApp Webhooks</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  function copyWebhookUrl() {
+    const webhookUrl = "{{ request.scheme }}://{{ request.get_host }}{% url 'crm:whatsapp_webhook' %}";
+    navigator.clipboard.writeText(webhookUrl).then(function() {
+      alert('URL вебхука скопирован в буфер обмена');
+    }, function() {
+      alert('Не удалось скопировать URL');
+    });
+  }
+  
+  function testWhatsAppConnection() {
+    const testPhone = document.getElementById('test_phone').value;
+    const apiKey = document.getElementById('api_key').value;
+    const phoneNumberId = document.getElementById('phone_number_id').value;
+    const resultDiv = document.getElementById('test-result');
+    
+    if (!testPhone || !apiKey || !phoneNumberId) {
+      resultDiv.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> Пожалуйста, заполните все необходимые поля
+        </div>
+      `;
+      return;
+    }
+    
+    resultDiv.innerHTML = `
+      <div class="alert alert-info">
+        <div class="d-flex align-items-center">
+          <div class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+          </div>
+          <span>Отправка тестового сообщения...</span>
+        </div>
+      </div>
+    `;
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('{% url "crm:test_whatsapp_connection" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: `phone=${testPhone}&api_key=${apiKey}&phone_number_id=${phoneNumberId}&integration_id={{ integration.id }}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        resultDiv.innerHTML = `
+          <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> Тестовое сообщение успешно отправлено!
+          </div>
+        `;
+      } else {
+        resultDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> Ошибка: ${data.error}
+          </div>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка:', error);
+      resultDiv.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> Произошла ошибка при отправке запроса
+        </div>
+      `;
+    });
+  }
+</script>
+{% endblock %}

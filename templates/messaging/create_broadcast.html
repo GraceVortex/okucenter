@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+
+{% block title %}Создание рассылки WhatsApp{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .recipient-preview {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .preview-card {
+        border-left: 4px solid #25D366;
+        background-color: #f5f5f5;
+        padding: 15px;
+        border-radius: 5px;
+    }
+    .whatsapp-header {
+        background-color: #075E54;
+        color: white;
+        padding: 10px;
+        border-radius: 5px 5px 0 0;
+    }
+    .whatsapp-body {
+        background-color: #ECE5DD;
+        padding: 15px;
+        border-radius: 0 0 5px 5px;
+    }
+    .whatsapp-message {
+        background-color: #DCF8C6;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        display: inline-block;
+        max-width: 80%;
+    }
+    .media-preview {
+        max-width: 100%;
+        max-height: 200px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Создание рассылки WhatsApp</h1>
+                <a href="{% url 'messaging:whatsapp_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к списку
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="broadcastForm">
+        {% csrf_token %}
+        <div class="row">
+            <!-- Форма создания рассылки -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Параметры рассылки</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="title">Название рассылки <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recipient_type">Получатели <span class="text-danger">*</span></label>
+                            <select class="form-control" id="recipient_type" name="recipient_type" required>
+                                <option value="parents">Родители</option>
+                                <option value="students">Студенты</option>
+                                <option value="both">Родители и студенты</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target_class">Класс</label>
+                            <select class="form-control" id="target_class" name="target_class">
+                                <option value="">Все классы</option>
+                                {% for class in classes %}
+                                <option value="{{ class.id }}">{{ class.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target_day">День недели</label>
+                            <select class="form-control" id="target_day" name="target_day">
+                                <option value="">Все дни</option>
+                                {% for day_value, day_name in days_of_week %}
+                                <option value="{{ day_value }}">{{ day_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target_schedule">Расписание</label>
+                            <select class="form-control" id="target_schedule" name="target_schedule">
+                                <option value="">Все расписания</option>
+                                {% for schedule in schedules %}
+                                <option value="{{ schedule.id }}" data-class="{{ schedule.class_obj.id }}" data-day="{{ schedule.day_of_week }}">
+                                    {{ schedule.class_obj.name }} - {{ schedule.get_day_of_week_display }}, {{ schedule.start_time|time:"H:i" }}-{{ schedule.end_time|time:"H:i" }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="scheduled_at">Запланировать отправку на</label>
+                            <input type="text" class="form-control" id="scheduled_at" name="scheduled_at" placeholder="Оставьте пустым для отправки сразу">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">Текст сообщения <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                            <small class="form-text text-muted">
+                                Вы можете использовать следующие переменные: {имя_студента}, {имя_родителя}, {класс}
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="media_file">Медиа-файл (опционально)</label>
+                            <input type="file" class="form-control" id="media_file" name="media_file">
+                            <small class="form-text text-muted">
+                                Поддерживаемые форматы: изображения (jpg, png), видео (mp4), аудио (mp3), документы (pdf, doc)
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" id="previewButton" class="btn btn-info">
+                                <i class="fas fa-eye"></i> Предпросмотр
+                            </button>
+                            <div>
+                                <button type="submit" name="save_draft" class="btn btn-secondary">
+                                    <i class="fas fa-save"></i> Сохранить как черновик
+                                </button>
+                                <button type="submit" name="send_now" class="btn btn-success">
+                                    <i class="fas fa-paper-plane"></i> Отправить сейчас
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Предпросмотр рассылки -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Предпросмотр</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="preview-card mb-4">
+                            <div class="whatsapp-header">
+                                <i class="fab fa-whatsapp"></i> WhatsApp
+                            </div>
+                            <div class="whatsapp-body">
+                                <div id="mediaPreviewContainer" style="display: none;">
+                                    <img id="mediaPreview" class="media-preview" src="" alt="Предпросмотр медиа">
+                                </div>
+                                <div class="whatsapp-message" id="messagePreview">
+                                    Введите текст сообщения для предпросмотра
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Получатели (<span id="recipientCount">0</span>)</h6>
+                            </div>
+                            <div class="card-body recipient-preview">
+                                <div id="recipientList" class="list-group">
+                                    <div class="alert alert-info">
+                                        Выберите параметры рассылки и нажмите "Предпросмотр" для отображения списка получателей
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация выбора даты и времени
+        flatpickr("#scheduled_at", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            minDate: "today",
+            time_24hr: true
+        });
+
+        // Фильтрация расписаний в зависимости от выбранного класса и дня недели
+        const targetClassSelect = document.getElementById('target_class');
+        const targetDaySelect = document.getElementById('target_day');
+        const targetScheduleSelect = document.getElementById('target_schedule');
+        const scheduleOptions = Array.from(targetScheduleSelect.options);
+
+        function filterSchedules() {
+            const selectedClassId = targetClassSelect.value;
+            const selectedDay = targetDaySelect.value;
+
+            // Сначала удаляем все опции, кроме первой (Все расписания)
+            while (targetScheduleSelect.options.length > 1) {
+                targetScheduleSelect.remove(1);
+            }
+
+            // Фильтруем и добавляем подходящие опции
+            scheduleOptions.forEach(option => {
+                if (option.value === '') return; // Пропускаем первую опцию
+
+                const classId = option.getAttribute('data-class');
+                const day = option.getAttribute('data-day');
+                
+                const classMatch = !selectedClassId || classId === selectedClassId;
+                const dayMatch = !selectedDay || day === selectedDay;
+
+                if (classMatch && dayMatch) {
+                    targetScheduleSelect.add(option.cloneNode(true));
+                }
+            });
+        }
+
+        targetClassSelect.addEventListener('change', filterSchedules);
+        targetDaySelect.addEventListener('change', filterSchedules);
+
+        // Предпросмотр сообщения
+        const messageInput = document.getElementById('message');
+        const messagePreview = document.getElementById('messagePreview');
+        
+        messageInput.addEventListener('input', function() {
+            messagePreview.textContent = this.value || 'Введите текст сообщения для предпросмотра';
+        });
+
+        // Предпросмотр медиа-файла
+        const mediaFileInput = document.getElementById('media_file');
+        const mediaPreview = document.getElementById('mediaPreview');
+        const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+        
+        mediaFileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // Проверяем тип файла
+                    if (file.type.startsWith('image/')) {
+                        mediaPreview.src = e.target.result;
+                        mediaPreviewContainer.style.display = 'block';
+                    } else {
+                        // Для не-изображений показываем иконку
+                        let iconSrc = '/static/img/file-icon.png';
+                        if (file.type.includes('pdf')) {
+                            iconSrc = '/static/img/pdf-icon.png';
+                        } else if (file.type.includes('video')) {
+                            iconSrc = '/static/img/video-icon.png';
+                        } else if (file.type.includes('audio')) {
+                            iconSrc = '/static/img/audio-icon.png';
+                        }
+                        mediaPreview.src = iconSrc;
+                        mediaPreviewContainer.style.display = 'block';
+                    }
+                };
+                
+                reader.readAsDataURL(file);
+            } else {
+                mediaPreviewContainer.style.display = 'none';
+            }
+        });
+
+        // Получение списка получателей
+        const previewButton = document.getElementById('previewButton');
+        const recipientList = document.getElementById('recipientList');
+        const recipientCount = document.getElementById('recipientCount');
+        const recipientTypeSelect = document.getElementById('recipient_type');
+        
+        previewButton.addEventListener('click', function() {
+            // Собираем параметры фильтрации
+            const params = new URLSearchParams({
+                target_class: targetClassSelect.value,
+                target_day: targetDaySelect.value,
+                target_schedule: targetScheduleSelect.value,
+                recipient_type: recipientTypeSelect.value
+            });
+            
+            // Запрашиваем список получателей
+            fetch(`/messaging/api/get-recipients/?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        recipientCount.textContent = data.count;
+                        
+                        if (data.count > 0) {
+                            let html = '';
+                            data.recipients.forEach(recipient => {
+                                html += `
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${recipient.name}</strong>
+                                            <br>
+                                            <small class="text-muted">${recipient.phone}</small>
+                                        </div>
+                                        <span class="badge ${recipient.type === 'parent' ? 'bg-primary' : 'bg-success'}">
+                                            ${recipient.type === 'parent' ? 'Родитель' : 'Студент'}
+                                        </span>
+                                    </div>
+                                    ${recipient.type === 'parent' ? `<small class="text-muted">Родитель студента: ${recipient.student_name}</small>` : ''}
+                                </div>
+                                `;
+                            });
+                            recipientList.innerHTML = html;
+                        } else {
+                            recipientList.innerHTML = '<div class="alert alert-warning">Получатели не найдены. Попробуйте изменить параметры фильтрации.</div>';
+                        }
+                    } else {
+                        recipientList.innerHTML = `<div class="alert alert-danger">Ошибка: ${data.error}</div>`;
+                    }
+                })
+                .catch(error => {
+                    recipientList.innerHTML = `<div class="alert alert-danger">Ошибка при получении списка получателей: ${error.message}</div>`;
+                });
+        });
+
+        // Валидация формы перед отправкой
+        const form = document.getElementById('broadcastForm');
+        
+        form.addEventListener('submit', function(event) {
+            const title = document.getElementById('title').value.trim();
+            const message = document.getElementById('message').value.trim();
+            
+            if (!title) {
+                event.preventDefault();
+                alert('Пожалуйста, укажите название рассылки');
+                return;
+            }
+            
+            if (!message) {
+                event.preventDefault();
+                alert('Пожалуйста, введите текст сообщения');
+                return;
+            }
+            
+            // Если нажата кнопка "Отправить сейчас", запрашиваем подтверждение
+            if (event.submitter.name === 'send_now') {
+                if (!confirm('Вы уверены, что хотите отправить рассылку сейчас?')) {
+                    event.preventDefault();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

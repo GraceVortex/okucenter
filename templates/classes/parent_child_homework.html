@@ -10,9 +10,9 @@
     {% if classes_data %}
         <div class="accordion" id="classesAccordion">
             {% for class_data in classes_data %}
-                <div class="accordion-item mb-3">
+                <div class="accordion-item mb-3 shadow-sm border-0 rounded-3">
                     <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                        <button class="accordion-button {% if forloop.counter > 1 %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="{% if forloop.counter == 1 %}true{% else %}false{% endif %}" aria-controls="collapse{{ forloop.counter }}">
+                        <button class="accordion-button {% if forloop.counter > 1 %}collapsed{% endif %} rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="{% if forloop.counter == 1 %}true{% else %}false{% endif %}" aria-controls="collapse{{ forloop.counter }}" style="background-color: #f0f8ff;">
                             {{ class_data.class.name }} ({{ class_data.class.teacher.full_name }})
                         </button>
                     </h2>
@@ -20,62 +20,124 @@
                         <div class="accordion-body">
                             <!-- Таблица домашних заданий -->
                             <div class="table-responsive">
-                                <table class="table table-striped table-bordered">
-                                    <thead class="table-success">
-                                        <tr>
-                                            <th>Дата</th>
-                                            <th>Домашнее задание</th>
-                                            <th>Оценка за ДЗ</th>
-                                            <th>Файлы от учителя</th>
-                                            <th>Загруженные работы</th>
+                                <style>
+                                    .hw-table {
+                                        border-collapse: separate;
+                                        border-spacing: 0;
+                                        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                                        border-radius: 8px;
+                                        overflow: hidden;
+                                    }
+                                    .hw-table thead th {
+                                        border-bottom: 2px solid #dee2e6;
+                                        padding: 15px;
+                                        font-weight: 600;
+                                        background-color: #f8f9fa;
+                                        color: #495057;
+                                    }
+                                    .hw-row {
+                                        border-bottom: 3px solid #f0f0f0;
+                                    }
+                                    .hw-row:hover {
+                                        background-color: rgba(0, 123, 255, 0.03) !important;
+                                    }
+                                    .hw-row-even {
+                                        background-color: #f8f9fa;
+                                    }
+                                    .hw-cell {
+                                        padding: 15px;
+                                        vertical-align: middle;
+                                        border-right: 1px solid #f0f0f0;
+                                    }
+                                    .hw-cell:last-child {
+                                        border-right: none;
+                                    }
+                                </style>
+                                <table class="table table-hover shadow-sm hw-table">
+                                    <thead>
+                                        <tr class="bg-light">
+                                            <th class="hw-cell">Задание</th>
+                                            <th class="hw-cell">Описание</th>
+                                            <th class="hw-cell">Срок сдачи</th>
+                                            <th class="hw-cell">Статус</th>
+                                            <th class="hw-cell">Оценка учителя</th>
+                                            <th class="hw-cell">Комментарий учителя</th>
+                                            <th class="hw-cell">Файлы</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for attendance_item in class_data.attendance_data %}
-                                            {% if attendance_item.homework %}
-                                            <tr>
-                                                <td>{{ attendance_item.attendance.date|date:"d.m.Y" }}</td>
-                                                <td>{{ attendance_item.homework.description }}</td>
-                                                <td>
-                                                    {% if attendance_item.mark.homework_mark %}
-                                                        {% if attendance_item.mark.homework_mark == 'completed' %}
-                                                            <span class="badge bg-success">Выполнено</span>
-                                                        {% elif attendance_item.mark.homework_mark == 'partial' %}
-                                                            <span class="badge bg-warning">Частично выполнено</span>
-                                                        {% elif attendance_item.mark.homework_mark == 'not_completed' %}
-                                                            <span class="badge bg-danger">Не выполнено</span>
+                                        {% for item in class_data.homework_items %}
+                                            <tr class="hw-row {% if forloop.counter|divisibleby:2 %}hw-row-even{% endif %}">
+                                                <td class="hw-cell"><strong>{{ item.homework.title }}</strong></td>
+                                                <td class="hw-cell">{{ item.homework.description }}</td>
+                                                {% with today=current_date|date:'Y-m-d' due_date=item.homework.due_date|date:'Y-m-d' %}
+                                                    {% if item.submission %}
+                                                        {% if item.submission.created_at|date:'Y-m-d' <= item.homework.due_date|date:'Y-m-d' %}
+                                                            <td class="hw-cell" style="background-color: rgba(40, 167, 69, 0.15);">
+                                                        {% else %}
+                                                            <td class="hw-cell" style="background-color: rgba(255, 193, 7, 0.15);">
                                                         {% endif %}
                                                     {% else %}
-                                                        <span class="text-muted">Нет оценки</span>
+                                                        {% if today > due_date %}
+                                                            <td class="hw-cell" style="background-color: rgba(220, 53, 69, 0.15);">
+                                                        {% else %}
+                                                            <td class="hw-cell">
+                                                        {% endif %}
+                                                    {% endif %}
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi bi-calendar-date me-2 text-success"></i>
+                                                            <span>{{ item.homework.due_date|date:"d.m.Y" }}</span>
+                                                        </div>
+                                                    </td>
+                                                {% endwith %}
+                                                <td class="hw-cell">
+                                                    {% if item.submission %}
+                                                        <span class="badge bg-success">Отправлено</span>
+                                                        <p class="small text-muted mb-0">{{ item.submission.created_at|date:"d.m.Y H:i" }}</p>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Не отправлено</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>
-                                                    {% if attendance_item.homework.file %}
-                                                        <a href="{{ attendance_item.homework.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                            <i class="bi bi-file-earmark"></i> {{ attendance_item.homework.file.name|split:"/"|last }}
+                                                <td class="hw-cell">
+                                                    {% if item.submission and item.submission.completion_status %}
+                                                        <span class="badge 
+                                                            {% if item.submission.completion_status == 'completed' %}bg-success
+                                                            {% elif item.submission.completion_status == 'partially_completed' %}bg-warning
+                                                            {% else %}bg-danger{% endif %}">
+                                                            {{ item.submission.get_completion_status_display }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="hw-cell">
+                                                    {% if item.submission and item.submission.teacher_comment %}
+                                                        <p class="small mb-0">{{ item.submission.teacher_comment }}</p>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="hw-cell">
+                                                    {% if item.homework.file %}
+                                                        <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                            <i class="bi bi-file-earmark-text me-1"></i> Скачать задание
                                                         </a>
                                                     {% else %}
                                                         <span class="text-muted">Нет файлов</span>
                                                     {% endif %}
-                                                </td>
-                                                <td>
-                                                    {% if attendance_item.student_files %}
-                                                        <div class="d-flex flex-wrap">
-                                                            {% for submission in attendance_item.student_files %}
-                                                                <a href="{{ submission.file.url }}" class="btn btn-sm btn-outline-success me-2 mb-2" target="_blank">
-                                                                    <i class="bi bi-file-earmark"></i> {{ submission.file.name|split:"/"|last }}
-                                                                </a>
-                                                            {% endfor %}
+                                                    
+                                                    {% if item.submission and item.submission.file %}
+                                                        <div class="mt-2">
+                                                            <a href="{{ item.submission.file.url }}" class="btn btn-sm btn-outline-success" target="_blank">
+                                                                <i class="bi bi-file-earmark-text me-1"></i> Просмотреть работу
+                                                            </a>
                                                         </div>
-                                                    {% else %}
-                                                        <span class="text-muted">Нет загруженных работ</span>
                                                     {% endif %}
                                                 </td>
                                             </tr>
-                                            {% endif %}
                                         {% empty %}
                                             <tr>
-                                                <td colspan="5" class="text-center">Нет домашних заданий</td>
+                                                <td colspan="7" class="text-center">Нет домашних заданий</td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>

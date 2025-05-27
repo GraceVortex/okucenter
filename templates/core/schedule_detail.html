@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ schedule.class_obj.name }} - Детали занятия{% endblock %}
+
+{% block extra_css %}
+<style>
+    .lesson-header {
+        background: linear-gradient(135deg, var(--apple-primary), #0091ff);
+        color: white;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .material-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .material-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .material-icon {
+        font-size: 2rem;
+        color: var(--apple-primary);
+    }
+    
+    .grade-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .grade-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .grade-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 auto 1rem;
+    }
+    
+    .grade-circle.excellent {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .grade-circle.good {
+        background-color: rgba(0, 123, 255, 0.1);
+        color: #007bff;
+    }
+    
+    .grade-circle.average {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+    
+    .grade-circle.poor {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Главная</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'core:schedule' %}">Расписание</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ schedule.class_obj.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="lesson-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-5 fw-bold mb-2">{{ schedule.class_obj.name }}</h1>
+                <p class="fs-5 mb-3">Преподаватель: {{ schedule.class_obj.teacher.full_name }}</p>
+                <div class="d-flex align-items-center">
+                    <div class="me-4">
+                        <i class="bi bi-calendar-week me-2"></i>
+                        <span>{{ schedule.get_day_of_week_display }}</span>
+                    </div>
+                    <div class="me-4">
+                        <i class="bi bi-clock me-2"></i>
+                        <span>{{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</span>
+                    </div>
+                    <div>
+                        <i class="bi bi-geo-alt me-2"></i>
+                        <span>Кабинет {{ schedule.room }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="{% url 'core:schedule' %}" class="btn btn-light px-4 py-2">
+                    <i class="bi bi-arrow-left me-2"></i> Назад к расписанию
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-4">Материалы урока</h2>
+            
+            {% if materials %}
+                {% for material in materials %}
+                <div class="material-card card">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-start">
+                            <div class="me-3">
+                                {% if material.file %}
+                                    {% if material.file.name|lower|slice:"-4:" == ".pdf" %}
+                                        <i class="bi bi-file-earmark-pdf material-icon"></i>
+                                    {% elif material.file.name|lower|slice:"-4:" == ".doc" or material.file.name|lower|slice:"-5:" == ".docx" %}
+                                        <i class="bi bi-file-earmark-word material-icon"></i>
+                                    {% elif material.file.name|lower|slice:"-4:" == ".ppt" or material.file.name|lower|slice:"-5:" == ".pptx" %}
+                                        <i class="bi bi-file-earmark-slides material-icon"></i>
+                                    {% elif material.file.name|lower|slice:"-4:" == ".xls" or material.file.name|lower|slice:"-5:" == ".xlsx" %}
+                                        <i class="bi bi-file-earmark-excel material-icon"></i>
+                                    {% elif material.file.name|lower|slice:"-4:" == ".jpg" or material.file.name|lower|slice:"-4:" == ".png" or material.file.name|lower|slice:"-5:" == ".jpeg" %}
+                                        <i class="bi bi-file-earmark-image material-icon"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-earmark material-icon"></i>
+                                    {% endif %}
+                                {% else %}
+                                    <i class="bi bi-journal-text material-icon"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="fw-bold mb-2">{{ material.title }}</h5>
+                                <p class="text-muted mb-3">Добавлено: {{ material.created_at|date:"d.m.Y" }}</p>
+                                {% if material.description %}
+                                <div class="mb-3">
+                                    {{ material.description|linebreaks }}
+                                </div>
+                                {% endif %}
+                                {% if material.file %}
+                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                                    <i class="bi bi-download me-1"></i> Скачать файл
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i> Материалы для этого занятия пока не добавлены.
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <h2 class="fw-bold mb-4">Оценки</h2>
+            
+            {% if student_grades %}
+                {% for grade in student_grades %}
+                <div class="grade-card card">
+                    <div class="card-body p-4 text-center">
+                        <div class="grade-circle 
+                            {% if grade.grade >= 90 %}excellent
+                            {% elif grade.grade >= 75 %}good
+                            {% elif grade.grade >= 60 %}average
+                            {% else %}poor{% endif %}">
+                            {{ grade.grade }}
+                        </div>
+                        <h5 class="fw-bold mb-2">Оценка за {{ grade.date|date:"d.m.Y" }}</h5>
+                        {% if grade.comment %}
+                        <div class="mt-3">
+                            <p class="mb-1 fw-bold">Комментарий преподавателя:</p>
+                            <p class="mb-0">{{ grade.comment }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i> У вас пока нет оценок за это занятие.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

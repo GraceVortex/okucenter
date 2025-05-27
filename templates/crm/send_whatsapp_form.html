@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отправка WhatsApp сообщения{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Отправка WhatsApp сообщения</h1>
+        <a href="{% url 'crm:lead_detail' lead.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> К деталям лида
+        </a>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Лид: {{ lead.full_name }}</h5>
+            <p class="text-muted mb-0">{{ lead.phone_number }}</p>
+        </div>
+        <div class="card-body">
+            {% if accounts %}
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+                    
+                    <div class="col-md-12">
+                        <label for="account_id" class="form-label">Аккаунт WhatsApp <span class="text-danger">*</span></label>
+                        <select name="account_id" id="account_id" class="form-select" required>
+                            <option value="">Выберите аккаунт</option>
+                            {% for account in accounts %}
+                                <option value="{{ account.id }}">{{ account.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label for="message_text" class="form-label">Текст сообщения <span class="text-danger">*</span></label>
+                        <textarea name="message_text" id="message_text" class="form-control" rows="5" required></textarea>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="save_template" name="save_template">
+                            <label class="form-check-label" for="save_template">
+                                Сохранить как шаблон
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-12 template-name-field" style="display: none;">
+                        <label for="template_name" class="form-label">Название шаблона <span class="text-danger">*</span></label>
+                        <input type="text" name="template_name" id="template_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-12 mt-4">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">Шаблоны сообщений</h6>
+                            <div class="templates-container">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <div class="template-card p-2 border rounded" data-template="Здравствуйте, {{ lead.full_name }}! Благодарим за интерес к нашему образовательному центру. Чем я могу вам помочь?">
+                                            <p class="mb-1"><strong>Приветствие</strong></p>
+                                            <p class="small mb-0 text-muted">Здравствуйте, {{ lead.full_name }}! Благодарим за интерес к нашему...</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <div class="template-card p-2 border rounded" data-template="Здравствуйте, {{ lead.full_name }}! Мы получили вашу заявку на обучение. Когда вам будет удобно обсудить детали?">
+                                            <p class="mb-1"><strong>Ответ на заявку</strong></p>
+                                            <p class="small mb-0 text-muted">Здравствуйте, {{ lead.full_name }}! Мы получили вашу заявку на обучение...</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <div class="template-card p-2 border rounded" data-template="Здравствуйте, {{ lead.full_name }}! Напоминаем, что у нас сейчас действует акция на обучение. Хотите узнать подробности?">
+                                            <p class="mb-1"><strong>Акция</strong></p>
+                                            <p class="small mb-0 text-muted">Здравствуйте, {{ lead.full_name }}! Напоминаем, что у нас сейчас действует акция...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 mt-4 d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="history.back()">Отмена</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-whatsapp"></i> Отправить сообщение
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-warning">
+                    <h5 class="alert-heading">Нет доступных аккаунтов WhatsApp</h5>
+                    <p>Для отправки сообщений через WhatsApp необходимо добавить и настроить аккаунт WhatsApp Business API.</p>
+                    <a href="{% url 'crm:meta_account_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Добавить аккаунт WhatsApp
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- История сообщений -->
+    {% if lead.social_messages.exists %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">История сообщений</h5>
+            <a href="{% url 'crm:social_messages' lead.id %}" class="btn btn-sm btn-outline-primary">
+                Полная история
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="messages-container">
+                {% for message in lead.social_messages.all|slice:":5" %}
+                <div class="message-item {% if message.message_type == 'outgoing' %}outgoing{% else %}incoming{% endif %} mb-3">
+                    <div class="message-bubble p-3 rounded">
+                        <p class="mb-1">{{ message.message_text }}</p>
+                        <div class="message-meta d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ message.created_at|date:"d.m.Y H:i" }}</small>
+                            {% if message.message_type == 'outgoing' %}
+                                <small class="text-muted">Отправил: {{ message.sent_by.get_full_name }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .template-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .template-card:hover {
+        background-color: #f8f9fa;
+        border-color: #0d6efd !important;
+    }
+    
+    .messages-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .message-bubble {
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    
+    .message-item.outgoing {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .message-item.outgoing .message-bubble {
+        background-color: #dcf8c6;
+    }
+    
+    .message-item.incoming .message-bubble {
+        background-color: #f1f0f0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Показать/скрыть поле для названия шаблона
+        const saveTemplateCheckbox = document.getElementById('save_template');
+        const templateNameField = document.querySelector('.template-name-field');
+        
+        saveTemplateCheckbox.addEventListener('change', function() {
+            templateNameField.style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                document.getElementById('template_name').required = true;
+            } else {
+                document.getElementById('template_name').required = false;
+            }
+        });
+        
+        // Использование шаблонов сообщений
+        const templateCards = document.querySelectorAll('.template-card');
+        const messageTextarea = document.getElementById('message_text');
+        
+        templateCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const templateText = this.dataset.template;
+                messageTextarea.value = templateText;
+            });
+        });
+    });
+</script>
+{% endblock %}

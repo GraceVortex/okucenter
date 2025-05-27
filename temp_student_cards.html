@@ -1,0 +1,175 @@
+{% elif user.is_student %}
+    <!-- Блок с успеваемостью -->
+    <h3 class="fw-bold mb-4">Моя успеваемость</h3>
+    
+    <!-- Первый ряд: Ближайший урок и Домашние задания -->
+    <div class="row mb-4">
+        <!-- Ближайший урок -->
+        {% if next_class %}
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #e6f2ff;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(13, 110, 253, 0.2); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-alarm fs-4 text-primary"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Ближайший урок</h5>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h5 class="fw-bold text-primary mb-2">{{ next_class.class_name }}</h5>
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-person-badge fs-5 me-2 text-muted"></i>
+                            <span class="small">{{ next_class.teacher }}</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-geo-alt fs-5 me-2 text-muted"></i>
+                            <span class="small">Кабинет: {{ next_class.room }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-2 rounded mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-date fs-5 me-2 text-primary"></i>
+                                <span class="small fw-bold">{{ next_class.day_name }}</span>
+                            </div>
+                            <span class="badge bg-primary">
+                                {% if next_class.days_until == 0 %}
+                                    Сегодня
+                                {% elif next_class.days_until == 1 %}
+                                    Завтра
+                                {% else %}
+                                    Через {{ next_class.days_until }} дн.
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center mt-1">
+                            <i class="bi bi-clock fs-5 me-2 text-primary"></i>
+                            <span class="small">{{ next_class.start_time }} - {{ next_class.end_time }}</span>
+                        </div>
+                    </div>
+                    
+                    <a href="{% url 'core:schedule' %}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-calendar-week"></i> Полное расписание
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Домашние задания -->
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #f0fff7;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(25, 135, 84, 0.2); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-journal-check fs-4 text-success"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Домашние задания</h5>
+                    </div>
+                    
+                    {% if next_homework %}
+                    <div class="mb-3">
+                        <h5 class="fw-bold text-success mb-2">{{ next_homework.title }}</h5>
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi bi-book fs-5 me-2 text-muted"></i>
+                            <span class="small">{{ next_homework.class_name }}</span>
+                        </div>
+                        <div class="bg-white p-2 rounded mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-calendar-date fs-5 me-2 text-success"></i>
+                                    <span class="small fw-bold">Дедлайн</span>
+                                </div>
+                                <span class="badge bg-success">
+                                    {% if next_homework.days_until == 0 %}
+                                        Сегодня
+                                    {% elif next_homework.days_until == 1 %}
+                                        Завтра
+                                    {% else %}
+                                        Через {{ next_homework.days_until }} дн.
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{% url 'classes:all_student_homework' %}" class="btn btn-sm btn-outline-success w-100">
+                        <i class="bi bi-pencil-square"></i> Выполнить задание
+                    </a>
+                    {% elif all_homework_completed %}
+                    <div class="text-center my-3">
+                        <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
+                        <p class="fw-bold text-success mb-1">Все задания выполнены!</p>
+                        <p class="text-muted small">У вас нет невыполненных заданий</p>
+                    </div>
+                    <a href="{% url 'classes:all_student_homework' %}" class="btn btn-sm btn-outline-success w-100">
+                        <i class="bi bi-journal-text"></i> Все задания
+                    </a>
+                    {% else %}
+                    <div class="text-center my-3">
+                        <p class="text-muted">Нет активных заданий</p>
+                    </div>
+                    <a href="{% url 'classes:all_student_homework' %}" class="btn btn-sm btn-outline-success w-100">
+                        <i class="bi bi-journal-text"></i> Все задания
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Второй ряд: Подробная статистика и Посещаемость -->
+    <div class="row mb-5">
+        <!-- Подробная статистика -->
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #fff8f0;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(255, 153, 0, 0.2); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-graph-up fs-4 text-warning"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Подробная статистика</h5>
+                    </div>
+                    <h3 class="fw-bold mb-0">
+                        <a href="{% url 'core:statistics' %}" class="text-decoration-none text-warning">
+                            Перейти <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </h3>
+                    <p class="text-muted mb-0 small mt-2">Подробная информация о вашей успеваемости</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Посещаемость -->
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #f0f7ff;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(13, 110, 253, 0.2); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-calendar-check fs-4 text-primary"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Посещаемость</h5>
+                    </div>
+                    {% with present=student_attendance.present total=student_attendance.total %}
+                    {% if total > 0 %}
+                    {% widthratio present total 100 as attendance_percentage %}
+                    <h3 class="fw-bold mb-0">{{ attendance_percentage }}%</h3>
+                    <div class="progress mt-2 mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ attendance_percentage }}%" aria-valuenow="{{ attendance_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <p class="text-muted mb-0 small">{{ present }} из {{ total }} занятий</p>
+                    {% else %}
+                    <h3 class="fw-bold mb-0">0%</h3>
+                    <div class="progress mt-2 mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <p class="text-muted mb-0 small">Нет данных о посещаемости</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <h3 class="fw-bold mb-4">Мои классы</h3>

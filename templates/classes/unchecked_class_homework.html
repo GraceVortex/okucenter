@@ -45,6 +45,11 @@
                                             <td>
                                                 <strong>{{ item.homework.title }}</strong>
                                                 <p class="small text-muted mb-0">{{ item.homework.description|truncatechars:50 }}</p>
+                                                {% if item.homework.file %}
+                                                    <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-secondary mt-1" target="_blank">
+                                                        <i class="bi bi-file-earmark-text"></i> Условие задания
+                                                    </a>
+                                                {% endif %}
                                             </td>
                                             <td>
                                                 {{ item.submitted_at|date:"d.m.Y H:i" }}
@@ -96,7 +101,7 @@
 
 <!-- Модальное окно для оценки домашнего задания -->
 <div class="modal fade" id="gradeHomeworkModal" tabindex="-1" aria-labelledby="gradeHomeworkModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="gradeHomeworkModalLabel">Оценка домашнего задания</h5>
@@ -115,11 +120,18 @@
                             <option value="partially_completed">Выполнено частично</option>
                             <option value="not_completed">Не выполнено</option>
                         </select>
+                        <div class="alert alert-info mt-3">
+                            <ul class="mb-0 fs-5">
+                                <li><strong>Выполнено полностью</strong> - 85% и более задания решено верно</li>
+                                <li><strong>Выполнено частично</strong> - от 40% до 85% задания решено верно</li>
+                                <li><strong>Не выполнено</strong> - менее 40% задания решено верно</li>
+                            </ul>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="teacherComment" class="form-label">Комментарий</label>
-                        <textarea class="form-control" id="teacherComment" name="teacher_comment" rows="3"></textarea>
+                        <textarea class="form-control" id="teacherComment" name="teacher_comment" rows="4" placeholder="Введите ваш комментарий к работе студента..."></textarea>
                     </div>
                 </form>
                 <div id="gradeResult" class="alert d-none"></div>

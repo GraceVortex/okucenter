@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+
+{% block title %}Детали Telegram рассылки{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">{{ broadcast.title }}</h1>
+                    <p class="text-muted">
+                        Создано: {{ broadcast.created_at|date:"d.m.Y H:i" }} | 
+                        Статус: 
+                        {% if broadcast.status == 'draft' %}
+                        <span class="badge bg-secondary">Черновик</span>
+                        {% elif broadcast.status == 'scheduled' %}
+                        <span class="badge bg-info">Запланировано на {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</span>
+                        {% elif broadcast.status == 'in_progress' %}
+                        <span class="badge bg-warning">В процессе</span>
+                        {% elif broadcast.status == 'completed' %}
+                        <span class="badge bg-success">Завершено</span>
+                        {% elif broadcast.status == 'failed' %}
+                        <span class="badge bg-danger">Ошибка</span>
+                        {% elif broadcast.status == 'cancelled' %}
+                        <span class="badge bg-secondary">Отменено</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i> Назад к рассылкам
+                    </a>
+                    
+                    {% if broadcast.status == 'draft' or broadcast.status == 'scheduled' %}
+                    <a href="{% url 'messaging:send_telegram_broadcast' broadcast.id %}" class="btn btn-success me-2">
+                        <i class="fas fa-paper-plane me-1"></i> Отправить
+                    </a>
+                    {% endif %}
+                    
+                    {% if broadcast.status == 'scheduled' %}
+                    <a href="{% url 'messaging:cancel_telegram_broadcast' broadcast.id %}" class="btn btn-warning me-2">
+                        <i class="fas fa-ban me-1"></i> Отменить
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'messaging:delete_telegram_broadcast' broadcast.id %}" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить эту рассылку?')">
+                        <i class="fas fa-trash me-1"></i> Удалить
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Информация о рассылке -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Информация о рассылке</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Получатели</h6>
+                        <p>
+                            {% if broadcast.recipient_type == 'students' %}
+                            <i class="fas fa-user-graduate text-primary me-2"></i> Только студенты
+                            {% elif broadcast.recipient_type == 'parents' %}
+                            <i class="fas fa-user-friends text-success me-2"></i> Только родители
+                            {% elif broadcast.recipient_type == 'teachers' %}
+                            <i class="fas fa-chalkboard-teacher text-info me-2"></i> Только преподаватели
+                            {% elif broadcast.recipient_type == 'both' %}
+                            <i class="fas fa-users text-warning me-2"></i> Студенты и родители
+                            {% else %}
+                            <i class="fas fa-users text-secondary me-2"></i> Все пользователи
+                            {% endif %}
+                        </p>
+                        
+                        <div class="mt-2">
+                            {% if broadcast.target_class %}
+                            <span class="badge bg-primary me-2">Класс: {{ broadcast.target_class.name }}</span>
+                            {% endif %}
+                            
+                            {% if broadcast.target_schedule %}
+                            <span class="badge bg-info me-2">
+                                Расписание: {{ broadcast.target_schedule.class_obj.name }}, 
+                                {{ broadcast.target_schedule.get_day_of_week_display }}, 
+                                {{ broadcast.target_schedule.start_time|time:"H:i" }}-{{ broadcast.target_schedule.end_time|time:"H:i" }}
+                            </span>
+                            {% endif %}
+                            
+                            {% if broadcast.target_day %}
+                            <span class="badge bg-secondary me-2">
+                                День: {{ broadcast.get_target_day_display }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Статистика</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Всего:</strong> {{ broadcast.total_recipients }}</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Отправлено:</strong> {{ broadcast.successful_sent }}</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Ошибок:</strong> {{ broadcast.failed_sent }}</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Ожидает:</strong> {{ message_stats.pending }}</p>
+                            </div>
+                        </div>
+                        
+                        {% if broadcast.total_recipients > 0 %}
+                        <div class="progress mt-2">
+                            {% with sent_percent=broadcast.successful_sent|default:0|floatformat:0 %}
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ sent_percent }}%;" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100">{{ sent_percent }}%</div>
+                            {% endwith %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Время</h6>
+                        <p class="mb-1"><strong>Создано:</strong> {{ broadcast.created_at|date:"d.m.Y H:i" }}</p>
+                        
+                        {% if broadcast.scheduled_at %}
+                        <p class="mb-1"><strong>Запланировано:</strong> {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</p>
+                        {% endif %}
+                        
+                        {% if broadcast.started_at %}
+                        <p class="mb-1"><strong>Начато:</strong> {{ broadcast.started_at|date:"d.m.Y H:i" }}</p>
+                        {% endif %}
+                        
+                        {% if broadcast.completed_at %}
+                        <p class="mb-1"><strong>Завершено:</strong> {{ broadcast.completed_at|date:"d.m.Y H:i" }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <h6 class="text-muted mb-2">Создатель</h6>
+                        <p class="mb-1">{{ broadcast.created_by.get_full_name }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Статусы сообщений -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Статусы сообщений</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Ожидает</span>
+                            <span>{{ message_stats.pending }}</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 10px;">
+                            {% with pending_percent=message_stats.pending|default:0|floatformat:0 %}
+                            <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ pending_percent }}%;" aria-valuenow="{{ pending_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Отправлено</span>
+                            <span>{{ message_stats.sent }}</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 10px;">
+                            {% with sent_percent=message_stats.sent|default:0|floatformat:0 %}
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ sent_percent }}%;" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Доставлено</span>
+                            <span>{{ message_stats.delivered }}</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 10px;">
+                            {% with delivered_percent=message_stats.delivered|default:0|floatformat:0 %}
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ delivered_percent }}%;" aria-valuenow="{{ delivered_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Прочитано</span>
+                            <span>{{ message_stats.read }}</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 10px;">
+                            {% with read_percent=message_stats.read|default:0|floatformat:0 %}
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ read_percent }}%;" aria-valuenow="{{ read_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Ошибки</span>
+                            <span>{{ message_stats.failed }}</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 10px;">
+                            {% with failed_percent=message_stats.failed|default:0|floatformat:0 %}
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ failed_percent }}%;" aria-valuenow="{{ failed_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Предпросмотр сообщения -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Предпросмотр сообщения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="telegram-preview">
+                        <div class="telegram-header">
+                            <div class="d-flex align-items-center">
+                                <div class="telegram-avatar bg-primary text-white">
+                                    <i class="fab fa-telegram-plane"></i>
+                                </div>
+                                <div class="ms-2">
+                                    <div class="telegram-name">Ваш бот</div>
+                                    <div class="telegram-status">онлайн</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="telegram-messages">
+                            <div class="telegram-message">
+                                <div class="telegram-message-text">
+                                    {{ broadcast.message|safe }}
+                                </div>
+                                <div class="telegram-message-time">
+                                    {{ broadcast.created_at|date:"H:i" }}
+                                </div>
+                            </div>
+                            
+                            {% if broadcast.media_file %}
+                            <div class="telegram-media mt-2">
+                                {% if broadcast.media_type == 'photo' %}
+                                <img src="{{ broadcast.media_file.url }}" alt="Медиа" class="img-fluid rounded mb-2">
+                                {% elif broadcast.media_type == 'video' %}
+                                <div class="text-center p-3 bg-light rounded">
+                                    <i class="fas fa-video fa-3x text-danger"></i>
+                                    <p class="mt-2 mb-0">Видео</p>
+                                </div>
+                                {% elif broadcast.media_type == 'audio' %}
+                                <div class="text-center p-3 bg-light rounded">
+                                    <i class="fas fa-music fa-3x text-info"></i>
+                                    <p class="mt-2 mb-0">Аудио</p>
+                                </div>
+                                {% else %}
+                                <div class="text-center p-3 bg-light rounded">
+                                    <i class="fas fa-file fa-3x text-secondary"></i>
+                                    <p class="mt-2 mb-0">Документ</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if broadcast.has_buttons and buttons %}
+                            <div class="telegram-buttons mt-2">
+                                {% for button in buttons %}
+                                <button class="telegram-button">{{ button.text }}</button>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Информация о кнопках -->
+            {% if broadcast.has_buttons and buttons %}
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Кнопки</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Текст</th>
+                                    <th>Данные</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for button in buttons %}
+                                <tr>
+                                    <td>{{ button.text }}</td>
+                                    <td><code>{{ button.callback_data }}</code></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Список сообщений -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Сообщения</h5>
+                        <span class="badge bg-primary">{{ messages.paginator.count }}</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for message in messages %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        {% if message.student %}
+                                        <i class="fas fa-user-graduate text-primary me-1" title="Студент"></i> {{ message.student.get_full_name }}
+                                        {% elif message.parent %}
+                                        <i class="fas fa-user-friends text-success me-1" title="Родитель"></i> {{ message.parent.get_full_name }}
+                                        {% else %}
+                                        <i class="fas fa-user text-secondary me-1"></i> {{ message.recipient.get_full_name }}
+                                        {% endif %}
+                                    </h6>
+                                    <p class="small text-muted mb-0">
+                                        ID: {{ message.recipient.telegram_id }}
+                                        {% if message.sent_at %}
+                                        | Отправлено: {{ message.sent_at|date:"d.m.Y H:i" }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div>
+                                    {% if message.status == 'pending' %}
+                                    <span class="badge bg-secondary">Ожидает</span>
+                                    {% elif message.status == 'sent' %}
+                                    <span class="badge bg-primary">Отправлено</span>
+                                    {% elif message.status == 'delivered' %}
+                                    <span class="badge bg-info">Доставлено</span>
+                                    {% elif message.status == 'read' %}
+                                    <span class="badge bg-success">Прочитано</span>
+                                    {% elif message.status == 'failed' %}
+                                    <span class="badge bg-danger">Ошибка</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if message.error_message %}
+                            <div class="mt-2">
+                                <div class="alert alert-danger py-1 px-2 mb-0">
+                                    <small>{{ message.error_message }}</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>Нет сообщений для отображения</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                {% if messages.paginator.num_pages > 1 %}
+                <div class="card-footer bg-white">
+                    <nav>
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if messages.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">&laquo; Первая</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ messages.previous_page_number }}">Пред.</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&laquo; Первая</span>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link">Пред.</span>
+                            </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    {{ messages.number }} из {{ messages.paginator.num_pages }}
+                                </span>
+                            </li>
+                            
+                            {% if messages.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ messages.next_page_number }}">След.</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ messages.paginator.num_pages }}">Последняя &raquo;</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">След.</span>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link">Последняя &raquo;</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .telegram-preview {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    .telegram-header {
+        background-color: #5682a3;
+        color: white;
+        padding: 10px 15px;
+    }
+    
+    .telegram-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    
+    .telegram-name {
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .telegram-status {
+        font-size: 12px;
+        opacity: 0.8;
+    }
+    
+    .telegram-messages {
+        padding: 15px;
+        background-color: #e6ebee;
+        min-height: 300px;
+    }
+    
+    .telegram-message {
+        background-color: white;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+        max-width: 100%;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .telegram-message-text {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .telegram-message-time {
+        font-size: 12px;
+        color: #a0a0a0;
+        text-align: right;
+    }
+    
+    .telegram-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .telegram-button {
+        background-color: #f0f0f0;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        text-align: center;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .telegram-button:hover {
+        background-color: #e0e0e0;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Автоматическое обновление страницы, если рассылка в процессе
+        {% if broadcast.status == 'in_progress' %}
+        setTimeout(function() {
+            location.reload();
+        }, 5000); // Обновление каждые 5 секунд
+        {% endif %}
+    });
+</script>
+{% endblock %}

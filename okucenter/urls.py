@@ -26,6 +26,8 @@ urlpatterns = [
     path('attendance/', include('attendance.urls')),
     path('finance/', include('finance.urls')),
     path('messaging/', include('messaging.urls')),
+    path('face-recognition/', include('face_recognition_app.urls')),
+    path('crm/', include('crm.urls')),
     path('', include('core.urls')),
 ]
 

@@ -56,6 +56,8 @@ INSTALLED_APPS = [
     'finance',
     'core',
     'messaging',
+    'face_recognition_app',
+    'crm',
 ]
 
 MIDDLEWARE = [
@@ -85,6 +87,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'messaging.context_processors.unread_messages_count',
+                'accounts.context_processors.pending_cancellations',
             ],
         },
     },
@@ -96,11 +99,17 @@ WSGI_APPLICATION = 'okucenter.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Настройка базы данных с поддержкой DATABASE_URL для Railway
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'okucenter',
+        'USER': 'postgres',
+        'PASSWORD': 'dragonfly',
+        'HOST': 'localhost',
+        'PORT': '5433',
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        }
     }
 }
 
@@ -210,7 +219,9 @@ LOGGING = {
         },
     },
 }
-
+CSRF_TRUSTED_ORIGINS = [
+    '[http://127.0.0.1](http://127.0.0.1):52197',
+]
 # Настройки безопасности
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True

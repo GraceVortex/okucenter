@@ -37,7 +37,16 @@
                             <i class="bi bi-info-circle me-2"></i> Выберите одного или нескольких студентов, которых вы хотите добавить в класс "{{ class.name }}".
                         </div>
                         
-                        <div class="form-check-list mt-4">
+                        <!-- Поле поиска студентов -->
+                        <div class="mb-3 mt-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="studentSearch" class="form-control" placeholder="Поиск студентов..." aria-label="Поиск студентов">
+                            </div>
+                            <small class="text-muted">Введите имя, школу или телефон для поиска</small>
+                        </div>
+                        
+                        <div class="form-check-list mt-3" id="studentsList">
                             {% for student in form.fields.students.queryset %}
                                 <div class="form-check mb-3">
                                     <input class="form-check-input" type="checkbox" name="students" value="{{ student.id }}" id="student-{{ student.id }}">
@@ -107,5 +116,43 @@
                 }, false)
             })
     })()
+    
+    // Функциональность поиска студентов
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('studentSearch');
+        const studentItems = document.querySelectorAll('#studentsList .form-check');
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            studentItems.forEach(item => {
+                const studentName = item.querySelector('.fw-bold').textContent.toLowerCase();
+                const studentInfo = item.querySelector('.text-muted') ? 
+                                   item.querySelector('.text-muted').textContent.toLowerCase() : '';
+                
+                if (studentName.includes(searchTerm) || studentInfo.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Показываем сообщение, если ничего не найдено
+            const visibleItems = document.querySelectorAll('#studentsList .form-check[style="display: none;"]');
+            const noResultsMsg = document.getElementById('noResultsMessage');
+            
+            if (visibleItems.length === studentItems.length && searchTerm !== '') {
+                if (!noResultsMsg) {
+                    const msg = document.createElement('div');
+                    msg.id = 'noResultsMessage';
+                    msg.className = 'alert alert-warning mt-3';
+                    msg.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i> Студенты не найдены. Попробуйте изменить запрос.';
+                    document.getElementById('studentsList').before(msg);
+                }
+            } else if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+        });
+    });
 </script>
 {% endblock %}

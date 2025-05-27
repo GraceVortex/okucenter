@@ -1,0 +1,177 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-instagram text-danger"></i> Настройка интеграции с Instagram
+        </h5>
+        <a href="{% url 'crm:integration_detail' integration.id %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-left"></i> Назад
+        </a>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'crm:integration_setup' integration.id %}">
+          {% csrf_token %}
+          
+          <div class="alert alert-info">
+            <h5 class="alert-heading">Инструкция по настройке</h5>
+            <p>Для интеграции с Instagram Messaging API вам необходимо:</p>
+            <ol>
+              <li>Зарегистрироваться в <a href="https://developers.facebook.com/" target="_blank">Facebook for Developers</a></li>
+              <li>Создать приложение в Facebook Developer Portal</li>
+              <li>Подключить Instagram к вашему приложению</li>
+              <li>Настроить Messenger API для Instagram</li>
+              <li>Получить необходимые ключи и токены доступа</li>
+            </ol>
+            <p>Подробную инструкцию можно найти в <a href="https://developers.facebook.com/docs/messenger-platform/instagram" target="_blank">официальной документации</a>.</p>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="access_token" class="form-label">Access Token</label>
+                <input type="text" class="form-control" id="access_token" name="access_token" 
+                       value="{{ integration.settings.access_token|default:'' }}" required>
+                <div class="form-text">Токен доступа к Instagram Messaging API</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="instagram_account_id" class="form-label">Instagram Account ID</label>
+                <input type="text" class="form-control" id="instagram_account_id" name="instagram_account_id" 
+                       value="{{ integration.settings.instagram_account_id|default:'' }}" required>
+                <div class="form-text">ID вашего бизнес-аккаунта в Instagram</div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="app_id" class="form-label">App ID</label>
+                <input type="text" class="form-control" id="app_id" name="app_id" 
+                       value="{{ integration.settings.app_id|default:'' }}" required>
+                <div class="form-text">ID вашего приложения в Facebook Developer Portal</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="app_secret" class="form-label">App Secret</label>
+                <input type="password" class="form-control" id="app_secret" name="app_secret" 
+                       value="{{ integration.settings.app_secret|default:'' }}" required>
+                <div class="form-text">Секретный ключ вашего приложения</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="webhook_verify_token" class="form-label">Webhook Verify Token</label>
+                <input type="text" class="form-control" id="webhook_verify_token" name="webhook_verify_token" 
+                       value="{{ integration.settings.webhook_verify_token|default:'' }}" required>
+                <div class="form-text">Токен для верификации вебхука</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label class="form-label">Webhook URL</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" value="{{ request.scheme }}://{{ request.get_host }}{% url 'crm:instagram_webhook' %}" readonly>
+                  <button class="btn btn-outline-secondary" type="button" onclick="copyWebhookUrl()">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+                <div class="form-text">URL вебхука, который нужно указать в настройках Instagram Messaging API</div>
+              </div>
+              
+              <div class="alert alert-warning">
+                <h6 class="alert-heading">Важно!</h6>
+                <p class="mb-0">Для работы вебхуков ваш сайт должен быть доступен из интернета по HTTPS-протоколу.</p>
+              </div>
+            </div>
+          </div>
+          
+          <h5 class="mb-3">Настройка вебхуков</h5>
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="alert alert-info">
+                <p>Для настройки вебхуков в Facebook Developer Portal:</p>
+                <ol>
+                  <li>Перейдите в раздел "Webhooks" вашего приложения</li>
+                  <li>Нажмите "Add Subscription" и выберите "Instagram"</li>
+                  <li>Укажите URL вебхука: <code>{{ request.scheme }}://{{ request.get_host }}{% url 'crm:instagram_webhook' %}</code></li>
+                  <li>Укажите токен верификации, который вы ввели выше</li>
+                  <li>Выберите следующие поля для подписки:
+                    <ul>
+                      <li><code>messages</code> - для получения сообщений</li>
+                      <li><code>messaging_postbacks</code> - для обработки ответов на кнопки</li>
+                      <li><code>message_deliveries</code> - для отслеживания доставки сообщений</li>
+                      <li><code>message_reads</code> - для отслеживания прочтения сообщений</li>
+                    </ul>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-flex justify-content-between">
+            <a href="{% url 'crm:integration_detail' integration.id %}" class="btn btn-outline-secondary">Отмена</a>
+            <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header">
+        <h5 class="mb-0">Дополнительная информация</h5>
+      </div>
+      <div class="card-body">
+        <h6>Ограничения Instagram Messaging API</h6>
+        <ul>
+          <li>Вы можете отправлять сообщения только пользователям, которые ранее писали вам</li>
+          <li>Существует 24-часовое окно для ответа на сообщения пользователя</li>
+          <li>После истечения 24-часового окна вы можете отправить одно сообщение за пределами окна</li>
+          <li>Для отправки рекламных сообщений требуется соблюдение политик Meta</li>
+        </ul>
+        
+        <h6 class="mt-4">Типы сообщений</h6>
+        <p>Instagram Messaging API поддерживает следующие типы сообщений:</p>
+        <ul>
+          <li>Текстовые сообщения</li>
+          <li>Изображения</li>
+          <li>Видео</li>
+          <li>Аудио</li>
+          <li>Файлы</li>
+          <li>Шаблоны сообщений с кнопками</li>
+          <li>Быстрые ответы</li>
+        </ul>
+        
+        <h6 class="mt-4">Полезные ссылки</h6>
+        <ul>
+          <li><a href="https://developers.facebook.com/docs/messenger-platform/instagram" target="_blank">Instagram Messaging API Documentation</a></li>
+          <li><a href="https://developers.facebook.com/docs/messenger-platform/reference" target="_blank">Messenger Platform API Reference</a></li>
+          <li><a href="https://developers.facebook.com/docs/messenger-platform/webhook" target="_blank">Webhook Reference</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  function copyWebhookUrl() {
+    const webhookUrl = "{{ request.scheme }}://{{ request.get_host }}{% url 'crm:instagram_webhook' %}";
+    navigator.clipboard.writeText(webhookUrl).then(function() {
+      alert('URL вебхука скопирован в буфер обмена');
+    }, function() {
+      alert('Не удалось скопировать URL');
+    });
+  }
+</script>
+{% endblock %}

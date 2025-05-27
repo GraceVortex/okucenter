@@ -1,0 +1,451 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Face ID - Распознавание студентов{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Стили для камеры и контейнера */
+    .camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    #video {
+        width: 100%;
+        display: block;
+    }
+    
+    #canvas {
+        display: none;
+    }
+    
+    .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 20px;
+        background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%);
+    }
+    
+    /* Стили для предпросмотра фото */
+    .photo-preview {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+    
+    #photo-image {
+        width: 100%;
+        display: block;
+    }
+    
+    /* Стили для результатов распознавания */
+    .recognition-result {
+        display: none;
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .student-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .student-photo {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 20px;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .student-details {
+        flex: 1;
+    }
+    
+    .confidence-meter {
+        height: 6px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-top: 5px;
+        overflow: hidden;
+    }
+    
+    .confidence-level {
+        height: 100%;
+        background-color: #28a745;
+        border-radius: 3px;
+    }
+    
+    /* Стили для списка занятий */
+    .class-list {
+        margin-top: 20px;
+    }
+    
+    .class-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .class-item:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .class-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .class-time {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .attendance-options {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .attendance-option {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .attendance-option.present {
+        border-color: #28a745;
+        color: #28a745;
+    }
+    
+    .attendance-option.absent {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+    
+    .attendance-option.selected.present {
+        background-color: #28a745;
+        color: #fff;
+        border-color: #28a745;
+    }
+    
+    .attendance-option.selected.absent {
+        background-color: #dc3545;
+        color: #fff;
+        border-color: #dc3545;
+    }
+    
+    /* Стили для истории посещаемости */
+    .attendance-history {
+        margin-top: 30px;
+    }
+    
+    .attendance-log {
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+    }
+    
+    .log-time {
+        min-width: 60px;
+        font-weight: 500;
+    }
+    
+    .log-details {
+        flex: 1;
+        margin-left: 15px;
+    }
+    
+    .log-status {
+        margin-left: auto;
+    }
+    
+    /* Стили для индикатора загрузки */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        display: none;
+    }
+    
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Подсветка для списка занятий */
+    .class-list.highlight {
+        animation: highlight 1.5s ease;
+    }
+    
+    @keyframes highlight {
+        0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.5); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Индикатор загрузки -->
+    <div class="loading-overlay" id="loading-indicator">
+        <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- Контейнер для уведомлений -->
+    <div id="alerts-container"></div>
+    
+    <!-- Кнопка отметки посещаемости (фиксированная) -->
+    <button id="mark-attendance-btn" class="btn btn-primary btn-lg position-fixed bottom-0 end-0 m-4" style="display: none; z-index: 1000;">
+        <i class="bi bi-check-circle me-2"></i> Отметить посещаемость
+    </button>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <h1 class="display-5 fw-bold mb-2">Face ID</h1>
+            <p class="text-muted mb-4">Распознавание студентов и отметка посещаемости</p>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-7">
+            <!-- Камера и распознавание -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-camera-video me-2"></i>
+                        Сканирование лица
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Контейнер для камеры -->
+                    <div class="camera-container mb-3" id="camera-container">
+                        <video id="video" autoplay playsinline></video>
+                        <div class="camera-overlay">
+                            <!-- Кнопка Сделать снимок -->
+                        </div>
+                    </div>
+                    
+                    <!-- Скрытый canvas для обработки изображения -->
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    
+                    <!-- Кнопка Сделать снимок вынесена за пределы контейнера -->
+                    <div class="text-center mb-3">
+                        <button id="capture-btn" class="btn btn-primary btn-lg">
+                            <i class="bi bi-camera me-2"></i>
+                            Сделать снимок
+                        </button>
+                    </div>
+                    
+                    <!-- Предпросмотр фото -->
+                    <div class="photo-preview mb-3" id="photo-preview">
+                        <img id="photo-image" src="#" alt="Предпросмотр фото">
+                        <div class="d-flex justify-content-between mt-3">
+                            <button id="retake-btn" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-repeat me-2"></i>
+                                Переснять
+                            </button>
+                            <button id="recognize-btn" class="btn btn-primary">
+                                <i class="bi bi-person-check me-2"></i>
+                                Распознать
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопка Отметить посещение -->
+                    <div class="text-center mb-3" id="mark-attendance-container" style="display: none;">
+                        <button id="mark-attendance-btn" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#classesModal">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Отметить посещение
+                        </button>
+                    </div>
+                    
+                    <!-- Результат распознавания -->
+                    <div class="recognition-result card shadow-sm" id="recognition-result">
+                        <div class="card-header bg-primary text-white py-3">
+                            <h5 class="mb-0"><i class="bi bi-person-check-fill me-2"></i>Студент распознан</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="student-info mb-4">
+                                <img src="#" alt="Фото студента" class="student-photo" id="student-photo">
+                                <div class="student-details">
+                                    <h3 id="student-name" class="mb-2">Имя студента</h3>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="text-muted me-2">Уверенность распознавания:</span>
+                                        <span id="confidence-value" class="fw-bold badge bg-success">0%</span>
+                                    </div>
+                                    <div class="confidence-meter">
+                                        <div class="confidence-level" id="confidence-level" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="class-list">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Занятия на сегодня</h5>
+                                    <span class="badge bg-primary" id="classes-count">0</span>
+                                </div>
+                                
+                                <!-- Сообщение об отсутствии занятий -->
+                                <div id="no-classes-message" class="alert alert-info" style="display: none;">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    У студента нет занятий по расписанию на сегодня.
+                                </div>
+                                
+                                <!-- Контейнер для списка занятий -->
+                                <div id="class-items-container" class="mt-3">
+                                    <!-- Здесь будут отображаться занятия студента -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>    
+                        <div class="d-flex justify-content-end mt-4">
+                            <button id="cancel-btn" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <!-- История посещаемости -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Последние отметки
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="attendance-history" id="attendance-logs">
+                        {% if attendance_logs %}
+                            {% for log in attendance_logs %}
+                                <div class="attendance-log">
+                                    <div class="log-time">
+                                        {{ log.timestamp|date:"H:i" }}
+                                    </div>
+                                    <div class="log-details">
+                                        <div class="fw-bold">{{ log.attendance.student.full_name }}</div>
+                                        <div class="text-muted">{{ log.attendance.class_obj.name }}</div>
+                                    </div>
+                                    <div class="log-status">
+                                        {% if log.attendance.status == 'present' %}
+                                            <span class="badge bg-success">Присутствовал</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Отсутствовал</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-clock-history fs-1 mb-3 d-block"></i>
+                                <p>Нет записей о посещаемости</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Модальное окно для выбора уроков -->
+    <div class="modal fade" id="classesModal" tabindex="-1" aria-labelledby="classesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="classesModalLabel">Выберите урок для отметки посещения</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modal-student-info" class="mb-3">
+                        <!-- Информация о студенте будет добавлена динамически -->
+                    </div>
+                    
+                    <!-- Сообщение об отсутствии уроков -->
+                    <div id="modal-no-classes" class="alert alert-info" style="display: none;">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        У студента нет уроков на сегодня.
+                    </div>
+                    
+                    <!-- Список уроков -->
+                    <div id="modal-classes-list">
+                        <!-- Список уроков будет добавлен динамически -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/face_id_new.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Прошедшие уроки {{ student.full_name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-5 fw-bold">Прошедшие уроки {{ student.full_name }}</h1>
+            <p class="text-muted fs-5">История занятий с материалами, оценками и комментариями преподавателя</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Фильтры</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="class_id" class="form-label">Класс</label>
+                            <select name="class_id" id="class_id" class="form-select">
+                                <option value="">Все классы</option>
+                                {% for class in student_classes %}
+                                    <option value="{{ class.id }}" {% if class_filter == class.id|stringformat:"i" %}selected{% endif %}>
+                                        {{ class.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Статус посещения</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="">Все статусы</option>
+                                <option value="present" {% if status_filter == 'present' %}selected{% endif %}>Присутствовал</option>
+                                <option value="absent" {% if status_filter == 'absent' %}selected{% endif %}>Отсутствовал</option>
+                                <option value="excused" {% if status_filter == 'excused' %}selected{% endif %}>Отсутствовал по уважительной причине</option>
+                                <option value="canceled" {% if status_filter == 'canceled' %}selected{% endif %}>Урок отменен</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-filter me-2"></i> Применить фильтры
+                            </button>
+                            <a href="{% url 'classes:parent_child_past_lessons' student.id %}" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-x-circle me-2"></i> Сбросить
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4 d-flex justify-content-between align-items-center">
+                    <h4 class="fw-bold mb-0">История уроков</h4>
+                    <div>
+                        <a href="{% url 'classes:parent_child_lessons' student.id %}" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-calendar-event me-2"></i> К расписанию
+                        </a>
+                        <a href="{% url 'accounts:parent_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i> Назад к панели
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if past_lessons %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Дата</th>
+                                        <th scope="col">Класс</th>
+                                        <th scope="col">Время</th>
+                                        <th scope="col">Статус</th>
+                                        <th scope="col">Оценка за активность</th>
+                                        <th scope="col">Комментарий</th>
+                                        <th scope="col">Материалы</th>
+                                        <th scope="col">Домашнее задание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lesson in past_lessons %}
+                                        <tr>
+                                            <td>{{ lesson.date|date:"d.m.Y" }}</td>
+                                            <td>{{ lesson.class.name }}</td>
+                                            <td>
+                                                {% if lesson.schedule %}
+                                                    {{ lesson.schedule.start_time|time:"H:i" }} - {{ lesson.schedule.end_time|time:"H:i" }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if lesson.attendance.status == 'present' %}
+                                                    <span class="badge bg-success">Присутствовал</span>
+                                                {% elif lesson.attendance.status == 'absent' %}
+                                                    <span class="badge bg-danger">Отсутствовал</span>
+                                                {% elif lesson.attendance.status == 'excused' %}
+                                                    <span class="badge bg-warning">Отсутствовал (уваж.)</span>
+                                                {% elif lesson.attendance.status == 'canceled' %}
+                                                    <span class="badge bg-secondary">Урок отменен</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if lesson.mark and lesson.mark.activity_mark %}
+                                                    {% if lesson.mark.activity_mark == 'excellent' %}
+                                                        <span class="badge bg-success">Отлично</span>
+                                                    {% elif lesson.mark.activity_mark == 'normal' %}
+                                                        <span class="badge bg-info">Нормально</span>
+                                                    {% elif lesson.mark.activity_mark == 'poor' %}
+                                                        <span class="badge bg-warning">Слабо</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if lesson.mark and lesson.mark.teacher_comment %}
+                                                    {{ lesson.mark.teacher_comment }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if lesson.classwork_files %}
+                                                    {% for file in lesson.classwork_files %}
+                                                        <a href="{{ file.file.url }}" class="btn btn-sm btn-outline-primary mb-1" target="_blank">
+                                                            <i class="bi bi-file-earmark me-1"></i> {{ file.title }}
+                                                        </a>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if lesson.homework %}
+                                                    <a href="{% url 'classes:submit_homework' lesson.homework.id %}" class="btn btn-sm btn-outline-success">
+                                                        <i class="bi bi-journal-text me-1"></i> {{ lesson.homework.title }}
+                                                    </a>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center">
+                            <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
+                            <h4>У ребенка пока нет прошедших уроков</h4>
+                            <p class="text-muted">История уроков появится здесь после проведения занятий</p>
+                            <a href="{% url 'classes:parent_child_lessons' student.id %}" class="btn btn-primary mt-3">
+                                <i class="bi bi-calendar-event me-2"></i> Перейти к расписанию
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Информация о статусах</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold">Статусы посещения</h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-success me-3 p-2">Присутствовал</div>
+                                <span>Ребенок присутствовал на занятии</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-danger me-3 p-2">Отсутствовал</div>
+                                <span>Ребенок отсутствовал на занятии без уважительной причины</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-warning me-3 p-2">Отсутствовал (уваж.)</div>
+                                <span>Ребенок отсутствовал на занятии по уважительной причине</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-secondary me-3 p-2">Урок отменен</div>
+                                <span>Занятие было отменено преподавателем или администрацией</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="fw-bold">Оценки за активность</h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-success me-3 p-2">Отлично</div>
+                                <span>Ребенок проявил высокую активность на занятии</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-info me-3 p-2">Нормально</div>
+                                <span>Ребенок проявил среднюю активность на занятии</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-warning me-3 p-2">Слабо</div>
+                                <span>Ребенок проявил низкую активность на занятии</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

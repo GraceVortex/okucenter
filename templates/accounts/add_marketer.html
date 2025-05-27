@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load form_tags %}
+
+{% block title %}Добавление маркетолога{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Добавление маркетолога</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">{{ form.username.label }}</label>
+                            {{ form.username|add_class:"form-control" }}
+                            {% if form.username.errors %}
+                                <div class="text-danger">{{ form.username.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">{{ form.password.label }}</label>
+                            {{ form.password|add_class:"form-control" }}
+                            {% if form.password.errors %}
+                                <div class="text-danger">{{ form.password.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_full_name" class="form-label">{{ form.full_name.label }}</label>
+                                    {{ form.full_name|add_class:"form-control" }}
+                                    {% if form.full_name.errors %}
+                                        <div class="text-danger">{{ form.full_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_birth_date" class="form-label">{{ form.birth_date.label }}</label>
+                                    {{ form.birth_date|add_class:"form-control" }}
+                                    {% if form.birth_date.errors %}
+                                        <div class="text-danger">{{ form.birth_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_phone_number" class="form-label">{{ form.phone_number.label }}</label>
+                                    {{ form.phone_number|add_class:"form-control" }}
+                                    {% if form.phone_number.errors %}
+                                        <div class="text-danger">{{ form.phone_number.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_email" class="form-label">{{ form.email.label }}</label>
+                                    {{ form.email|add_class:"form-control" }}
+                                    {% if form.email.errors %}
+                                        <div class="text-danger">{{ form.email.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_docs_link" class="form-label">{{ form.docs_link.label }}</label>
+                            {{ form.docs_link|add_class:"form-control" }}
+                            {% if form.docs_link.errors %}
+                                <div class="text-danger">{{ form.docs_link.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'accounts:marketer_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i> Сохранить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

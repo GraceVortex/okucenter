@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Загрузка материала для класса {{ class.name }} - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-type-container {
+        margin-bottom: 20px;
+    }
+    
+    .material-type-options {
+        display: flex;
+        margin-bottom: 15px;
+    }
+    
+    .material-type-option {
+        margin-right: 20px;
+    }
+    
+    .schedule-selector {
+        margin-top: 15px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    
+    .file-upload-container {
+        margin-top: 20px;
+    }
+    
+    .form-info-banner {
+        background-color: #e9f5ff;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Загрузка материала для класса</h1>
+            <h3 class="text-muted">{{ class.name }}</h3>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            <a href="{% url 'classes:class_materials' class.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> К списку материалов
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="form-info-banner">
+                        <h5><i class="bi bi-info-circle"></i> Информация о загрузке материалов</h5>
+                        <p class="mb-0">Вы можете загрузить общий материал для класса или материал к конкретному уроку. Общие материалы будут доступны всем студентам класса, а материалы к конкретному уроку - только тем, кто был зачислен на момент проведения урока.</p>
+                    </div>
+                    
+                    {% if lesson_info %}
+                    <div class="alert alert-primary mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-calendar-check fs-3 me-3"></i>
+                            <div>
+                                <h5 class="mb-1">Загрузка материала для урока:</h5>
+                                <p class="mb-0"><strong>Дата:</strong> {{ lesson_info.date|date:"d.m.Y" }} ({{ lesson_info.day_name }})</p>
+                                <p class="mb-0"><strong>Время:</strong> {{ lesson_info.time }}</p>
+                                {% if lesson_info.room %}<p class="mb-0"><strong>Кабинет:</strong> {{ lesson_info.room }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" enctype="multipart/form-data" id="upload-form" data-from-calendar="{% if from_calendar %}true{% else %}false{% endif %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_title" class="form-label">Название материала <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.title.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label">Описание</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Скрытое поле для типа материала -->
+                        <input type="hidden" name="material_type" value="general" id="id_material_type">
+
+                        
+                        {% if from_calendar %}
+                        <!-- Если пользователь пришел из календаря, скрываем поле выбора расписания и добавляем скрытое поле -->
+                        <input type="hidden" name="schedule" value="{{ form.schedule.value }}" id="id_schedule_hidden">
+                        <div class="alert alert-info">
+                            <p class="mb-0"><i class="bi bi-info-circle"></i> Занятие автоматически выбрано из календаря.</p>
+                        </div>
+                        {% else %}
+                        <!-- Если пользователь не пришел из календаря, показываем поле выбора расписания -->
+                        <div class="schedule-selector" id="schedule-selector" style="display: none;">
+                            <label for="id_schedule" class="form-label">Занятие по расписанию <span class="text-danger">*</span></label>
+                            {{ form.schedule }}
+                            {% if form.schedule.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.schedule.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Выберите занятие по расписанию, к которому относится материал.</small>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="file-upload-container">
+                            <label for="id_file" class="form-label">Файл <span class="text-danger">*</span></label>
+                            {{ form.file }}
+                            {% if form.file.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.file.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Максимальный размер файла: 10 МБ.</small>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> Загрузить материал
+                            </button>
+                            <a href="{% url 'classes:class_materials' class.id %}" class="btn btn-outline-secondary ms-2">
+                                Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Получаем элементы формы
+    const scheduleSelector = document.getElementById('schedule-selector');
+    const formElement = document.getElementById('upload-form');
+    const fromCalendar = formElement.getAttribute('data-from-calendar') === 'true';
+    const materialTypeInput = document.getElementById('id_material_type');
+    
+    // Если пользователь пришел из календаря, устанавливаем тип материала на "lesson_specific"
+    if (fromCalendar) {
+        // Устанавливаем значение типа материала на "lesson_specific"
+        if (materialTypeInput) {
+            materialTypeInput.value = 'lesson_specific';
+        }
+    } else {
+        // Если пользователь не пришел из календаря, скрываем селектор расписания
+        if (scheduleSelector) {
+            scheduleSelector.style.display = 'none';
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -25,12 +25,26 @@
             --apple-dark-gray: #515154;
         }
         
+        html, body {
+            height: 100%;
+        }
+        
         body {
             font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--apple-bg);
             color: var(--apple-text);
             line-height: 1.5;
             font-weight: 400;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        main {
+            flex: 1 0 auto;
+        }
+        
+        footer {
+            flex-shrink: 0;
         }
         
         .navbar {
@@ -252,7 +266,7 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="{% url 'core:home' %}">Образовательный центр</a>
@@ -270,6 +284,7 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{% url 'accounts:teacher_list' %}"><i class="bi bi-person-badge me-2"></i>Преподаватели</a></li>
                                     <li><a class="dropdown-item" href="{% url 'accounts:reception_list' %}"><i class="bi bi-headset me-2"></i>Ресепшенисты</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:marketer_list' %}"><i class="bi bi-graph-up me-2"></i>Маркетологи</a></li>
                                     <li><a class="dropdown-item" href="{% url 'accounts:student_list' %}"><i class="bi bi-mortarboard me-2"></i>Студенты</a></li>
                                     <li><a class="dropdown-item" href="{% url 'accounts:parent_list' %}"><i class="bi bi-people me-2"></i>Родители</a></li>
                                 </ul>
@@ -296,18 +311,6 @@
                                     {% endif %}
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
-                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
-                                </a>
-                            </li>
-                        {% elif user.is_reception %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">Посещаемость</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
-                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -350,19 +353,96 @@
                             </li>
                         {% elif user.is_student %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'classes:student_classes' %}">Мои классы</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'classes:all_student_homework' %}">Мои домашние задания</a>
-                            </li>
-                        {% elif user.is_parent %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'accounts:parent_dashboard' %}">
-                                    <i class="bi bi-speedometer2 me-1"></i> Общее
+                                <a class="nav-link" href="{% url 'classes:student_classes' %}">
+                                    <i class="bi bi-book me-1"></i> Мои классы
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'accounts:parent_children' %}">Дети</a>
+                                <a class="nav-link" href="{% url 'core:schedule' %}">
+                                    <i class="bi bi-calendar-week me-1"></i> Расписание
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:statistics' %}">
+                                    <i class="bi bi-graph-up me-1"></i> Статистика
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:all_student_homework' %}">
+                                    <i class="bi bi-journal-check me-1"></i> Мои домашние задания
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
+                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% elif user.is_parent %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:parent_children' %}">
+                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:statistics' %}">
+                                    <i class="bi bi-graph-up me-1"></i> Статистика
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
+                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% elif user.is_receptionist %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">
+                                    <i class="bi bi-calendar-check me-1"></i> Посещаемость
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:student_list' %}">
+                                    <i class="bi bi-people me-1"></i> Студенты
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
+                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% elif user.is_marketer %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'crm:dashboard' %}">
+                                    <i class="bi bi-speedometer2 me-1"></i> CRM Дашборд
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'crm:lead_list' %}">
+                                    <i class="bi bi-person-plus me-1"></i> Лиды
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'crm:campaign_list' %}">
+                                    <i class="bi bi-megaphone me-1"></i> Кампании
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'crm:campaign_analytics' %}">
+                                    <i class="bi bi-graph-up me-1"></i> Аналитика кампаний
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'crm:lead_acquisition_cost' %}">
+                                    <i class="bi bi-cash-coin me-1"></i> Стоимость привлечения
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'messaging:inbox' %}">
@@ -401,7 +481,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-5 py-4 bg-light">
+    <footer class="py-4 bg-light mt-auto">
         <div class="container text-center">
             <p class="mb-0 text-muted">&copy; {% now "Y" %} Образовательный центр. Все права защищены.</p>
         </div>

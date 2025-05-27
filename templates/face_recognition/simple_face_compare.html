@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Простое сравнение лиц{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Простое сравнение лиц</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Эталонное фото</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="benchmark-photo-container" style="display: none;">
+                        <img id="benchmark-photo" class="img-fluid mb-3" style="max-height: 300px;" alt="Эталонное фото">
+                        <button id="clear-benchmark" class="btn btn-outline-danger btn-sm">Очистить</button>
+                    </div>
+                    <div id="benchmark-camera-container">
+                        <video id="benchmark-video" width="100%" height="300" autoplay playsinline style="display: none;"></video>
+                        <button id="start-benchmark-camera" class="btn btn-primary">Включить камеру</button>
+                        <button id="take-benchmark-photo" class="btn btn-success" disabled>Сделать фото</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Фото для проверки</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="check-photo-container" style="display: none;">
+                        <img id="check-photo" class="img-fluid mb-3" style="max-height: 300px;" alt="Фото для проверки">
+                        <button id="clear-check" class="btn btn-outline-danger btn-sm">Очистить</button>
+                    </div>
+                    <div id="check-camera-container">
+                        <video id="check-video" width="100%" height="300" autoplay playsinline style="display: none;"></video>
+                        <button id="start-check-camera" class="btn btn-primary">Включить камеру</button>
+                        <button id="take-check-photo" class="btn btn-success" disabled>Сделать фото</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <button id="compare-button" class="btn btn-lg btn-primary" disabled>Сравнить фотографии</button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Результат сравнения</h5>
+                </div>
+                <div class="card-body">
+                    <div id="result-container" class="text-center">
+                        <p class="text-muted">Здесь будет отображаться результат сравнения</p>
+                    </div>
+                    <div id="loading-spinner" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Загрузка...</span>
+                        </div>
+                        <p>Сравнение...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Настройки сравнения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="threshold-slider">Порог уверенности:</label>
+                        <input type="range" class="form-control-range" id="threshold-slider" min="0.5" max="0.95" step="0.05" value="0.85">
+                        <div class="d-flex justify-content-between">
+                            <small>0.5 (Мягче)</small>
+                            <small id="threshold-value">0.85</small>
+                            <small>0.95 (Точнее)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переменные для хранения данных
+    let benchmarkImageData = null;
+    let checkImageData = null;
+    let benchmarkStream = null;
+    let checkStream = null;
+    
+    // Элементы интерфейса
+    const benchmarkVideo = document.getElementById('benchmark-video');
+    const checkVideo = document.getElementById('check-video');
+    const startBenchmarkCameraBtn = document.getElementById('start-benchmark-camera');
+    const startCheckCameraBtn = document.getElementById('start-check-camera');
+    const takeBenchmarkPhotoBtn = document.getElementById('take-benchmark-photo');
+    const takeCheckPhotoBtn = document.getElementById('take-check-photo');
+    const benchmarkPhotoContainer = document.getElementById('benchmark-photo-container');
+    const checkPhotoContainer = document.getElementById('check-photo-container');
+    const benchmarkPhoto = document.getElementById('benchmark-photo');
+    const checkPhoto = document.getElementById('check-photo');
+    const clearBenchmarkBtn = document.getElementById('clear-benchmark');
+    const clearCheckBtn = document.getElementById('clear-check');
+    const compareBtn = document.getElementById('compare-button');
+    const resultContainer = document.getElementById('result-container');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const thresholdSlider = document.getElementById('threshold-slider');
+    const thresholdValue = document.getElementById('threshold-value');
+    
+    // Обновление значения порога уверенности
+    thresholdSlider.addEventListener('input', function() {
+        thresholdValue.textContent = this.value;
+    });
+    
+    // Функция для включения/выключения камеры для эталонного фото
+    startBenchmarkCameraBtn.addEventListener('click', function() {
+        if (benchmarkVideo.style.display === 'none') {
+            // Включаем камеру
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    benchmarkStream = stream;
+                    benchmarkVideo.srcObject = stream;
+                    benchmarkVideo.style.display = 'block';
+                    takeBenchmarkPhotoBtn.disabled = false;
+                    startBenchmarkCameraBtn.textContent = 'Выключить камеру';
+                })
+                .catch(function(error) {
+                    console.error('Ошибка доступа к камере:', error);
+                    alert('Не удалось получить доступ к камере. Проверьте разрешения браузера.');
+                });
+        } else {
+            // Выключаем камеру
+            if (benchmarkStream) {
+                benchmarkStream.getTracks().forEach(track => track.stop());
+            }
+            benchmarkVideo.style.display = 'none';
+            startBenchmarkCameraBtn.textContent = 'Включить камеру';
+            takeBenchmarkPhotoBtn.disabled = true;
+        }
+    });
+    
+    // Функция для включения/выключения камеры для проверочного фото
+    startCheckCameraBtn.addEventListener('click', function() {
+        if (checkVideo.style.display === 'none') {
+            // Включаем камеру
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    checkStream = stream;
+                    checkVideo.srcObject = stream;
+                    checkVideo.style.display = 'block';
+                    takeCheckPhotoBtn.disabled = false;
+                    startCheckCameraBtn.textContent = 'Выключить камеру';
+                })
+                .catch(function(error) {
+                    console.error('Ошибка доступа к камере:', error);
+                    alert('Не удалось получить доступ к камере. Проверьте разрешения браузера.');
+                });
+        } else {
+            // Выключаем камеру
+            if (checkStream) {
+                checkStream.getTracks().forEach(track => track.stop());
+            }
+            checkVideo.style.display = 'none';
+            startCheckCameraBtn.textContent = 'Включить камеру';
+            takeCheckPhotoBtn.disabled = true;
+        }
+    });
+    
+    // Функция для создания эталонного фото
+    takeBenchmarkPhotoBtn.addEventListener('click', function() {
+        if (benchmarkVideo.style.display !== 'none') {
+            const canvas = document.createElement('canvas');
+            canvas.width = benchmarkVideo.videoWidth;
+            canvas.height = benchmarkVideo.videoHeight;
+            const context = canvas.getContext('2d');
+            
+            // Рисуем текущий кадр с видео на холсте
+            context.drawImage(benchmarkVideo, 0, 0, canvas.width, canvas.height);
+            
+            // Получаем изображение с холста
+            benchmarkImageData = canvas.toDataURL('image/jpeg');
+            
+            // Отображаем сделанное фото
+            benchmarkPhoto.src = benchmarkImageData;
+            benchmarkPhotoContainer.style.display = 'block';
+            benchmarkVideo.style.display = 'none';
+            
+            // Выключаем камеру
+            if (benchmarkStream) {
+                benchmarkStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Меняем текст кнопки
+            startBenchmarkCameraBtn.textContent = 'Включить камеру';
+            takeBenchmarkPhotoBtn.disabled = true;
+            
+            // Проверяем, можно ли активировать кнопку сравнения
+            checkCompareButton();
+        }
+    });
+    
+    // Функция для создания проверочного фото
+    takeCheckPhotoBtn.addEventListener('click', function() {
+        if (checkVideo.style.display !== 'none') {
+            const canvas = document.createElement('canvas');
+            canvas.width = checkVideo.videoWidth;
+            canvas.height = checkVideo.videoHeight;
+            const context = canvas.getContext('2d');
+            
+            // Рисуем текущий кадр с видео на холсте
+            context.drawImage(checkVideo, 0, 0, canvas.width, canvas.height);
+            
+            // Получаем изображение с холста
+            checkImageData = canvas.toDataURL('image/jpeg');
+            
+            // Отображаем сделанное фото
+            checkPhoto.src = checkImageData;
+            checkPhotoContainer.style.display = 'block';
+            checkVideo.style.display = 'none';
+            
+            // Выключаем камеру
+            if (checkStream) {
+                checkStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Меняем текст кнопки
+            startCheckCameraBtn.textContent = 'Включить камеру';
+            takeCheckPhotoBtn.disabled = true;
+            
+            // Проверяем, можно ли активировать кнопку сравнения
+            checkCompareButton();
+        }
+    });
+    
+    // Функция для очистки эталонного фото
+    clearBenchmarkBtn.addEventListener('click', function() {
+        benchmarkPhotoContainer.style.display = 'none';
+        benchmarkImageData = null;
+        compareBtn.disabled = true;
+    });
+    
+    // Функция для очистки проверочного фото
+    clearCheckBtn.addEventListener('click', function() {
+        checkPhotoContainer.style.display = 'none';
+        checkImageData = null;
+        compareBtn.disabled = true;
+    });
+    
+    // Функция для проверки, можно ли активировать кнопку сравнения
+    function checkCompareButton() {
+        if (benchmarkImageData && checkImageData) {
+            compareBtn.disabled = false;
+        } else {
+            compareBtn.disabled = true;
+        }
+    }
+    
+    // Функция сравнения фотографий
+    compareBtn.addEventListener('click', function() {
+        // Показываем спиннер загрузки
+        resultContainer.style.display = 'none';
+        loadingSpinner.style.display = 'block';
+        
+        // Получаем порог уверенности
+        const threshold = thresholdSlider.value;
+        
+        // Отправляем запрос на сервер для сравнения с FaceNet
+        fetch('{% url "face_recognition_app:simple_face_compare" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                benchmark_image: benchmarkImageData,
+                check_image: checkImageData,
+                threshold: threshold
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Скрываем спиннер
+            loadingSpinner.style.display = 'none';
+            resultContainer.style.display = 'block';
+            
+            // Отображаем результаты
+            if (data.success) {
+                let resultClass = data.match ? 'success' : 'danger';
+                let resultText = data.match ? 'ДА' : 'НЕТ';
+                let confidenceText = (data.confidence * 100).toFixed(2) + '%';
+                
+                let html = '<div class="alert alert-' + resultClass + ' text-center">' +
+                    '<h1 class="display-4">' + resultText + '</h1>' +
+                    '<p>Уверенность: ' + confidenceText + '</p>' +
+                    '</div>';
+                
+                resultContainer.innerHTML = html;
+            } else {
+                resultContainer.innerHTML = 
+                    '<div class="alert alert-danger">' +
+                    '<h5>Ошибка сравнения</h5>' +
+                    '<p>' + data.message + '</p>' +
+                    '</div>';
+            }
+        })
+        .catch(error => {
+            // Скрываем спиннер
+            loadingSpinner.style.display = 'none';
+            resultContainer.style.display = 'block';
+            
+            // Отображаем ошибку
+            resultContainer.innerHTML = 
+                '<div class="alert alert-danger">' +
+                '<h5>Ошибка сервера</h5>' +
+                '<p>Не удалось выполнить запрос: ' + error + '</p>' +
+                '</div>';
+        });
+    });
+});
+</script>
+{% endblock %}

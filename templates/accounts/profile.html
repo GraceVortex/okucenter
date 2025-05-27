@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load form_tags %}
 
 {% block title %}Профиль - Образовательный центр{% endblock %}
 
@@ -50,9 +51,11 @@
                     </div>
                     
                     <div class="mt-4">
-                        <a href="#" class="btn btn-outline-primary w-100">
+                        {% if user.is_admin %}
+                        <a href="{% url 'accounts:edit_profile' %}" class="btn btn-outline-primary w-100">
                             <i class="bi bi-pencil-square me-2"></i> Редактировать профиль
                         </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -103,7 +106,7 @@
                         <h4 class="fw-bold mb-4">Быстрые действия</h4>
                         
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-plus-circle fs-3 text-primary"></i>
@@ -115,7 +118,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-calendar-plus fs-3 text-success"></i>
@@ -127,7 +130,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-cash-coin fs-3 text-warning"></i>
@@ -139,7 +142,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-file-earmark-bar-graph fs-3 text-info"></i>
@@ -195,7 +198,7 @@
                         <h4 class="fw-bold mb-4">Инструменты учителя</h4>
                         
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-check-circle fs-3 text-success"></i>
@@ -207,7 +210,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-pencil-square fs-3 text-primary"></i>
@@ -219,7 +222,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-file-earmark-text fs-3 text-info"></i>
@@ -231,7 +234,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-chat-left-text fs-3 text-warning"></i>
@@ -246,51 +249,121 @@
                     </div>
                 </div>
             {% elif user.is_student %}
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white p-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h4 class="fw-bold mb-0">Мои классы</h4>
-                            <div>
-                                <span class="badge bg-primary rounded-pill me-2">Баланс: {{ user.student.balance }} ₸</span>
-                                <a href="{% url 'core:schedule' %}" class="btn btn-sm btn-primary">
-                                    <i class="bi bi-calendar-week me-2"></i> Расписание
-                                </a>
+                <!-- Карточки с ключевыми показателями -->
+                <div class="row mb-4">
+                    {% if show_financial_info %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #f0f7ff;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="rounded-circle p-2 me-3" style="background-color: rgba(13, 110, 253, 0.2);">
+                                        <i class="bi bi-cash-coin fs-4 text-primary"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-0">Баланс</h5>
+                                </div>
+                                <h3 class="fw-bold mb-0">{{ user.student.balance }} ₸</h3>
+                                <p class="text-muted mb-0 small">Доступно для оплаты занятий</p>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body p-0">
-                        {% if student_classes %}
-                            <div class="list-group list-group-flush">
-                                {% for enrollment in student_classes %}
-                                    <a href="{% url 'classes:class_detail' class_id=enrollment.class_obj.id %}" class="list-group-item list-group-item-action p-4">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h5 class="fw-bold mb-1">{{ enrollment.class_obj.name }}</h5>
-                                                <p class="text-muted mb-0">Учитель: {{ enrollment.class_obj.teacher.full_name }}</p>
-                                            </div>
-                                            <div>
-                                                <span class="badge bg-primary rounded-pill">{{ enrollment.class_obj.price_per_lesson }} ₸</span>
-                                            </div>
-                                        </div>
-                                    </a>
-                                {% endfor %}
+                    {% endif %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #f0fff7;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="rounded-circle p-2 me-3" style="background-color: rgba(25, 135, 84, 0.2);">
+                                        <i class="bi bi-calendar-check fs-4 text-success"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-0">Посещаемость</h5>
+                                </div>
+                                {% with attendance_rate=attendance_stats.attendance_rate|default:0 %}
+                                <h3 class="fw-bold mb-0">{{ attendance_rate }}%</h3>
+                                <div class="progress mt-2 mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ attendance_rate }}%" aria-valuenow="{{ attendance_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <p class="text-muted mb-0 small">{{ attendance_stats.present_count|default:0 }} из {{ attendance_stats.total_count|default:0 }} занятий</p>
+                                {% endwith %}
                             </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="bi bi-book-half display-1 text-muted mb-3"></i>
-                                <h5>Вы пока не записаны ни на один класс</h5>
-                                <p class="text-muted">Обратитесь к администратору для записи на занятия</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm h-100 border-0 rounded-4 bg-gradient" style="background-color: #fff8f0;">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="rounded-circle p-2 me-3" style="background-color: rgba(255, 153, 0, 0.2);">
+                                        <i class="bi bi-journal-check fs-4 text-warning"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-0">Домашние задания</h5>
+                                </div>
+                                {% with homework_rate=homework_stats.completion_rate|default:0 %}
+                                <h3 class="fw-bold mb-0">{{ homework_rate }}%</h3>
+                                <div class="progress mt-2 mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ homework_rate }}%" aria-valuenow="{{ homework_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <p class="text-muted mb-0 small">{{ homework_stats.completed|default:0 }} из {{ homework_stats.total|default:0 }} заданий</p>
+                                {% endwith %}
                             </div>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                            <div class="card-header bg-white p-4">
+                                <h4 class="fw-bold mb-0">Мои классы</h4>
+                            </div>
+                            <div class="card-body p-0">
+                                {% if student_classes %}
+                                    <div class="list-group list-group-flush">
+                                        {% for enrollment in student_classes %}
+                                            <a href="{% url 'classes:class_detail' class_id=enrollment.class_obj.id %}" class="list-group-item list-group-item-action p-4 border-0">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-1 text-center">
+                                                        <div class="rounded-circle p-3" style="background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="bi bi-book fs-4 text-primary"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <h5 class="fw-bold mb-1">{{ enrollment.class_obj.name }}</h5>
+                                                        <p class="text-muted mb-0">
+                                                            <i class="bi bi-person me-1"></i> Учитель: {{ enrollment.class_obj.teacher.full_name }}
+                                                        </p>
+                                                    </div>
+                                                    <div class="col-md-3 text-end">
+                                                        {% if show_financial_info %}
+                                                        <span class="badge bg-primary rounded-pill mb-2 d-block">{{ enrollment.class_obj.price_per_lesson }} ₸ за занятие</span>
+                                                        {% endif %}
+                                                        <small class="text-muted">
+                                                            <i class="bi bi-people me-1"></i> {{ enrollment.class_obj.students.count }} студентов
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <div class="rounded-circle p-4 mx-auto mb-3" style="background-color: #f8f9fa; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-book-half display-4 text-muted"></i>
+                                        </div>
+                                        <h5 class="fw-bold">Вы пока не записаны ни на один класс</h5>
+                                        <p class="text-muted">Обратитесь к администратору для записи на занятия</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
                 
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
                         <h4 class="fw-bold mb-4">Учебные материалы</h4>
                         
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-file-earmark-text fs-3 text-primary"></i>
@@ -302,7 +375,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-journal-check fs-3 text-success"></i>
@@ -314,7 +387,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-cloud-arrow-up fs-3 text-info"></i>
@@ -326,7 +399,7 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         <i class="bi bi-chat-left-text fs-3 text-warning"></i>
@@ -341,6 +414,8 @@
                     </div>
                 </div>
             {% endif %}
+            
+
         </div>
     </div>
 </div>

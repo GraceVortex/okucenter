@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}История сообщений - {{ lead.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>История сообщений</h1>
+        <div>
+            <a href="{% url 'crm:lead_detail' lead.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> К деталям лида
+            </a>
+            <a href="{% url 'crm:send_whatsapp_message' lead.id %}" class="btn btn-success">
+                <i class="bi bi-whatsapp"></i> Отправить сообщение
+            </a>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Лид: {{ lead.full_name }}</h5>
+            <p class="text-muted mb-0">{{ lead.phone_number }}</p>
+        </div>
+        <div class="card-body">
+            {% if messages_list %}
+                <div class="messages-history">
+                    {% for message in messages_list %}
+                    <div class="message-item {% if message.message_type == 'outgoing' %}outgoing{% else %}incoming{% endif %} mb-3">
+                        <div class="message-bubble p-3 rounded">
+                            <p class="mb-1">{{ message.message_text }}</p>
+                            <div class="message-meta d-flex justify-content-between align-items-center">
+                                <small class="text-muted">{{ message.created_at|date:"d.m.Y H:i" }}</small>
+                                <div>
+                                    {% if message.account %}
+                                        <span class="badge {% if message.account.account_type == 'whatsapp' %}bg-success{% else %}bg-primary{% endif %}">
+                                            {{ message.account.get_account_type_display }}
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if message.message_type == 'outgoing' %}
+                                        <small class="text-muted ms-2">Отправил: {{ message.sent_by.get_full_name }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-chat-dots" style="font-size: 3rem; color: #ccc;"></i>
+                    <p class="text-muted mt-3">Нет истории сообщений для этого лида</p>
+                    <a href="{% url 'crm:send_whatsapp_message' lead.id %}" class="btn btn-success mt-2">
+                        <i class="bi bi-whatsapp"></i> Отправить первое сообщение
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Статистика сообщений -->
+    {% if messages_list %}
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Статистика сообщений</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="stat-card mb-3">
+                                <h3 class="mb-0">{{ messages_list|length }}</h3>
+                                <p class="text-muted mb-0">Всего сообщений</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-card mb-3">
+                                <h3 class="mb-0">{{ messages_list|dictsort:"created_at"|last.created_at|date:"d.m.Y" }}</h3>
+                                <p class="text-muted mb-0">Последнее сообщение</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="message-types-chart mt-4">
+                        <canvas id="messageTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Активность по дням</h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-chart">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .messages-history {
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    
+    .message-bubble {
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    
+    .message-item.outgoing {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .message-item.outgoing .message-bubble {
+        background-color: #dcf8c6;
+    }
+    
+    .message-item.incoming .message-bubble {
+        background-color: #f1f0f0;
+    }
+    
+    .stat-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .stat-card h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--apple-primary);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{% if messages_list %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Подсчет входящих и исходящих сообщений
+        let incomingCount = 0;
+        let outgoingCount = 0;
+        
+        {% for message in messages_list %}
+            {% if message.message_type == 'incoming' %}
+                incomingCount += 1;
+            {% else %}
+                outgoingCount += 1;
+            {% endif %}
+        {% endfor %}
+        
+        // График типов сообщений
+        const messageTypesCtx = document.getElementById('messageTypesChart').getContext('2d');
+        const messageTypesChart = new Chart(messageTypesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Входящие', 'Исходящие'],
+                datasets: [{
+                    data: [incomingCount, outgoingCount],
+                    backgroundColor: [
+                        '#f1f0f0',
+                        '#dcf8c6'
+                    ],
+                    borderColor: [
+                        '#e0e0e0',
+                        '#c5e1a5'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Группировка сообщений по датам
+        const messagesByDate = {};
+        {% for message in messages_list %}
+            const date{{ forloop.counter }} = '{{ message.created_at|date:"Y-m-d" }}';
+            if (!messagesByDate[date{{ forloop.counter }}]) {
+                messagesByDate[date{{ forloop.counter }}] = { incoming: 0, outgoing: 0 };
+            }
+            
+            {% if message.message_type == 'incoming' %}
+                messagesByDate[date{{ forloop.counter }}].incoming += 1;
+            {% else %}
+                messagesByDate[date{{ forloop.counter }}].outgoing += 1;
+            {% endif %}
+        {% endfor %}
+        
+        // Сортировка дат
+        const sortedDates = Object.keys(messagesByDate).sort();
+        
+        // Подготовка данных для графика активности
+        const activityLabels = [];
+        const incomingData = [];
+        const outgoingData = [];
+        
+        sortedDates.forEach(function(date) {
+            activityLabels.push(date);
+            incomingData.push(messagesByDate[date].incoming);
+            outgoingData.push(messagesByDate[date].outgoing);
+        });
+        
+        // График активности по дням
+        const activityCtx = document.getElementById('activityChart').getContext('2d');
+        const activityChart = new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: activityLabels,
+                datasets: [
+                    {
+                        label: 'Входящие',
+                        data: incomingData,
+                        backgroundColor: '#f1f0f0',
+                        borderColor: '#e0e0e0',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Исходящие',
+                        data: outgoingData,
+                        backgroundColor: '#dcf8c6',
+                        borderColor: '#c5e1a5',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отметка посещаемости по лицу{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Отметка посещаемости через распознавание лица</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {% if user.is_reception %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="teacher-select" class="form-label">Выберите учителя:</label>
+                                <select id="teacher-select" class="form-select">
+                                    <option value="">-- Выберите учителя --</option>
+                                    {% for teacher in teachers %}
+                                        <option value="{{ teacher.id }}">{{ teacher.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="date-select" class="form-label">Выберите дату:</label>
+                                <select id="date-select" class="form-select">
+                                    <option value="">-- Выберите дату --</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <label for="class-select" class="form-label">Выберите класс:</label>
+                        <select id="class-select" class="form-select">
+                            <option value="">-- Выберите класс --</option>
+                            {% for class in classes %}
+                                <option value="{{ class.id }}">{{ class.name }} ({{ class.teacher.full_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div id="face-recognition-container" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Камера:</label>
+                            <div class="border p-2 rounded">
+                                <div id="camera-container" class="text-center">
+                                    <video id="video" width="400" height="300" autoplay></video>
+                                    <canvas id="canvas" width="400" height="300" style="display: none;"></canvas>
+                                </div>
+                                <div class="mt-2 text-center">
+                                    <button type="button" id="recognize-btn" class="btn btn-primary">Распознать лицо</button>
+                                    <button type="button" id="retake-btn" class="btn btn-secondary" style="display: none;">Переснять</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="recognition-result" class="mt-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <h5 id="student-name"></h5>
+                                <p>Уверенность: <span id="confidence"></span>%</p>
+                                <button type="button" id="mark-attendance-btn" class="btn btn-success">Отметить посещаемость</button>
+                            </div>
+                        </div>
+                        
+                        <div id="recognition-error" class="mt-3 alert alert-danger" style="display: none;">
+                            <p id="error-message"></p>
+                        </div>
+                        
+                        <div id="attendance-success" class="mt-3 alert alert-success" style="display: none;">
+                            <p>Посещаемость успешно отмечена!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Информация</h4>
+                </div>
+                <div class="card-body">
+                    <p>Дата: <strong id="current-date">{{ today|date:"d.m.Y" }}</strong></p>
+                    <p>Для отметки посещаемости:</p>
+                    <ol>
+                        {% if user.is_reception %}
+                        <li>Выберите учителя и дату</li>
+                        {% endif %}
+                        <li>Выберите класс из списка</li>
+                        <li>Нажмите кнопку "Распознать лицо"</li>
+                        <li>После успешного распознавания нажмите "Отметить посещаемость"</li>
+                    </ol>
+                    <div class="alert alert-warning">
+                        <p class="mb-0"><i class="fas fa-exclamation-triangle"></i> Убедитесь, что лицо студента хорошо освещено и находится в кадре.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const teacherSelect = document.getElementById('teacher-select');
+        const dateSelect = document.getElementById('date-select');
+        const classSelect = document.getElementById('class-select');
+        const currentDateDisplay = document.getElementById('current-date');
+        const faceRecognitionContainer = document.getElementById('face-recognition-container');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const recognizeBtn = document.getElementById('recognize-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const recognitionResult = document.getElementById('recognition-result');
+        const recognitionError = document.getElementById('recognition-error');
+        const attendanceSuccess = document.getElementById('attendance-success');
+        const studentNameElement = document.getElementById('student-name');
+        const confidenceElement = document.getElementById('confidence');
+        const markAttendanceBtn = document.getElementById('mark-attendance-btn');
+        const errorMessageElement = document.getElementById('error-message');
+        
+        let stream = null;
+        let recognizedStudent = null;
+        let capturedImageData = null;
+        
+        // Обработчик изменения даты
+        if (dateSelect) {
+            dateSelect.addEventListener('change', function() {
+                const selectedOption = dateSelect.options[dateSelect.selectedIndex];
+                if (selectedOption && selectedOption.value) {
+                    currentDateDisplay.textContent = selectedOption.text;
+                }
+            });
+        }
+        
+        // Обработчик изменения учителя
+        if (teacherSelect) {
+            teacherSelect.addEventListener('change', function() {
+                updateClassOptions();
+            });
+        }
+        
+        // Функция для обновления списка классов в зависимости от выбранного учителя
+        function updateClassOptions() {
+            const teacherId = teacherSelect ? teacherSelect.value : '';
+            
+            // Если выбран учитель, фильтруем классы
+            if (teacherId) {
+                // Скрываем все опции
+                Array.from(classSelect.options).forEach(option => {
+                    if (option.value === '') {
+                        option.style.display = 'block'; // Показываем плейсхолдер
+                    } else {
+                        // Проверяем, содержит ли текст опции ID учителя
+                        const teacherName = option.text.split('(')[1]?.split(')')[0]?.trim();
+                        const matchesTeacher = Array.from(document.querySelectorAll('#teacher-select option'))
+                            .find(t => t.value === teacherId)?.textContent === teacherName;
+                        
+                        option.style.display = matchesTeacher ? 'block' : 'none';
+                    }
+                });
+            } else {
+                // Показываем все опции
+                Array.from(classSelect.options).forEach(option => {
+                    option.style.display = 'block';
+                });
+            }
+            
+            // Сбрасываем выбор класса
+            classSelect.value = '';
+            faceRecognitionContainer.style.display = 'none';
+            stopCamera();
+            
+            // Очищаем список дат
+            clearDateOptions();
+        }
+        
+        // Функция для очистки списка дат
+        function clearDateOptions() {
+            // Оставляем только первую опцию (плейсхолдер)
+            while (dateSelect.options.length > 1) {
+                dateSelect.remove(1);
+            }
+        }
+        
+        // Функция для загрузки доступных дат для выбранного класса
+        function loadClassDates(classId) {
+            if (!classId) return;
+            
+            // Очищаем текущие опции
+            clearDateOptions();
+            
+            // Запрашиваем доступные даты с сервера
+            fetch(`/face-recognition/api/get-class-dates/?class_id=${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.dates && data.dates.length > 0) {
+                        // Добавляем полученные даты в выпадающий список
+                        data.dates.forEach(dateInfo => {
+                            const option = document.createElement('option');
+                            option.value = dateInfo.date;
+                            option.textContent = `${dateInfo.formatted_date} (${dateInfo.schedules.map(s => s.start_time).join(', ')})`;
+                            dateSelect.appendChild(option);
+                        });
+                        
+                        // Выбираем первую дату по умолчанию
+                        if (dateSelect.options.length > 1) {
+                            dateSelect.selectedIndex = 1;
+                            // Обновляем отображаемую дату
+                            currentDateDisplay.textContent = dateSelect.options[1].textContent;
+                        }
+                    } else {
+                        // Если нет доступных дат, добавляем сообщение об этом
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "Нет доступных дат для этого класса";
+                        dateSelect.appendChild(option);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке дат:', error);
+                    // Добавляем опцию с сообщением об ошибке
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "Ошибка при загрузке дат";
+                    dateSelect.appendChild(option);
+                });
+        }
+        
+        // Обработчик изменения выбранного класса
+        classSelect.addEventListener('change', function() {
+            if (classSelect.value) {
+                // Загружаем доступные даты для выбранного класса
+                loadClassDates(classSelect.value);
+                
+                faceRecognitionContainer.style.display = 'block';
+                startCamera();
+            } else {
+                faceRecognitionContainer.style.display = 'none';
+                stopCamera();
+                
+                // Очищаем список дат
+                clearDateOptions();
+            }
+        });
+        
+        // Функция для запуска камеры
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                })
+                .catch(function(error) {
+                    console.error('Ошибка доступа к камере:', error);
+                    alert('Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения браузера.');
+                });
+        }
+        
+        // Функция для остановки камеры
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+            }
+        }
+        
+        // Обработчик кнопки "Распознать лицо"
+        recognizeBtn.addEventListener('click', function() {
+            if (!classSelect.value) {
+                alert('Пожалуйста, выберите класс');
+                return;
+            }
+            
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Преобразуем изображение в base64
+            capturedImageData = canvas.toDataURL('image/jpeg');
+            
+            // Показываем изображение вместо видео
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            recognizeBtn.style.display = 'none';
+            retakeBtn.style.display = 'inline-block';
+            
+            // Скрываем предыдущие результаты
+            recognitionResult.style.display = 'none';
+            recognitionError.style.display = 'none';
+            attendanceSuccess.style.display = 'none';
+            
+            // Отправляем запрос на распознавание лица
+            const formData = new FormData();
+            formData.append('face_data', capturedImageData);
+            
+            fetch('{% url "face_recognition:api_recognize_face" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Если распознавание успешно
+                    if (data.is_student) {
+                        recognizedStudent = {
+                            id: data.student_id,
+                            name: data.full_name
+                        };
+                        
+                        // Показываем результат распознавания
+                        studentNameElement.textContent = data.full_name;
+                        confidenceElement.textContent = (data.confidence * 100).toFixed(2);
+                        recognitionResult.style.display = 'block';
+                    } else {
+                        // Если пользователь не является студентом
+                        errorMessageElement.textContent = 'Распознанный пользователь не является студентом';
+                        recognitionError.style.display = 'block';
+                    }
+                } else {
+                    // Если распознавание не удалось
+                    errorMessageElement.textContent = data.message;
+                    recognitionError.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при распознавании лица:', error);
+                errorMessageElement.textContent = 'Произошла ошибка при распознавании лица';
+                recognitionError.style.display = 'block';
+            });
+        });
+        
+        // Обработчик кнопки "Переснять"
+        retakeBtn.addEventListener('click', function() {
+            // Показываем видео и кнопку "Распознать лицо"
+            video.style.display = 'block';
+            canvas.style.display = 'none';
+            recognizeBtn.style.display = 'inline-block';
+            retakeBtn.style.display = 'none';
+            
+            // Скрываем результаты
+            recognitionResult.style.display = 'none';
+            recognitionError.style.display = 'none';
+            attendanceSuccess.style.display = 'none';
+            
+            // Сбрасываем данные распознанного студента
+            recognizedStudent = null;
+            capturedImageData = null;
+        });
+        
+        // Обработчик кнопки "Отметить посещаемость"
+        markAttendanceBtn.addEventListener('click', function() {
+            if (!recognizedStudent || !classSelect.value || !capturedImageData) {
+                alert('Не удалось отметить посещаемость. Пожалуйста, попробуйте снова.');
+                return;
+            }
+            
+            // Получаем выбранную дату
+            const selectedDate = dateSelect.value;
+            if (!selectedDate) {
+                alert('Пожалуйста, выберите дату из расписания');
+                return;
+            }
+            
+            // Получаем выбранного учителя (если пользователь - ресепшенист)
+            const selectedTeacher = teacherSelect ? teacherSelect.value : '';
+            
+            // Создаем FormData для отправки
+            const formData = new FormData();
+            formData.append('student_id', recognizedStudent.id);
+            formData.append('class_id', classSelect.value);
+            formData.append('face_data', capturedImageData);
+            formData.append('date', selectedDate);
+            
+            if (selectedTeacher) {
+                formData.append('teacher_id', selectedTeacher);
+            }
+            
+            // Отправляем данные на сервер
+            fetch('/face-recognition/api/mark-attendance/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Скрываем результат распознавания
+                    recognitionResult.style.display = 'none';
+                    // Показываем сообщение об успешной отметке
+                    attendanceSuccess.style.display = 'block';
+                    // Сбрасываем распознанного студента
+                    recognizedStudent = null;
+                    // Сбрасываем захваченное изображение
+                    capturedImageData = null;
+                    
+                    // Если есть предупреждение, показываем его
+                    if (data.warning) {
+                        attendanceSuccess.innerHTML = `<p>${data.message}</p>`;
+                        attendanceSuccess.classList.remove('alert-success');
+                        attendanceSuccess.classList.add('alert-warning');
+                    } else {
+                        attendanceSuccess.innerHTML = '<p>Посещаемость успешно отмечена!</p>';
+                        attendanceSuccess.classList.remove('alert-warning');
+                        attendanceSuccess.classList.add('alert-success');
+                    }
+                    
+                    // Через 3 секунды скрываем сообщение и возвращаемся к камере
+                    setTimeout(function() {
+                        attendanceSuccess.style.display = 'none';
+                        retakeBtn.click(); // Имитируем клик по кнопке "Переснять"
+                    }, 3000);
+                } else {
+                    // Показываем сообщение об ошибке
+                    errorMessageElement.textContent = data.message || 'Произошла ошибка при отметке посещаемости';
+                    recognitionError.style.display = 'block';
+                    
+                    // Скрываем результат распознавания
+                    recognitionResult.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                errorMessageElement.textContent = 'Произошла ошибка при отправке данных';
+                recognitionError.style.display = 'block';
+                recognitionResult.style.display = 'none';
+            });
+        });
+        
+        // Останавливаем камеру при уходе со страницы
+        window.addEventListener('beforeunload', stopCamera);
+        
+        // Инициализация
+        if (teacherSelect) {
+            updateClassOptions();
+        }
+    });
+</script>
+{% endblock %}

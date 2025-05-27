@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация лица ученика - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    #video {
+        width: 100%;
+        display: block;
+    }
+    
+    #canvas {
+        display: none;
+    }
+    
+    .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 20px;
+        background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%);
+    }
+    
+    .photo-preview {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+    
+    #photo-image {
+        width: 100%;
+        display: block;
+    }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="display-5 fw-bold mb-2">Регистрация лица ученика</h1>
+            <p class="lead text-muted">Зарегистрируйте лицо ученика для использования в системе распознавания лиц</p>
+        </div>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-camera-video me-2"></i>
+                        Сканирование лица
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="form-group mb-4">
+                        <label for="student-select" class="form-label">Выберите ученика:</label>
+                        <select id="student-select" class="form-select">
+                            <option value="">-- Выберите ученика --</option>
+                            {% for student in students %}
+                                <option value="{{ student.id }}">{{ student.last_name }} {{ student.first_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Контейнер для камеры -->
+                    <div class="camera-container mb-3" id="camera-container">
+                        <video id="video" autoplay playsinline></video>
+                        <div class="camera-overlay">
+                            <button type="button" id="capture-btn" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-camera me-2"></i>
+                                Сделать снимок
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Предпросмотр фото -->
+                    <div class="photo-preview mb-3" id="photo-preview">
+                        <img id="photo-image" src="#" alt="Предпросмотр фото">
+                        <div class="d-flex justify-content-between mt-3">
+                            <button type="button" id="retake-btn" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-repeat me-2"></i>
+                                Переснять
+                            </button>
+                            <button type="button" id="register-btn" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Зарегистрировать
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="result-container" class="alert d-none mt-3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Инструкции
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <ol class="mb-0">
+                        <li class="mb-2">Выберите ученика из списка</li>
+                        <li class="mb-2">Убедитесь, что лицо ученика хорошо освещено и видно на камере</li>
+                        <li class="mb-2">Нажмите кнопку "Сделать снимок"</li>
+                        <li class="mb-2">Проверьте качество снимка</li>
+                        <li>Нажмите "Зарегистрировать" для сохранения данных лица</li>
+                    </ol>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        <strong>Совет:</strong> Для лучшего распознавания убедитесь, что:
+                        <ul class="mb-0 mt-2">
+                            <li>Лицо хорошо освещено</li>
+                            <li>Нет сильных теней</li>
+                            <li>Лицо находится в центре кадра</li>
+                            <li>Нейтральное выражение лица</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Индикатор загрузки -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="mt-3" id="loading-text">Обработка...</p>
+</div>
+
+<!-- Скрытый canvas для обработки изображения -->
+<canvas id="canvas"></canvas>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const photoImage = document.getElementById('photo-image');
+        const cameraContainer = document.getElementById('camera-container');
+        const photoPreview = document.getElementById('photo-preview');
+        const studentSelect = document.getElementById('student-select');
+        const resultContainer = document.getElementById('result-container');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        
+        let stream = null;
+        let capturedImage = null;
+        
+        // Инициализация камеры
+        function initCamera() {
+            cameraContainer.style.display = 'block';
+            photoPreview.style.display = 'none';
+            resultContainer.classList.add('d-none');
+            
+            // Получаем доступ к камере
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                })
+                .catch(function(error) {
+                    console.error('Ошибка доступа к камере:', error);
+                    resultContainer.textContent = 'Ошибка доступа к камере: ' + error.message;
+                    resultContainer.classList.remove('d-none');
+                    resultContainer.classList.add('alert-danger');
+                });
+        }
+        
+        // Останавливаем камеру
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+        
+        // Инициализируем камеру при загрузке страницы
+        initCamera();
+        
+        // Обработчик кнопки "Сделать снимок"
+        captureBtn.addEventListener('click', function() {
+            if (!studentSelect.value) {
+                resultContainer.textContent = 'Пожалуйста, выберите ученика';
+                resultContainer.classList.remove('d-none');
+                resultContainer.classList.add('alert-warning');
+                return;
+            }
+            
+            // Настраиваем canvas для захвата изображения
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Захватываем изображение с камеры
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Получаем изображение в формате base64
+            capturedImage = canvas.toDataURL('image/jpeg');
+            
+            // Отображаем захваченное изображение
+            photoImage.src = capturedImage;
+            
+            // Скрываем камеру и показываем предпросмотр
+            cameraContainer.style.display = 'none';
+            photoPreview.style.display = 'block';
+            
+            // Останавливаем камеру
+            stopCamera();
+        });
+        
+        // Обработчик кнопки "Переснять"
+        retakeBtn.addEventListener('click', function() {
+            // Инициализируем камеру заново
+            initCamera();
+            capturedImage = null;
+        });
+        
+        // Обработчик кнопки "Зарегистрировать"
+        registerBtn.addEventListener('click', function() {
+            if (!capturedImage) {
+                return;
+            }
+            
+            if (!studentSelect.value) {
+                resultContainer.textContent = 'Пожалуйста, выберите ученика';
+                resultContainer.classList.remove('d-none');
+                resultContainer.classList.add('alert-warning');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loadingOverlay.style.display = 'flex';
+            loadingText.textContent = 'Регистрация лица...';
+            
+            // Отправляем данные на сервер
+            fetch('{% url "face_recognition_app:api_register_student_face" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    user_id: studentSelect.value,
+                    face_data: capturedImage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Скрываем индикатор загрузки
+                loadingOverlay.style.display = 'none';
+                
+                if (data.success) {
+                    // Показываем сообщение об успехе
+                    resultContainer.textContent = data.message || 'Лицо успешно зарегистрировано';
+                    resultContainer.classList.remove('d-none', 'alert-danger', 'alert-warning');
+                    resultContainer.classList.add('alert-success');
+                    
+                    // Сбрасываем форму
+                    setTimeout(() => {
+                        studentSelect.value = '';
+                        capturedImage = null;
+                        initCamera();
+                    }, 2000);
+                } else {
+                    // Показываем ошибку
+                    resultContainer.textContent = data.message || 'Не удалось зарегистрировать лицо';
+                    resultContainer.classList.remove('d-none', 'alert-success', 'alert-warning');
+                    resultContainer.classList.add('alert-danger');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при регистрации лица:', error);
+                loadingOverlay.style.display = 'none';
+                
+                resultContainer.textContent = 'Произошла ошибка при регистрации лица';
+                resultContainer.classList.remove('d-none', 'alert-success', 'alert-warning');
+                resultContainer.classList.add('alert-danger');
+            });
+        });
+        
+        // Функция для получения CSRF-токена из cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

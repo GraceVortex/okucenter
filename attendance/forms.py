@@ -1,7 +1,8 @@
 from django import forms
 from django.utils import timezone
-from .models import Attendance, Mark, CancellationRequest
-from classes.models import Class
+from django.core.exceptions import ValidationError
+from .models import Attendance, Mark, CancellationRequest, StudentCancellationRequest
+from classes.models import Class, ClassSchedule
 from accounts.models import Student, Teacher
 
 class AttendanceForm(forms.ModelForm):
@@ -97,6 +98,76 @@ class CancelAttendanceForm(forms.Form):
             if len(words) > 50:
                 raise forms.ValidationError("Причина не должна превышать 50 слов.")
         return reason
+
+
+class StudentCancellationRequestForm(forms.ModelForm):
+    """Форма для создания запроса на отмену занятия от ученика."""
+    
+    class Meta:
+        model = StudentCancellationRequest
+        fields = ['reason']
+        widgets = {
+            'reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Укажите причину отмены занятия (макс. 500 символов)'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.student = kwargs.pop('student', None)
+        self.class_obj = kwargs.pop('class_obj', None)
+        self.class_schedule = kwargs.pop('class_schedule', None)
+        self.date = kwargs.pop('date', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Проверяем, что все необходимые поля заданы
+        if not all([self.student, self.class_obj, self.class_schedule, self.date, self.user]):
+            raise ValidationError("Недостаточно данных для создания запроса на отмену.")
+        
+        # Проверяем, что запрос на отмену создается на будущую дату
+        if self.date < timezone.now().date():
+            raise ValidationError("Нельзя создать запрос на отмену занятия на прошедшую дату.")
+        
+        # Проверяем, что запрос создается за 24 часа до занятия
+        import datetime
+        lesson_datetime = datetime.datetime.combine(
+            self.date,
+            self.class_schedule.start_time,
+            tzinfo=timezone.get_current_timezone()
+        )
+        time_difference = (lesson_datetime - timezone.now()).total_seconds() / 3600
+        
+        if time_difference < 24:
+            raise ValidationError("Запрос на отмену должен быть создан не менее чем за 24 часа до занятия.")
+        
+        # Проверяем, что такой запрос еще не существует
+        if StudentCancellationRequest.objects.filter(
+            student=self.student,
+            class_obj=self.class_obj,
+            date=self.date,
+            status='pending'
+        ).exists():
+            raise ValidationError("Запрос на отмену этого занятия уже существует и ожидает обработки.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.student = self.student
+        instance.class_obj = self.class_obj
+        instance.class_schedule = self.class_schedule
+        instance.date = self.date
+        instance.created_by = self.user
+        
+        if commit:
+            instance.save()
+        
+        return instance
 
 class CancellationRequestForm(forms.ModelForm):
     """Форма для запроса на отмену урока учителем."""

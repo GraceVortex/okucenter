@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отмена занятия - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Отмена занятия</h1>
+            <p class="text-muted fs-5">Создание запроса на отмену занятия</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Информация о занятии</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="fw-bold mb-1">Класс:</p>
+                            <p>{{ lesson_info.class_name }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="fw-bold mb-1">Учитель:</p>
+                            <p>{{ lesson_info.teacher_name }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="fw-bold mb-1">Дата:</p>
+                            <p>{{ lesson_info.date|date:"d.m.Y" }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="fw-bold mb-1">Время:</p>
+                            <p>{{ lesson_info.time }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="fw-bold mb-1">Кабинет:</p>
+                            <p>{{ lesson_info.room }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Запрос на отмену занятия</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Важно!</strong> Запрос на отмену должен быть создан не менее чем за 24 часа до занятия.
+                        Если запрос будет одобрен, деньги за занятие не будут списаны.
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.reason.id_for_label }}" class="form-label">Причина отмены</label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.reason.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text text-muted">Укажите причину, по которой вы не сможете присутствовать на занятии.</div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'classes:student_classes' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i> Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i> Отправить запрос
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Информация</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h5 class="fw-bold">Правила отмены занятий</h5>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Запрос должен быть создан не менее чем за 24 часа до занятия
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                При одобрении запроса деньги за занятие не списываются
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Запрос рассматривается администратором или ресепшн
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                При отклонении запроса деньги за занятие будут списаны
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h5 class="fw-bold">Статусы посещаемости</h5>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="badge bg-success me-2">Присутствует</div>
+                            <span>Ученик присутствовал на занятии</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="badge bg-warning me-2">Уважительная</div>
+                            <span>Ученик отсутствовал по уважительной причине</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="badge bg-danger me-2">Отсутствует</div>
+                            <span>Ученик отсутствовал без уважительной причины</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

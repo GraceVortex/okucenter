@@ -1,0 +1,520 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Активности</h5>
+        <div class="btn-group">
+          <a href="{% url 'crm:task_create' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-check-square"></i> Задача
+          </a>
+          <a href="{% url 'crm:call_create' %}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-telephone"></i> Звонок
+          </a>
+          <a href="{% url 'crm:meeting_create' %}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-calendar-event"></i> Встреча
+          </a>
+          <a href="{% url 'crm:email_create' %}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-envelope"></i> Email
+          </a>
+          <a href="{% url 'crm:note_create' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-sticky"></i> Заметка
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <ul class="nav nav-tabs mb-4" id="activityTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if view_type == 'list' %}active{% endif %}" id="list-tab" data-bs-toggle="tab" data-bs-target="#list-view" type="button" role="tab" aria-controls="list-view" aria-selected="{% if view_type == 'list' %}true{% else %}false{% endif %}">
+              <i class="bi bi-list"></i> Список
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if view_type == 'calendar' %}active{% endif %}" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar-view" type="button" role="tab" aria-controls="calendar-view" aria-selected="{% if view_type == 'calendar' %}true{% else %}false{% endif %}">
+              <i class="bi bi-calendar3"></i> Календарь
+            </button>
+          </li>
+        </ul>
+        
+        <div class="tab-content" id="activityTabsContent">
+          <!-- Представление списком -->
+          <div class="tab-pane fade {% if view_type == 'list' %}show active{% endif %}" id="list-view" role="tabpanel" aria-labelledby="list-tab">
+            <!-- Фильтры -->
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <form method="get" class="activity-filters">
+                  <input type="hidden" name="view" value="list">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="activity_type" class="form-label">Тип активности</label>
+                        <select class="form-select" id="activity_type" name="activity_type" onchange="this.form.submit()">
+                          <option value="">Все типы</option>
+                          {% for type_code, type_name in activity_types %}
+                          <option value="{{ type_code }}" {% if activity_type == type_code %}selected{% endif %}>{{ type_name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="status" class="form-label">Статус</label>
+                        <select class="form-select" id="status" name="status" onchange="this.form.submit()">
+                          <option value="">Все статусы</option>
+                          {% for status_code, status_name in statuses %}
+                          <option value="{{ status_code }}" {% if status == status_code %}selected{% endif %}>{{ status_name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="assigned_to" class="form-label">Ответственный</label>
+                        <select class="form-select" id="assigned_to" name="assigned_to" onchange="this.form.submit()">
+                          <option value="">Все ответственные</option>
+                          {% for user in users %}
+                          <option value="{{ user.id }}" {% if assigned_to == user.id|stringformat:"i" %}selected{% endif %}>{{ user.get_full_name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="date_range" class="form-label">Период</label>
+                        <select class="form-select" id="date_range" name="date_range" onchange="this.form.submit()">
+                          <option value="all" {% if date_range == 'all' %}selected{% endif %}>Все время</option>
+                          <option value="today" {% if date_range == 'today' %}selected{% endif %}>Сегодня</option>
+                          <option value="tomorrow" {% if date_range == 'tomorrow' %}selected{% endif %}>Завтра</option>
+                          <option value="week" {% if date_range == 'week' %}selected{% endif %}>Эта неделя</option>
+                          <option value="month" {% if date_range == 'month' %}selected{% endif %}>Этот месяц</option>
+                          <option value="overdue" {% if date_range == 'overdue' %}selected{% endif %}>Просроченные</option>
+                          <option value="custom" {% if date_range == 'custom' %}selected{% endif %}>Выбрать период</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {% if date_range == 'custom' %}
+                  <div class="row" id="custom-date-range">
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="start_date" class="form-label">Начальная дата</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="end_date" class="form-label">Конечная дата</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                      </div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                      <div class="mb-3">
+                        <button type="submit" class="btn btn-primary">Применить</button>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                  
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <div class="input-group">
+                          <input type="text" class="form-control" name="q" placeholder="Поиск по названию или описанию..." value="{{ search_query }}">
+                          <button class="btn btn-outline-secondary" type="submit">
+                            <i class="bi bi-search"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                      <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()">
+                          <i class="bi bi-x-circle"></i> Сбросить фильтры
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+            
+            <!-- Список активностей -->
+            <div class="activity-list">
+              {% for activity in activities %}
+              <div class="activity-list-item">
+                <div class="activity-header">
+                  <div class="activity-title">
+                    {% if activity.activity_type == 'task' %}
+                    <i class="bi bi-check-square text-primary"></i>
+                    {% elif activity.activity_type == 'call' %}
+                    <i class="bi bi-telephone text-success"></i>
+                    {% elif activity.activity_type == 'meeting' %}
+                    <i class="bi bi-calendar-event text-info"></i>
+                    {% elif activity.activity_type == 'email' %}
+                    <i class="bi bi-envelope text-warning"></i>
+                    {% elif activity.activity_type == 'note' %}
+                    <i class="bi bi-sticky text-secondary"></i>
+                    {% else %}
+                    <i class="bi bi-asterisk"></i>
+                    {% endif %}
+                    <a href="{% url 'crm:activity_detail' activity.id %}">{{ activity.title }}</a>
+                    {% if activity.priority == 'high' %}
+                    <span class="badge bg-warning ms-2">Высокий приоритет</span>
+                    {% elif activity.priority == 'urgent' %}
+                    <span class="badge bg-danger ms-2">Срочно</span>
+                    {% endif %}
+                  </div>
+                  <div class="activity-date">
+                    {% if activity.due_date %}
+                    <span class="{% if activity.due_date|date:'Y-m-d' < today %}text-danger{% endif %}">
+                      {{ activity.due_date|date:"d.m.Y H:i" }}
+                    </span>
+                    {% else %}
+                    {{ activity.created_at|date:"d.m.Y H:i" }}
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="activity-body">
+                  {{ activity.description|truncatechars:200 }}
+                </div>
+                <div class="activity-footer">
+                  <div>
+                    <span class="badge {% if activity.status == 'completed' %}bg-success{% elif activity.status == 'not_started' %}bg-secondary{% elif activity.status == 'in_progress' %}bg-primary{% elif activity.status == 'deferred' %}bg-warning{% elif activity.status == 'cancelled' %}bg-danger{% endif %}">
+                      {{ activity.get_status_display }}
+                    </span>
+                    
+                    {% if activity.related_object %}
+                    <span class="ms-2">
+                      {% if activity.content_type.model == 'contact' %}
+                      <i class="bi bi-person"></i> 
+                      <a href="{% url 'crm:contact_detail' activity.object_id %}">{{ activity.related_object }}</a>
+                      {% elif activity.content_type.model == 'company' %}
+                      <i class="bi bi-building"></i> 
+                      <a href="{% url 'crm:company_detail' activity.object_id %}">{{ activity.related_object }}</a>
+                      {% elif activity.content_type.model == 'deal' %}
+                      <i class="bi bi-briefcase"></i> 
+                      <a href="{% url 'crm:deal_detail' activity.object_id %}">{{ activity.related_object }}</a>
+                      {% endif %}
+                    </span>
+                    {% endif %}
+                    
+                    <span class="ms-2">
+                      <i class="bi bi-person"></i> 
+                      {% if activity.assigned_to %}
+                      {{ activity.assigned_to.get_full_name }}
+                      {% else %}
+                      Не назначен
+                      {% endif %}
+                    </span>
+                  </div>
+                  <div>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'crm:activity_detail' activity.id %}" class="btn btn-outline-primary" title="Просмотр">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                      <a href="{% url 'crm:activity_update' activity.id %}" class="btn btn-outline-secondary" title="Редактировать">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                      {% if activity.status != 'completed' %}
+                      <a href="{% url 'crm:activity_complete' activity.id %}" class="btn btn-outline-success" title="Завершить">
+                        <i class="bi bi-check-lg"></i>
+                      </a>
+                      {% endif %}
+                      <button type="button" class="btn btn-outline-danger" title="Удалить" onclick="confirmDelete({{ activity.id }})">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="text-center py-5">
+                <p class="text-muted">Нет активностей, соответствующих заданным критериям</p>
+                <div class="btn-group">
+                  <a href="{% url 'crm:task_create' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check-square"></i> Добавить задачу
+                  </a>
+                  <a href="{% url 'crm:call_create' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-telephone"></i> Добавить звонок
+                  </a>
+                  <a href="{% url 'crm:meeting_create' %}" class="btn btn-info btn-sm">
+                    <i class="bi bi-calendar-event"></i> Добавить встречу
+                  </a>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            
+            <!-- Пагинация -->
+            {% if activities.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+              <ul class="pagination justify-content-center">
+                {% if activities.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1&view=list{% if activity_type %}&activity_type={{ activity_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if assigned_to %}&assigned_to={{ assigned_to }}{% endif %}{% if date_range %}&date_range={{ date_range }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ activities.previous_page_number }}&view=list{% if activity_type %}&activity_type={{ activity_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if assigned_to %}&assigned_to={{ assigned_to }}{% endif %}{% if date_range %}&date_range={{ date_range }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                  </a>
+                </li>
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                  </a>
+                </li>
+                {% endif %}
+                
+                {% for i in activities.paginator.page_range %}
+                  {% if activities.number == i %}
+                  <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                  {% elif i > activities.number|add:'-3' and i < activities.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}&view=list{% if activity_type %}&activity_type={{ activity_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if assigned_to %}&assigned_to={{ assigned_to }}{% endif %}{% if date_range %}&date_range={{ date_range }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">{{ i }}</a>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+                
+                {% if activities.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ activities.next_page_number }}&view=list{% if activity_type %}&activity_type={{ activity_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if assigned_to %}&assigned_to={{ assigned_to }}{% endif %}{% if date_range %}&date_range={{ date_range }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ activities.paginator.num_pages }}&view=list{% if activity_type %}&activity_type={{ activity_type }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if assigned_to %}&assigned_to={{ assigned_to }}{% endif %}{% if date_range %}&date_range={{ date_range }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                <li class="page-item disabled">
+                  <a class="page-link" href="#" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                  </a>
+                </li>
+                {% endif %}
+              </ul>
+            </nav>
+            {% endif %}
+          </div>
+          
+          <!-- Представление календарем -->
+          <div class="tab-pane fade {% if view_type == 'calendar' %}show active{% endif %}" id="calendar-view" role="tabpanel" aria-labelledby="calendar-tab">
+            <div class="row mb-4">
+              <div class="col-md-12">
+                <form method="get" class="activity-filters">
+                  <input type="hidden" name="view" value="calendar">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="calendar_activity_type" class="form-label">Тип активности</label>
+                        <select class="form-select" id="calendar_activity_type" name="activity_type" onchange="this.form.submit()">
+                          <option value="">Все типы</option>
+                          {% for type_code, type_name in activity_types %}
+                          <option value="{{ type_code }}" {% if activity_type == type_code %}selected{% endif %}>{{ type_name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="calendar_status" class="form-label">Статус</label>
+                        <select class="form-select" id="calendar_status" name="status" onchange="this.form.submit()">
+                          <option value="">Все статусы</option>
+                          {% for status_code, status_name in statuses %}
+                          <option value="{{ status_code }}" {% if status == status_code %}selected{% endif %}>{{ status_name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="mb-3">
+                        <label for="calendar_assigned_to" class="form-label">Ответственный</label>
+                        <select class="form-select" id="calendar_assigned_to" name="assigned_to" onchange="this.form.submit()">
+                          <option value="">Все ответственные</option>
+                          {% for user in users %}
+                          <option value="{{ user.id }}" {% if assigned_to == user.id|stringformat:"i" %}selected{% endif %}>{{ user.get_full_name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3 text-end d-flex align-items-end">
+                      <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()">
+                          <i class="bi bi-x-circle"></i> Сбросить фильтры
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+            
+            <div id="calendar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Подтверждение удаления</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите удалить эту активность? Это действие нельзя отменить.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <form id="deleteForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно с деталями активности -->
+<div class="modal fade" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="activityDetailModalLabel">Детали активности</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="activityDetailContent">
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <a href="#" id="editActivityLink" class="btn btn-primary">Редактировать</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация календаря
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+      },
+      locale: 'ru',
+      events: {{ calendar_events|safe }},
+      eventClick: function(info) {
+        showActivityDetails(info.event.id);
+      },
+      eventTimeFormat: {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      },
+      buttonText: {
+        today: 'Сегодня',
+        month: 'Месяц',
+        week: 'Неделя',
+        day: 'День',
+        list: 'Список'
+      }
+    });
+    calendar.render();
+    
+    // Показать/скрыть выбор дат при выборе "Выбрать период"
+    const dateRangeSelect = document.getElementById('date_range');
+    if (dateRangeSelect) {
+      dateRangeSelect.addEventListener('change', function() {
+        const customDateRange = document.getElementById('custom-date-range');
+        if (this.value === 'custom') {
+          customDateRange.style.display = 'flex';
+        } else {
+          customDateRange.style.display = 'none';
+          this.form.submit();
+        }
+      });
+    }
+    
+    // Активация вкладки календаря при загрузке страницы
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get('view');
+    if (view === 'calendar') {
+      const calendarTab = document.getElementById('calendar-tab');
+      calendarTab.click();
+    }
+  });
+  
+  function resetFilters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get('view') || 'list';
+    window.location.href = '?view=' + view;
+  }
+  
+  function confirmDelete(activityId) {
+    const deleteForm = document.getElementById('deleteForm');
+    deleteForm.action = "{% url 'crm:activity_delete' 0 %}".replace('0', activityId);
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+  
+  function showActivityDetails(activityId) {
+    const modal = new bootstrap.Modal(document.getElementById('activityDetailModal'));
+    const contentContainer = document.getElementById('activityDetailContent');
+    const editLink = document.getElementById('editActivityLink');
+    
+    // Очистить контейнер и показать спиннер
+    contentContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Загрузка...</span></div></div>';
+    
+    // Обновить ссылку на редактирование
+    editLink.href = "{% url 'crm:activity_update' 0 %}".replace('0', activityId);
+    
+    // Загрузить данные активности
+    fetch("{% url 'crm:activity_detail_ajax' 0 %}".replace('0', activityId))
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          contentContainer.innerHTML = data.html;
+        } else {
+          contentContainer.innerHTML = '<div class="alert alert-danger">Ошибка при загрузке данных</div>';
+        }
+      })
+      .catch(error => {
+        contentContainer.innerHTML = '<div class="alert alert-danger">Ошибка при загрузке данных: ' + error + '</div>';
+      });
+    
+    modal.show();
+  }
+</script>
+{% endblock %}

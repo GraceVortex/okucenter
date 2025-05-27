@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Журнал посещений с Face ID{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 fw-bold mb-3">Журнал посещений с Face ID</h1>
+            <p class="text-muted">История посещений, подтвержденных через распознавание лиц</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Фильтры</h5>
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Начальная дата</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">Конечная дата</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
+                        </div>
+                        {% if user.is_admin or user.is_reception or user.is_teacher %}
+                        <div class="col-md-4">
+                            <label for="student" class="form-label">Студент</label>
+                            <select class="form-select" id="student" name="student_id">
+                                <option value="">Все студенты</option>
+                                <!-- Здесь будет список студентов -->
+                            </select>
+                        </div>
+                        {% endif %}
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Применить</button>
+                            <button type="reset" class="btn btn-outline-secondary">Сбросить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            {% if attendance_logs %}
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold mb-3">История посещений</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Студент</th>
+                                        <th>Класс</th>
+                                        <th>Время</th>
+                                        <th>Кабинет</th>
+                                        <th>Фото</th>
+                                        <th>Уверенность</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in attendance_logs %}
+                                    <tr>
+                                        <td>{{ log.date|date:"d.m.Y" }}</td>
+                                        <td>{{ log.student_name }}</td>
+                                        <td>{{ log.class_name }}</td>
+                                        <td>{{ log.time }}</td>
+                                        <td>{{ log.room }}</td>
+                                        <td>
+                                            {% if log.has_image %}
+                                                <a href="{{ log.image_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-image"></i> Просмотр
+                                                </a>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Нет фото</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log.confidence|floatformat:2 }}</td>
+                                        <td>
+                                            <a href="{% url 'attendance:attendance_log_detail' log.attendance.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-eye"></i> Детали
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <h5 class="alert-heading"><i class="bi bi-info-circle-fill me-2"></i> Нет данных</h5>
+                    <p class="mb-0">История посещений с Face ID пуста.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация датапикеров и других элементов формы
+    });
+</script>
+{% endblock %}

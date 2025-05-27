@@ -44,6 +44,7 @@
                                     <tr>
                                         <th>Период</th>
                                         <th>Занятий</th>
+                                        <th>Аванс</th>
                                         <th>Дата выплаты</th>
                                         <th class="text-end">Сумма</th>
                                     </tr>
@@ -53,6 +54,19 @@
                                         <tr>
                                             <td>{{ salary.month|date:"d.m.Y" }} - {{ salary.month|date:"d.m.Y"|add_month }}</td>
                                             <td>{{ salary.lessons_count }}</td>
+                                            <td>
+                                                {% if salary.advance_amount > 0 %}
+                                                    <span class="badge bg-info p-2">
+                                                        <i class="bi bi-cash-coin me-1"></i>
+                                                        {{ salary.advance_amount|floatformat:0 }} ₸
+                                                        {% if salary.advance_paid_date %}
+                                                            <small>({{ salary.advance_paid_date|date:"d.m.Y" }})</small>
+                                                        {% endif %}
+                                                    </span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
                                             <td>{{ salary.paid_date|date:"d.m.Y" }}</td>
                                             <td class="text-end fw-bold">{{ salary.amount|floatformat:0 }} ₸</td>
                                         </tr>
@@ -60,7 +74,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-success">
-                                        <td colspan="3" class="fw-bold">Итого выплачено</td>
+                                        <td colspan="4" class="fw-bold">Итого выплачено</td>
                                         <td class="text-end fw-bold">{{ total_paid|floatformat:0 }} ₸</td>
                                     </tr>
                                 </tfoot>

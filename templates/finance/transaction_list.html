@@ -94,26 +94,7 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
-                            <i class="bi bi-cash-stack fs-4 text-primary"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-0">Итоговая сумма</p>
-                            <h3 class="fw-bold mb-0 {% if total_amount > 0 %}text-success{% elif total_amount < 0 %}text-danger{% endif %}">
-                                {{ total_amount }} ₸
-                            </h3>
-                            <small class="text-muted">Положительное значение означает пополнение баланса, отрицательное - списание средств</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Блок с итоговой суммой убран, так как эта информация избыточна и частично дублируется в блоке предконечного дохода -->
 
     <div class="row mb-4">
         <div class="col-md-12">
@@ -184,9 +165,9 @@
                         <i class="bi bi-download me-1"></i> Экспорт
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Экспорт в Excel</a></li>
-                        <li><a class="dropdown-item" href="#">Экспорт в PDF</a></li>
-                        <li><a class="dropdown-item" href="#">Печать отчета</a></li>
+                        <li><a class="dropdown-item" href="{% url 'finance:export_transactions_excel' %}?{% if start_date %}start_date={{ start_date|date:'Y-m-d' }}&{% endif %}{% if end_date %}end_date={{ end_date|date:'Y-m-d' }}&{% endif %}{% if selected_student %}student={{ selected_student.id }}&{% endif %}{% if selected_class %}class_obj={{ selected_class.id }}&{% endif %}{% if transaction_type %}transaction_type={{ transaction_type }}&{% endif %}{% if period %}period={{ period }}{% endif %}">Экспорт в Excel</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="alert('Экспорт в PDF будет доступен в ближайшее время'); return false;">Экспорт в PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="window.print(); return false;">Печать отчета</a></li>
                     </ul>
                 </div>
             </div>
@@ -252,36 +233,22 @@
                     </table>
                 </div>
             {% else %}
-                <div class="text-center py-5">
-                    <i class="bi bi-search display-1 text-muted mb-3"></i>
-                    <h4 class="fw-bold">Транзакции не найдены</h4>
-                    <p class="text-muted">Попробуйте изменить параметры фильтрации или создать новую транзакцию</p>
-                    
-                    {% if user.is_admin or user.is_reception %}
-                        <a href="{% url 'finance:add_transaction' %}" class="btn btn-primary mt-3">
-                            <i class="bi bi-plus-circle me-2"></i> Добавить транзакцию
-                        </a>
-                    {% endif %}
+                <div class="text-center p-5">
+                    <div class="mb-3">
+                        <i class="bi bi-receipt fs-1 text-muted"></i>
+                    </div>
+                    <h5 class="fw-bold text-muted">Нет транзакций за выбранный период</h5>
+                    <p class="text-muted">Попробуйте изменить параметры фильтрации или выбрать другой период</p>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    {% if user.is_admin or user.is_reception %}
+    {% if teacher_salaries %}
     <div class="card shadow-sm border-0 mt-4">
         <div class="card-header bg-white p-4">
             <div class="d-flex justify-content-between align-items-center">
                 <h4 class="fw-bold mb-0">Выплаты зарплат учителям</h4>
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-download me-1"></i> Экспорт
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Экспорт в Excel</a></li>
-                        <li><a class="dropdown-item" href="#">Экспорт в PDF</a></li>
-                        <li><a class="dropdown-item" href="#">Печать отчета</a></li>
-                    </ul>
-                </div>
             </div>
         </div>
         <div class="card-body p-0">
@@ -300,7 +267,7 @@
                         <tbody>
                             {% for salary in teacher_salaries %}
                                 <tr>
-                                    <td class="ps-4">{{ salary.paid_date|date:"d.m.Y" }}</td>
+                                    <td class="ps-4">{{ salary.final_payment_date|date:"d.m.Y" }}</td>
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="avatar-circle-sm me-2 bg-primary">

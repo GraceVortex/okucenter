@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Тест распознавания лиц{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Тест распознавания лиц</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="imageTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="upload-tab" data-toggle="tab" href="#upload" role="tab" aria-controls="upload" aria-selected="true">Загрузить фото</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="camera-tab" data-toggle="tab" href="#camera" role="tab" aria-controls="camera" aria-selected="false">Сделать фото</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="imageTabsContent">
+                        <!-- Вкладка загрузки фото -->
+                        <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                            <div class="form-group">
+                                <label for="photoUpload">Выберите фото для распознавания:</label>
+                                <input type="file" class="form-control-file" id="photoUpload" accept="image/*">
+                            </div>
+                            <div id="uploadedImageContainer" class="text-center mb-3" style="display: none;">
+                                <img id="uploadedImage" class="img-fluid" style="max-height: 300px;" alt="Загруженное фото">
+                            </div>
+                            <button id="recognizeUploadedBtn" class="btn btn-primary" disabled>Распознать</button>
+                        </div>
+                        
+                        <!-- Вкладка камеры -->
+                        <div class="tab-pane fade" id="camera" role="tabpanel" aria-labelledby="camera-tab">
+                            <div class="text-center">
+                                <video id="cameraVideo" width="100%" height="300" autoplay playsinline style="display: none;"></video>
+                                <canvas id="cameraCanvas" width="640" height="480" style="display: none;"></canvas>
+                                <div id="capturedImageContainer" class="text-center mb-3" style="display: none;">
+                                    <img id="capturedImage" class="img-fluid" style="max-height: 300px;" alt="Сделанное фото">
+                                </div>
+                                <div class="btn-group mt-2">
+                                    <button id="startCameraBtn" class="btn btn-secondary">Включить камеру</button>
+                                    <button id="takePictureBtn" class="btn btn-primary" disabled>Сделать фото</button>
+                                    <button id="recognizeCapturedBtn" class="btn btn-success" disabled>Распознать</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Результаты распознавания</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recognitionResults">
+                        <div class="text-center">
+                            <p class="text-muted">Здесь будут отображаться результаты распознавания</p>
+                        </div>
+                    </div>
+                    <div id="recognitionSpinner" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Загрузка...</span>
+                        </div>
+                        <p>Распознавание...</p>
+                    </div>
+                    <div id="recognitionDetails" class="mt-3" style="display: none;">
+                        <h6>Детали распознавания:</h6>
+                        <pre id="recognitionDebugInfo" class="bg-light p-2" style="font-size: 0.8rem; max-height: 200px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Настройки распознавания</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="confidenceThreshold">Порог уверенности:</label>
+                        <input type="range" class="form-control-range" id="confidenceThreshold" min="0.5" max="0.95" step="0.05" value="0.7">
+                        <div class="d-flex justify-content-between">
+                            <small>0.5 (Больше совпадений)</small>
+                            <small id="thresholdValue">0.7</small>
+                            <small>0.95 (Точнее)</small>
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showDebugInfo">
+                        <label class="form-check-label" for="showDebugInfo">
+                            Показать отладочную информацию
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для кропа изображения -->
+<div class="modal fade" id="cropModal" tabindex="-1" role="dialog" aria-labelledby="cropModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cropModalLabel">Выделите область лица</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="img-container">
+                    <img id="cropImage" src="" alt="Изображение для кропа">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="cropBtn">Обрезать</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Переменные для хранения данных
+        let cropper = null;
+        let currentImageData = null;
+        let currentImageSource = null; // 'upload' или 'camera'
+        
+        // Обновление значения порога уверенности
+        $('#confidenceThreshold').on('input', function() {
+            $('#thresholdValue').text($(this).val());
+        });
+        
+        // Показать/скрыть отладочную информацию
+        $('#showDebugInfo').change(function() {
+            if ($(this).is(':checked')) {
+                $('#recognitionDetails').show();
+            } else {
+                $('#recognitionDetails').hide();
+            }
+        });
+        
+        // Обработка загрузки изображения
+        $('#photoUpload').change(function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    $('#uploadedImage').attr('src', event.target.result);
+                    $('#uploadedImageContainer').show();
+                    $('#recognizeUploadedBtn').prop('disabled', false);
+                    
+                    // Сохраняем данные изображения
+                    currentImageData = event.target.result;
+                    currentImageSource = 'upload';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Обработка нажатия на кнопку распознавания загруженного изображения
+        $('#recognizeUploadedBtn').click(function() {
+            showCropModal(currentImageData);
+        });
+        
+        // Работа с камерой
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        const context = canvas.getContext('2d');
+        let stream = null;
+        
+        // Включение камеры
+        $('#startCameraBtn').click(function() {
+            if (video.style.display === 'none') {
+                // Включаем камеру
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        video.srcObject = mediaStream;
+                        video.style.display = 'block';
+                        $('#capturedImageContainer').hide();
+                        $('#takePictureBtn').prop('disabled', false);
+                        $('#recognizeCapturedBtn').prop('disabled', true);
+                        $(this).text('Выключить камеру');
+                    })
+                    .catch(function(error) {
+                        console.error('Ошибка доступа к камере:', error);
+                        alert('Не удалось получить доступ к камере. Проверьте разрешения.');
+                    });
+            } else {
+                // Выключаем камеру
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                video.style.display = 'none';
+                $(this).text('Включить камеру');
+                $('#takePictureBtn').prop('disabled', true);
+            }
+        });
+        
+        // Сделать фото с камеры
+        $('#takePictureBtn').click(function() {
+            if (video.style.display !== 'none') {
+                // Рисуем текущий кадр с видео на холсте
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Получаем изображение с холста
+                const imageData = canvas.toDataURL('image/jpeg');
+                
+                // Отображаем сделанное фото
+                $('#capturedImage').attr('src', imageData);
+                $('#capturedImageContainer').show();
+                video.style.display = 'none';
+                
+                // Сохраняем данные изображения
+                currentImageData = imageData;
+                currentImageSource = 'camera';
+                
+                // Активируем кнопку распознавания
+                $('#recognizeCapturedBtn').prop('disabled', false);
+                
+                // Меняем текст кнопки включения камеры
+                $('#startCameraBtn').text('Включить камеру');
+                
+                // Останавливаем поток камеры
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            }
+        });
+        
+        // Распознать сделанное фото
+        $('#recognizeCapturedBtn').click(function() {
+            showCropModal(currentImageData);
+        });
+        
+        // Функция для показа модального окна кропа
+        function showCropModal(imageData) {
+            // Устанавливаем изображение в модальное окно
+            $('#cropImage').attr('src', imageData);
+            
+            // Показываем модальное окно
+            $('#cropModal').modal('show');
+            
+            // Инициализируем Cropper.js
+            if (cropper) {
+                cropper.destroy();
+            }
+            
+            // Ждем, пока модальное окно полностью откроется
+            $('#cropModal').on('shown.bs.modal', function() {
+                cropper = new Cropper(document.getElementById('cropImage'), {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                    responsive: true
+                });
+            });
+        }
+        
+        // Обработка нажатия на кнопку обрезки
+        $('#cropBtn').click(function() {
+            if (cropper) {
+                // Получаем обрезанное изображение
+                const croppedCanvas = cropper.getCroppedCanvas({
+                    width: 300,
+                    height: 300
+                });
+                
+                // Получаем данные изображения
+                const croppedImageData = croppedCanvas.toDataURL('image/jpeg');
+                
+                // Обновляем изображение в зависимости от источника
+                if (currentImageSource === 'upload') {
+                    $('#uploadedImage').attr('src', croppedImageData);
+                } else if (currentImageSource === 'camera') {
+                    $('#capturedImage').attr('src', croppedImageData);
+                }
+                
+                // Закрываем модальное окно
+                $('#cropModal').modal('hide');
+                
+                // Отправляем изображение на распознавание
+                recognizeFace(croppedImageData);
+            }
+        });
+        
+        // Функция для распознавания лица
+        function recognizeFace(imageData) {
+            // Показываем спиннер загрузки
+            $('#recognitionResults').hide();
+            $('#recognitionSpinner').show();
+            
+            // Получаем порог уверенности
+            const threshold = $('#confidenceThreshold').val();
+            
+            // Отправляем запрос на сервер
+            $.ajax({
+                url: '{% url "face_recognition_app:test_recognition" %}',
+                type: 'POST',
+                data: JSON.stringify({
+                    face_data: imageData,
+                    threshold: threshold
+                }),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    // Скрываем спиннер
+                    $('#recognitionSpinner').hide();
+                    $('#recognitionResults').show();
+                    
+                    // Отображаем результаты
+                    if (response.success) {
+                        let html = '<div class="alert alert-success">' +
+                            '<h5>Лицо распознано!</h5>' +
+                            '<p><strong>Пользователь:</strong> ' + response.user.username + '</p>' +
+                            '<p><strong>Имя:</strong> ' + response.user.full_name + '</p>' +
+                            '<p><strong>Уверенность:</strong> ' + (response.confidence * 100).toFixed(2) + '%</p>';
+                        
+                        if (response.user.face_image) {
+                            html += '<div class="text-center mt-2">' +
+                                '<p>Сохраненное фото пользователя:</p>' +
+                                '<img src="' + response.user.face_image + '" class="img-thumbnail" style="max-height: 150px;" alt="Фото пользователя">' +
+                                '</div>';
+                        }
+                        
+                        html += '</div>';
+                        
+                        $('#recognitionResults').html(html);
+                    } else {
+                        $('#recognitionResults').html(
+                            '<div class="alert alert-danger">' +
+                            '<h5>Ошибка распознавания</h5>' +
+                            '<p>' + response.message + '</p>' +
+                            '</div>'
+                        );
+                    }
+                    
+                    // Отображаем отладочную информацию, если она есть
+                    if (response.debug_info) {
+                        $('#recognitionDebugInfo').text(JSON.stringify(response.debug_info, null, 2));
+                        if ($('#showDebugInfo').is(':checked')) {
+                            $('#recognitionDetails').show();
+                        }
+                    } else {
+                        $('#recognitionDetails').hide();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Скрываем спиннер
+                    $('#recognitionSpinner').hide();
+                    $('#recognitionResults').show();
+                    
+                    // Отображаем ошибку
+                    $('#recognitionResults').html(
+                        '<div class="alert alert-danger">' +
+                        '<h5>Ошибка сервера</h5>' +
+                        '<p>Не удалось выполнить запрос: ' + error + '</p>' +
+                        '</div>'
+                    );
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

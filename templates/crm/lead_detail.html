@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ lead.full_name }} - Детали лида{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ lead.full_name }}</h1>
+        <div>
+            <a href="{% url 'crm:lead_update' lead.id %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Редактировать
+            </a>
+            <a href="{% url 'crm:add_interaction' lead.id %}" class="btn btn-info">
+                <i class="bi bi-chat"></i> Добавить взаимодействие
+            </a>
+            <a href="{% url 'crm:send_whatsapp_message' lead.id %}" class="btn btn-success">
+                <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
+            <a href="{% url 'crm:lead_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> К списку
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Основная информация -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Основная информация</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="text-muted mb-1">Статус:</h6>
+                            <div>
+                                {% if lead.status == 'new' %}
+                                    <span class="badge bg-primary">Новый</span>
+                                {% elif lead.status == 'in_progress' %}
+                                    <span class="badge bg-info">В работе</span>
+                                {% elif lead.status == 'qualified' %}
+                                    <span class="badge bg-warning">Квалифицирован</span>
+                                {% elif lead.status == 'converted' %}
+                                    <span class="badge bg-success">Конвертирован</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Закрыт</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="text-muted mb-1">Этап воронки:</h6>
+                            <div>
+                                {% if lead.current_stage %}
+                                    <span class="badge" style="background-color: {{ lead.current_stage.color }}">
+                                        {{ lead.current_stage.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">Не определен</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Телефон:</h6>
+                        <p class="mb-0">{{ lead.phone_number }}</p>
+                    </div>
+                    {% if lead.email %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Email:</h6>
+                        <p class="mb-0">{{ lead.email }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Источник:</h6>
+                        <p class="mb-0">{{ lead.source.name|default:"Не указан" }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Дата создания:</h6>
+                        <p class="mb-0">{{ lead.created_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Ответственный:</h6>
+                        <p class="mb-0">{{ lead.assigned_to.get_full_name|default:"Не назначен" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Дополнительная информация -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Дополнительная информация</h5>
+                </div>
+                <div class="card-body">
+                    {% if lead.birth_date %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Дата рождения:</h6>
+                        <p class="mb-0">{{ lead.birth_date|date:"d.m.Y" }}</p>
+                    </div>
+                    {% endif %}
+                    {% if lead.school %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Школа:</h6>
+                        <p class="mb-0">{{ lead.school }}</p>
+                    </div>
+                    {% endif %}
+                    {% if lead.current_grade %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Текущий класс:</h6>
+                        <p class="mb-0">{{ lead.current_grade }}</p>
+                    </div>
+                    {% endif %}
+                    {% if lead.parent_name %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">ФИО родителя:</h6>
+                        <p class="mb-0">{{ lead.parent_name }}</p>
+                    </div>
+                    {% endif %}
+                    {% if lead.parent_phone %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Телефон родителя:</h6>
+                        <p class="mb-0">{{ lead.parent_phone }}</p>
+                    </div>
+                    {% endif %}
+                    {% if lead.interested_subjects %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">Интересующие предметы:</h6>
+                        <p class="mb-0">{{ lead.interested_subjects }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Примечания -->
+            {% if lead.notes %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Примечания</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ lead.notes|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Изменение этапа воронки -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Изменить этап воронки</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'crm:update_lead_stage' lead.id %}" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <select name="stage_id" class="form-select">
+                                {% for stage in sale_stages %}
+                                    <option value="{{ stage.id }}" {% if lead.current_stage == stage %}selected{% endif %}>
+                                        {{ stage.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="notes" class="form-control" placeholder="Примечание (необязательно)">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Обновить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Вкладки с историей -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="leadTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="interactions-tab" data-bs-toggle="tab" data-bs-target="#interactions" type="button" role="tab" aria-controls="interactions" aria-selected="true">
+                                Взаимодействия
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">
+                                История статусов
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab" aria-controls="messages" aria-selected="false">
+                                Сообщения
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="leadTabsContent">
+                        <!-- Взаимодействия -->
+                        <div class="tab-pane fade show active" id="interactions" role="tabpanel" aria-labelledby="interactions-tab">
+                            <div class="d-flex justify-content-end mb-3">
+                                <a href="{% url 'crm:add_interaction' lead.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus-circle"></i> Добавить взаимодействие
+                                </a>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Дата и время</th>
+                                            <th>Тип</th>
+                                            <th>Результат</th>
+                                            <th>Примечания</th>
+                                            <th>Выполнил</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for interaction in interactions %}
+                                        <tr>
+                                            <td>{{ interaction.date_time|date:"d.m.Y H:i" }}</td>
+                                            <td>
+                                                {% if interaction.interaction_type == 'call' %}
+                                                    <i class="fas fa-phone"></i> Звонок
+                                                {% elif interaction.interaction_type == 'email' %}
+                                                    <i class="fas fa-envelope"></i> Email
+                                                {% elif interaction.interaction_type == 'meeting' %}
+                                                    <i class="fas fa-handshake"></i> Встреча
+                                                {% elif interaction.interaction_type == 'whatsapp' %}
+                                                    <i class="fab fa-whatsapp"></i> WhatsApp
+                                                {% elif interaction.interaction_type == 'instagram' %}
+                                                    <i class="fab fa-instagram"></i> Instagram
+                                                {% else %}
+                                                    <i class="fas fa-comment"></i> Другое
+                                                {% endif %}
+                                                {% if interaction.duration %}
+                                                    ({{ interaction.duration }} мин.)
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if interaction.result == 'positive' %}
+                                                    <span class="text-success"><i class="fas fa-thumbs-up"></i> Положительный</span>
+                                                {% elif interaction.result == 'neutral' %}
+                                                    <span class="text-secondary"><i class="fas fa-minus"></i> Нейтральный</span>
+                                                {% elif interaction.result == 'negative' %}
+                                                    <span class="text-danger"><i class="fas fa-thumbs-down"></i> Отрицательный</span>
+                                                {% else %}
+                                                    <span class="text-muted"><i class="fas fa-question"></i> Нет ответа</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ interaction.notes|truncatechars:50 }}</td>
+                                            <td>{{ interaction.performed_by.get_full_name }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3">
+                                                <p class="text-muted mb-0">Взаимодействий пока нет</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- История статусов -->
+                        <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                            <div class="timeline">
+                                {% for history in status_history %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker" style="background-color: {{ history.stage.color }}"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">{{ history.stage.name }}</h6>
+                                        <p class="mb-1 small">{{ history.notes }}</p>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted small">{{ history.entered_at|date:"d.m.Y H:i" }}</span>
+                                            <span class="text-muted small">{{ history.changed_by.get_full_name|default:"Система" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center py-3">
+                                    <p class="text-muted mb-0">История изменений отсутствует</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Сообщения из соцсетей -->
+                        <div class="tab-pane fade" id="messages" role="tabpanel" aria-labelledby="messages-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Сообщения</h5>
+                                <div>
+                                    <a href="{% url 'crm:send_whatsapp_message' lead.id %}" class="btn btn-sm btn-success">
+                                        <i class="bi bi-whatsapp"></i> Отправить WhatsApp
+                                    </a>
+                                    <a href="{% url 'crm:social_messages' lead.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-list"></i> Вся история
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="messages-container">
+                                {% for message in lead.social_messages.all|slice:":5" %}
+                                <div class="message {% if message.message_type == 'incoming' %}message-incoming{% else %}message-outgoing{% endif %}">
+                                    <div class="message-header">
+                                        <span class="message-platform">
+                                            {% if message.account.account_type == 'whatsapp' %}
+                                                <i class="bi bi-whatsapp"></i> WhatsApp
+                                            {% elif message.account.account_type == 'instagram' %}
+                                                <i class="bi bi-instagram"></i> Instagram
+                                            {% endif %}
+                                        </span>
+                                        <span class="message-time">{{ message.created_at|date:"d.m.Y H:i" }}</span>
+                                    </div>
+                                    <div class="message-body">
+                                        <p class="mb-0">{{ message.message_text }}</p>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center py-3">
+                                    <p class="text-muted mb-0">Сообщений из социальных сетей нет</p>
+                                    <a href="{% url 'crm:send_whatsapp_message' lead.id %}" class="btn btn-success mt-2">
+                                        <i class="bi bi-whatsapp"></i> Отправить первое сообщение
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Стили для таймлайна */
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 20px;
+        height: 100%;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+        padding-left: 50px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        top: 0;
+        left: 15px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #e9ecef;
+    }
+    
+    .timeline-content {
+        padding: 15px;
+        border-radius: 5px;
+        background: #f8f9fa;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    /* Стили для сообщений */
+    .messages-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .message {
+        margin-bottom: 15px;
+        max-width: 80%;
+        padding: 10px 15px;
+        border-radius: 10px;
+    }
+    
+    .message-incoming {
+        background-color: #f1f0f0;
+        margin-right: auto;
+    }
+    
+    .message-outgoing {
+        background-color: #dcf8c6;
+        margin-left: auto;
+    }
+    
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Здесь можно добавить JavaScript для интерактивных элементов
+</script>
+{% endblock %}

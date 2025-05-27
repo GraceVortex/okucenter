@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Воронка продаж{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Воронка продаж</h1>
+        <div>
+            <a href="{% url 'crm:funnel_statistics' %}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> Статистика
+            </a>
+            <a href="{% url 'crm:lead_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Добавить лида
+            </a>
+        </div>
+    </div>
+    
+    <!-- Фильтры -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="source" class="form-label">Источник</label>
+                    <select name="source" id="source" class="form-select">
+                        <option value="">Все источники</option>
+                        {% for source in lead_sources %}
+                            <option value="{{ source.id }}" {% if source_filter == source.id|stringformat:"i" %}selected{% endif %}>{{ source.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="assigned_to" class="form-label">Маркетолог</label>
+                    <select name="assigned_to" id="assigned_to" class="form-select">
+                        <option value="">Все маркетологи</option>
+                        {% for marketer in marketers %}
+                            <option value="{{ marketer.id }}" {% if assigned_to_filter == marketer.id|stringformat:"i" %}selected{% endif %}>{{ marketer.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="q" class="form-label">Поиск</label>
+                    <input type="text" name="q" id="q" class="form-control" placeholder="ФИО, телефон или email" value="{{ search_query }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Найти
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Воронка продаж -->
+    <div class="funnel-container">
+        <div class="row">
+            {% for stage_data in funnel_data %}
+            <div class="col-md-{% widthratio 12 funnel_data|length 1 %}">
+                <div class="card shadow-sm h-100 funnel-stage" data-stage-id="{{ stage_data.stage.id }}">
+                    <div class="card-header" style="background-color: {{ stage_data.stage.color }}; color: white;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ stage_data.stage.name }}</h5>
+                            <span class="badge bg-light text-dark">{{ stage_data.count }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body funnel-stage-body" data-stage-id="{{ stage_data.stage.id }}">
+                        {% for lead in stage_data.leads %}
+                        <div class="card mb-2 lead-card" draggable="true" data-lead-id="{{ lead.id }}">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1">
+                                    <a href="{% url 'crm:lead_detail' lead.id %}">{{ lead.full_name }}</a>
+                                </h6>
+                                <p class="card-text small mb-1">{{ lead.phone_number }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge {% if lead.status == 'new' %}bg-primary{% elif lead.status == 'in_progress' %}bg-info{% elif lead.status == 'qualified' %}bg-warning{% elif lead.status == 'converted' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if lead.status == 'new' %}
+                                            Новый
+                                        {% elif lead.status == 'in_progress' %}
+                                            В работе
+                                        {% elif lead.status == 'qualified' %}
+                                            Квалифицирован
+                                        {% elif lead.status == 'converted' %}
+                                            Конвертирован
+                                        {% else %}
+                                            Закрыт
+                                        {% endif %}
+                                    </span>
+                                    <small class="text-muted">{{ lead.created_at|date:"d.m.Y" }}</small>
+                                </div>
+                                {% if lead.source %}
+                                <div class="mt-1">
+                                    <small class="text-muted">Источник: {{ lead.source.name }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3">
+                            <p class="text-muted mb-0">Нет лидов</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    Этапы воронки продаж не настроены. Пожалуйста, создайте этапы в административной панели.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Модальное окно для перемещения лида -->
+    <div class="modal fade" id="moveLeadModal" tabindex="-1" aria-labelledby="moveLeadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="moveLeadModalLabel">Переместить лида</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="moveLeadForm" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" id="leadId" name="lead_id">
+                        <input type="hidden" id="stageId" name="stage_id">
+                        <div class="mb-3">
+                            <label for="moveNotes" class="form-label">Примечание</label>
+                            <textarea class="form-control" id="moveNotes" name="notes" rows="3" placeholder="Укажите причину перемещения (необязательно)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Переместить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .funnel-container {
+        overflow-x: auto;
+    }
+    
+    .funnel-stage {
+        min-height: 500px;
+        margin-bottom: 20px;
+    }
+    
+    .funnel-stage-body {
+        overflow-y: auto;
+        max-height: 500px;
+    }
+    
+    .lead-card {
+        cursor: grab;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .lead-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .lead-card.dragging {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+    
+    .funnel-stage-body.drag-over {
+        background-color: rgba(0,123,255,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Получаем все карточки лидов
+        const leadCards = document.querySelectorAll('.lead-card');
+        const stageContainers = document.querySelectorAll('.funnel-stage-body');
+        const moveLeadModal = new bootstrap.Modal(document.getElementById('moveLeadModal'));
+        const moveLeadForm = document.getElementById('moveLeadForm');
+        const leadIdInput = document.getElementById('leadId');
+        const stageIdInput = document.getElementById('stageId');
+        
+        let draggedCard = null;
+        
+        // Добавляем обработчики событий для перетаскивания
+        leadCards.forEach(card => {
+            card.addEventListener('dragstart', function(e) {
+                draggedCard = this;
+                this.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', this.dataset.leadId);
+            });
+            
+            card.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                draggedCard = null;
+            });
+        });
+        
+        // Обработчики для контейнеров этапов
+        stageContainers.forEach(container => {
+            container.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drag-over');
+            });
+            
+            container.addEventListener('dragleave', function() {
+                this.classList.remove('drag-over');
+            });
+            
+            container.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                const leadId = e.dataTransfer.getData('text/plain');
+                const stageId = this.dataset.stageId;
+                const currentStageId = draggedCard.closest('.funnel-stage-body').dataset.stageId;
+                
+                // Если перетаскивание в тот же этап, ничего не делаем
+                if (stageId === currentStageId) {
+                    return;
+                }
+                
+                // Открываем модальное окно для подтверждения перемещения
+                leadIdInput.value = leadId;
+                stageIdInput.value = stageId;
+                moveLeadModal.show();
+            });
+        });
+        
+        // Обработчик отправки формы перемещения
+        moveLeadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const leadId = leadIdInput.value;
+            const formData = new FormData(this);
+            
+            // Отправляем запрос на сервер
+            fetch(`/crm/leads/${leadId}/update-stage/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Перезагружаем страницу для отображения изменений
+                    window.location.reload();
+                } else {
+                    alert('Произошла ошибка при перемещении лида.');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при перемещении лида.');
+            });
+            
+            moveLeadModal.hide();
+        });
+    });
+</script>
+{% endblock %}

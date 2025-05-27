@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}Telegram рассылки{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">Telegram рассылки</h1>
+                    <p class="text-muted">Управление рассылками сообщений через Telegram</p>
+                </div>
+                <div>
+                    <a href="{% url 'messaging:messaging_choice' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-exchange-alt me-1"></i> Сменить тип рассылки
+                    </a>
+                    <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Новая рассылка
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-0">Всего рассылок</h6>
+                            <h2 class="mt-2 mb-0">{{ stats.total }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-paper-plane fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-0">Завершено</h6>
+                            <h2 class="mt-2 mb-0">{{ stats.completed }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-0">В процессе</h6>
+                            <h2 class="mt-2 mb-0">{{ stats.in_progress }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-spinner fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-0">Пользователей</h6>
+                            <h2 class="mt-2 mb-0">{{ telegram_stats.total_users }}</h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-users fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Дополнительная статистика -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Статистика по пользователям</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Студенты</h6>
+                                    <h4 class="mb-0">{{ telegram_stats.students }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-user-friends"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Родители</h6>
+                                    <h4 class="mb-0">{{ telegram_stats.parents }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Преподаватели</h6>
+                                    <h4 class="mb-0">{{ telegram_stats.teachers }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-secondary text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Всего активных</h6>
+                                    <h4 class="mb-0">{{ telegram_stats.total_users }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'messaging:telegram_users' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-users me-1"></i> Управление пользователями
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Статистика по рассылкам</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Завершено</h6>
+                                    <h4 class="mb-0">{{ stats.completed }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">В процессе</h6>
+                                    <h4 class="mb-0">{{ stats.in_progress }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Запланировано</h6>
+                                    <h4 class="mb-0">{{ stats.scheduled }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-danger text-white rounded-circle p-2 me-3">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Ошибки</h6>
+                                    <h4 class="mb-0">{{ stats.failed }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список рассылок -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Последние рассылки</h5>
+                        <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i> Новая рассылка
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Статус</th>
+                                    <th>Получатели</th>
+                                    <th>Создано</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for broadcast in broadcasts %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if broadcast.media_file %}
+                                                {% if broadcast.media_type == 'photo' %}
+                                                <div class="me-2"><i class="fas fa-image text-primary"></i></div>
+                                                {% elif broadcast.media_type == 'video' %}
+                                                <div class="me-2"><i class="fas fa-video text-danger"></i></div>
+                                                {% elif broadcast.media_type == 'audio' %}
+                                                <div class="me-2"><i class="fas fa-music text-info"></i></div>
+                                                {% else %}
+                                                <div class="me-2"><i class="fas fa-file text-secondary"></i></div>
+                                                {% endif %}
+                                            {% else %}
+                                                <div class="me-2"><i class="fas fa-comment text-primary"></i></div>
+                                            {% endif %}
+                                            <a href="{% url 'messaging:telegram_broadcast_detail' broadcast.id %}">{{ broadcast.title }}</a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if broadcast.status == 'draft' %}
+                                        <span class="badge bg-secondary">Черновик</span>
+                                        {% elif broadcast.status == 'scheduled' %}
+                                        <span class="badge bg-info">Запланировано</span>
+                                        {% elif broadcast.status == 'in_progress' %}
+                                        <span class="badge bg-warning">В процессе</span>
+                                        {% elif broadcast.status == 'completed' %}
+                                        <span class="badge bg-success">Завершено</span>
+                                        {% elif broadcast.status == 'failed' %}
+                                        <span class="badge bg-danger">Ошибка</span>
+                                        {% elif broadcast.status == 'cancelled' %}
+                                        <span class="badge bg-secondary">Отменено</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                {% if broadcast.recipient_type == 'students' %}
+                                                <i class="fas fa-user-graduate text-primary" title="Студенты"></i>
+                                                {% elif broadcast.recipient_type == 'parents' %}
+                                                <i class="fas fa-user-friends text-success" title="Родители"></i>
+                                                {% elif broadcast.recipient_type == 'teachers' %}
+                                                <i class="fas fa-chalkboard-teacher text-info" title="Преподаватели"></i>
+                                                {% else %}
+                                                <i class="fas fa-users text-secondary" title="Все"></i>
+                                                {% endif %}
+                                            </div>
+                                            <span>{{ broadcast.total_recipients }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ broadcast.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'messaging:telegram_broadcast_detail' broadcast.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if broadcast.status == 'draft' or broadcast.status == 'scheduled' %}
+                                            <a href="{% url 'messaging:send_telegram_broadcast' broadcast.id %}" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </a>
+                                            {% endif %}
+                                            {% if broadcast.status == 'scheduled' %}
+                                            <a href="{% url 'messaging:cancel_telegram_broadcast' broadcast.id %}" class="btn btn-sm btn-outline-warning">
+                                                <i class="fas fa-ban"></i>
+                                            </a>
+                                            {% endif %}
+                                            <a href="{% url 'messaging:delete_telegram_broadcast' broadcast.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Вы уверены, что хотите удалить эту рассылку?')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                                            <p>У вас пока нет рассылок</p>
+                                            <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-primary">
+                                                <i class="fas fa-plus me-1"></i> Создать рассылку
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if broadcasts %}
+                <div class="card-footer bg-white">
+                    <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Новая рассылка
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Связывание пользователя Telegram{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">Связывание пользователя Telegram</h1>
+                    <p class="text-muted">Связывание пользователя Telegram с учетной записью в системе</p>
+                </div>
+                <div>
+                    <a href="{% url 'messaging:telegram_users' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Назад к пользователям
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Информация о пользователе</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="telegram-avatar bg-primary text-white mx-auto mb-3">
+                            <i class="fab fa-telegram-plane fa-2x"></i>
+                        </div>
+                        <h5>{{ telegram_user.first_name }} {{ telegram_user.last_name }}</h5>
+                        {% if telegram_user.username %}
+                        <p class="text-muted mb-0">@{{ telegram_user.username }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Основная информация</h6>
+                        <p class="mb-1"><strong>ID:</strong> {{ telegram_user.telegram_id }}</p>
+                        <p class="mb-1"><strong>Телефон:</strong> {{ telegram_user.phone|default:"Не указан" }}</p>
+                        <p class="mb-1">
+                            <strong>Статус:</strong> 
+                            {% if telegram_user.is_active %}
+                            <span class="badge bg-success">Активен</span>
+                            {% else %}
+                            <span class="badge bg-danger">Неактивен</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Роль:</strong>
+                            {% if telegram_user.role == 'student' %}
+                            <span class="badge bg-info">Студент</span>
+                            {% elif telegram_user.role == 'parent' %}
+                            <span class="badge bg-warning">Родитель</span>
+                            {% elif telegram_user.role == 'teacher' %}
+                            <span class="badge bg-secondary">Преподаватель</span>
+                            {% elif telegram_user.role == 'admin' %}
+                            <span class="badge bg-danger">Администратор</span>
+                            {% elif telegram_user.role == 'reception' %}
+                            <span class="badge bg-success">Ресепшн</span>
+                            {% else %}
+                            <span class="badge bg-dark">Неизвестно</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Текущие связи</h6>
+                        {% if telegram_user.student %}
+                        <div class="alert alert-info mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-user-graduate fa-2x"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0"><strong>Связан со студентом:</strong></p>
+                                    <p class="mb-0">{{ telegram_user.student.get_full_name }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if telegram_user.parent %}
+                        <div class="alert alert-warning mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-user-friends fa-2x"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0"><strong>Связан с родителем:</strong></p>
+                                    <p class="mb-0">{{ telegram_user.parent.get_full_name }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if not telegram_user.student and not telegram_user.parent %}
+                        <div class="alert alert-secondary mb-0">
+                            <i class="fas fa-exclamation-circle me-2"></i> Нет активных связей
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <h6 class="text-muted mb-2">Дополнительная информация</h6>
+                        <p class="mb-1"><strong>Дата регистрации:</strong> {{ telegram_user.created_at|date:"d.m.Y H:i" }}</p>
+                        <p class="mb-1"><strong>Последняя активность:</strong> {{ telegram_user.last_activity|date:"d.m.Y H:i"|default:"Нет данных" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Выбор связи</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="role" class="form-label">Роль пользователя <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Выберите роль</option>
+                                <option value="student" {% if telegram_user.role == 'student' %}selected{% endif %}>Студент</option>
+                                <option value="parent" {% if telegram_user.role == 'parent' %}selected{% endif %}>Родитель</option>
+                                <option value="teacher" {% if telegram_user.role == 'teacher' %}selected{% endif %}>Преподаватель</option>
+                                <option value="admin" {% if telegram_user.role == 'admin' %}selected{% endif %}>Администратор</option>
+                                <option value="reception" {% if telegram_user.role == 'reception' %}selected{% endif %}>Ресепшн</option>
+                                <option value="unknown" {% if telegram_user.role == 'unknown' %}selected{% endif %}>Неизвестно</option>
+                            </select>
+                        </div>
+                        
+                        <div id="student_section" class="entity-section mb-4 {% if telegram_user.role != 'student' %}d-none{% endif %}">
+                            <label for="student_id" class="form-label">Выберите студента</label>
+                            <select class="form-select" id="student_id" name="entity_id">
+                                <option value="">Выберите студента</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}" {% if telegram_user.student.id == student.id %}selected{% endif %}>
+                                    {{ student.get_full_name }} ({{ student.class_obj.name|default:"Без класса" }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Выберите студента, с которым нужно связать этого пользователя Telegram</div>
+                        </div>
+                        
+                        <div id="parent_section" class="entity-section mb-4 {% if telegram_user.role != 'parent' %}d-none{% endif %}">
+                            <label for="parent_id" class="form-label">Выберите родителя</label>
+                            <select class="form-select" id="parent_id" name="entity_id">
+                                <option value="">Выберите родителя</option>
+                                {% for parent in parents %}
+                                <option value="{{ parent.id }}" {% if telegram_user.parent.id == parent.id %}selected{% endif %}>
+                                    {{ parent.get_full_name }}
+                                    {% if parent.students.all %}
+                                    (Родитель: 
+                                    {% for student in parent.students.all %}
+                                    {{ student.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %})
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Выберите родителя, с которым нужно связать этого пользователя Telegram</div>
+                        </div>
+                        
+                        <div id="teacher_section" class="entity-section mb-4 {% if telegram_user.role != 'teacher' %}d-none{% endif %}">
+                            <label for="teacher_id" class="form-label">Выберите преподавателя</label>
+                            <select class="form-select" id="teacher_id" name="entity_id">
+                                <option value="">Выберите преподавателя</option>
+                                {% for teacher in teachers %}
+                                <option value="{{ teacher.id }}">
+                                    {{ teacher.get_full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Выберите преподавателя, с которым нужно связать этого пользователя Telegram</div>
+                        </div>
+                        
+                        <div id="other_section" class="entity-section mb-4 {% if telegram_user.role != 'admin' and telegram_user.role != 'reception' and telegram_user.role != 'unknown' %}d-none{% endif %}">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> Для выбранной роли не требуется связывание с конкретной учетной записью
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'messaging:telegram_users' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Сохранить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .telegram-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('role');
+        const entitySections = document.querySelectorAll('.entity-section');
+        
+        roleSelect.addEventListener('change', function() {
+            const selectedRole = this.value;
+            
+            // Скрываем все секции
+            entitySections.forEach(section => {
+                section.classList.add('d-none');
+            });
+            
+            // Показываем нужную секцию в зависимости от выбранной роли
+            if (selectedRole === 'student') {
+                document.getElementById('student_section').classList.remove('d-none');
+            } else if (selectedRole === 'parent') {
+                document.getElementById('parent_section').classList.remove('d-none');
+            } else if (selectedRole === 'teacher') {
+                document.getElementById('teacher_section').classList.remove('d-none');
+            } else {
+                document.getElementById('other_section').classList.remove('d-none');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Аналитика кампаний{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Аналитика маркетинговых кампаний</h1>
+        <div>
+            <a href="{% url 'crm:lead_acquisition_cost' %}" class="btn btn-outline-primary">
+                <i class="bi bi-cash-coin"></i> Стоимость привлечения
+            </a>
+            <a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Дашборд
+            </a>
+        </div>
+    </div>
+    
+    <!-- Выбор периода и сравнения -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" id="periodForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="period" class="form-label">Период анализа</label>
+                    <select class="form-select" id="period" name="period" onchange="this.form.submit()">
+                        <option value="current_month" {% if period == 'current_month' %}selected{% endif %}>Текущий месяц</option>
+                        <option value="last_month" {% if period == 'last_month' %}selected{% endif %}>Прошлый месяц</option>
+                        <option value="last_30_days" {% if period == 'last_30_days' %}selected{% endif %}>Последние 30 дней</option>
+                        <option value="last_90_days" {% if period == 'last_90_days' %}selected{% endif %}>Последние 90 дней</option>
+                        <option value="year_to_date" {% if period == 'year_to_date' %}selected{% endif %}>С начала года</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="comparison" class="form-label">Сравнение с</label>
+                    <select class="form-select" id="comparison" name="comparison" onchange="this.form.submit()">
+                        <option value="previous_period" {% if comparison == 'previous_period' %}selected{% endif %}>Предыдущий период</option>
+                        <option value="same_period_last_year" {% if comparison == 'same_period_last_year' %}selected{% endif %}>Тот же период год назад</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="text-muted small">
+                        <div><strong>Текущий период:</strong> {{ period_name }}</div>
+                        <div><strong>Период сравнения:</strong> {{ comparison_name }}</div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Общая статистика по лидам -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Общая статистика по лидам</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ total_current_leads }}</h3>
+                                    <p class="text-muted mb-0">Всего лидов за период</p>
+                                    {% if total_leads_change != 0 %}
+                                        <div class="mt-2 {% if total_leads_change > 0 %}text-success{% else %}text-danger{% endif %}">
+                                            <i class="bi {% if total_leads_change > 0 %}bi-arrow-up-circle{% else %}bi-arrow-down-circle{% endif %}"></i>
+                                            {{ total_leads_change_percent }}% ({{ total_leads_change }})
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="chart-container" style="position: relative; height:200px;">
+                                <canvas id="leadsComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Динамика лидов -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Динамика лидов за период</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="leadsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Эффективность кампаний -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Эффективность кампаний</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Кампания</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in campaign_stats %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'crm:campaign_detail' stat.campaign.id %}" class="fw-bold text-decoration-none">
+                                            {{ stat.campaign.name }}
+                                        </a>
+                                        <div class="small text-muted">
+                                            {{ stat.campaign.start_date|date:"d.m.Y" }} - {{ stat.campaign.end_date|date:"d.m.Y" }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ stat.current_leads_count }}
+                                        <div class="comparison-row small text-muted">
+                                            {{ stat.compare_leads_count }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ stat.current_converted_count }}
+                                        <div class="comparison-row small text-muted">
+                                            {{ stat.compare_converted_count }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="{% if stat.leads_change > 0 %}text-success{% elif stat.leads_change < 0 %}text-danger{% endif %}">
+                                            {% if stat.leads_change > 0 %}+{% endif %}{{ stat.leads_change_percent }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ stat.current_conversion_rate }}%;" aria-valuenow="{{ stat.current_conversion_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ stat.current_conversion_rate }}%</span>
+                                        </div>
+                                        <div class="comparison-row small text-muted">
+                                            {{ stat.compare_conversion_rate }}%
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="{% if stat.conversion_change > 0 %}text-success{% elif stat.conversion_change < 0 %}text-danger{% endif %}">
+                                            {% if stat.conversion_change > 0 %}+{% endif %}{{ stat.conversion_change }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if stat.current_roi >= 100 %}bg-success{% elif stat.current_roi >= 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ stat.current_roi }}%
+                                        </span>
+                                        <div class="comparison-row small text-muted">
+                                            {{ stat.compare_roi }}%
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="{% if stat.roi_change > 0 %}text-success{% elif stat.roi_change < 0 %}text-danger{% endif %}">
+                                            {% if stat.roi_change > 0 %}+{% endif %}{{ stat.roi_change }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'crm:campaign_detail' stat.campaign.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center py-3">
+                                        <p class="text-muted mb-0">Нет активных кампаний</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Статистика по источникам -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Источники лидов</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Источник</th>
+                                            <th>Лидов</th>
+                                            <th>Изм.</th>
+                                            <th>Конв.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in source_stats %}
+                                        <tr>
+                                            <td>{{ stat.source.name }}</td>
+                                            <td>
+                                                {{ stat.current_leads_count }}
+                                                <div class="comparison-row small text-muted">
+                                                    {{ stat.compare_leads_count }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="{% if stat.leads_change > 0 %}text-success{% elif stat.leads_change < 0 %}text-danger{% endif %} small">
+                                                    {% if stat.leads_change > 0 %}+{% endif %}{{ stat.leads_change_percent }}%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 4px;">
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ stat.current_conversion_rate }}%;" aria-valuenow="{{ stat.current_conversion_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <span class="small">{{ stat.current_conversion_rate }}%</span>
+                                                </div>
+                                                <div class="comparison-row small text-muted">
+                                                    {{ stat.compare_conversion_rate }}%
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3">
+                                                <p class="text-muted mb-0">Нет данных</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="chart-container" style="position: relative; height:200px;">
+                                <canvas id="sourceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress {
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+    
+    .chart-container {
+        margin: 0 auto;
+    }
+    
+    .comparison-row {
+        display: none;
+    }
+    .comparison-visible .comparison-row {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle comparison rows visibility
+        const showComparisonCheckbox = document.getElementById('showComparison');
+        const tableBody = document.querySelector('table tbody');
+        
+        if (showComparisonCheckbox) {
+            showComparisonCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    tableBody.classList.add('comparison-visible');
+                } else {
+                    tableBody.classList.remove('comparison-visible');
+                }
+            });
+            
+            // Initialize state
+            if (showComparisonCheckbox.checked) {
+                tableBody.classList.add('comparison-visible');
+            }
+        }
+        
+        // Leads comparison chart
+        const leadsComparisonCtx = document.getElementById('leadsComparisonChart');
+        if (leadsComparisonCtx) {
+            const leadsComparisonChart = new Chart(leadsComparisonCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['{{ period_name }}', '{{ comparison_name }}'],
+                    datasets: [{
+                        label: 'Количество лидов',
+                        data: [{{ total_current_leads }}, {{ total_compare_leads }}],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(153, 102, 255, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Данные для графика динамики лидов
+        const leadsCtx = document.getElementById('leadsChart');
+        if (leadsCtx) {
+            const leadsChart = new Chart(leadsCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ dates|safe }},
+                    datasets: [
+                        {
+                            label: 'Текущий период',
+                            data: {{ lead_counts|safe }},
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Период сравнения',
+                            data: {{ compare_lead_counts|safe }},
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Данные для графика источников
+        const sourceCtx = document.getElementById('sourceChart');
+        if (sourceCtx) {
+            const labels = [];
+            const currentData = [];
+            const compareData = [];
+            
+            {% for stat in source_stats %}
+                labels.push("{{ stat.source.name }}");
+                currentData.push({{ stat.current_leads_count }});
+                compareData.push({{ stat.compare_leads_count }});
+            {% endfor %}
+            
+            const sourceChart = new Chart(sourceCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Текущий период',
+                            data: currentData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Период сравнения',
+                            data: compareData,
+                            backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

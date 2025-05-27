@@ -1,6 +1,8 @@
 from django import forms
-from .models import Class, ClassSchedule, Homework, HomeworkSubmission, Enrollment
+from django.core.exceptions import ValidationError
+from .models import Class, ClassSchedule, Homework, HomeworkSubmission, Enrollment, ClassworkFile
 from accounts.models import Student
+import datetime
 
 class ClassForm(forms.ModelForm):
     class Meta:
@@ -59,6 +61,7 @@ class ClassScheduleForm(forms.ModelForm):
     class Meta:
         model = ClassSchedule
         fields = ['room']
+        # Поле class_obj будет установлено в представлении
         
     def clean_time_slot(self):
         """Разбивает выбранный временной интервал на время начала и окончания."""
@@ -69,11 +72,17 @@ class ClassScheduleForm(forms.ModelForm):
 class HomeworkForm(forms.ModelForm):
     class Meta:
         model = Homework
-        fields = ['date', 'description', 'file']
+        fields = ['title', 'due_date', 'description', 'file']
         widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
+            'due_date': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 4}),
         }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Убираем преднаписанное значение в поле title
+        if 'title' in self.fields:
+            self.fields['title'].initial = ''
 
 class HomeworkSubmissionForm(forms.ModelForm):
     class Meta:
@@ -94,3 +103,36 @@ class AddStudentForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
         label='Выберите студентов'
     )
+
+class ClassworkFileForm(forms.ModelForm):
+    class Meta:
+        model = ClassworkFile
+        fields = ['title', 'description', 'file', 'material_type', 'schedule']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'material_type': forms.HiddenInput(),
+        }
+        
+    def __init__(self, *args, class_obj=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if class_obj:
+            # Фильтруем расписание только для выбранного класса
+            self.fields['schedule'].queryset = ClassSchedule.objects.filter(class_obj=class_obj)
+            self.fields['schedule'].empty_label = "Выберите занятие по расписанию (только для материалов к уроку)"
+            
+        # Делаем поле schedule необязательным, оно будет скрыто для общих материалов
+        self.fields['schedule'].required = False
+        
+        # Устанавливаем начальную дату на сегодня
+        self.initial['date'] = datetime.date.today()
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        material_type = cleaned_data.get('material_type')
+        schedule = cleaned_data.get('schedule')
+        
+        if material_type == 'lesson_specific' and not schedule:
+            self.add_error('schedule', 'Для материала к конкретному уроку необходимо выбрать занятие по расписанию')
+            
+        return cleaned_data

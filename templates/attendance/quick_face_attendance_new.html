@@ -1,0 +1,778 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Быстрая отметка посещаемости - FaceID{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Стили для камеры и контейнера */
+    .camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .camera-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .camera-overlay {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        text-align: center;
+    }
+    
+    /* Стили для предпросмотра фото */
+    .photo-preview {
+        display: none;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .photo-preview img {
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Стили для результата распознавания */
+    .recognition-result {
+        display: none;
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .student-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .student-photo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+    
+    .student-details {
+        flex: 1;
+    }
+    
+    .confidence-meter {
+        height: 10px;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+    
+    .confidence-level {
+        height: 100%;
+        width: 0;
+        background-color: #28a745;
+        transition: width 0.5s ease;
+    }
+    
+    /* Стили для индикатора загрузки */
+    .loading-indicator {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.8);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Стили для контейнера уведомлений */
+    #alerts-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        width: 350px;
+    }
+    
+    #alerts-container .alert {
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Индикатор загрузки -->
+    <div class="loading-indicator" id="loading-indicator">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Контейнер для уведомлений -->
+    <div id="alerts-container"></div>
+    
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Быстрая отметка посещаемости</h1>
+            <p class="text-muted mb-4">Распознавание студентов и отметка посещаемости с использованием FaceNet</p>
+            
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex align-items-center">
+                            <i class="bi bi-camera-fill me-2"></i>
+                            <span>Сканирование лица</span>
+                        </div>
+                        <div class="card-body p-4">
+                            <!-- Контейнер для камеры -->
+                            <div class="camera-container mb-3" id="camera-container">
+                                <video id="video" autoplay playsinline></video>
+                                <canvas id="canvas" style="display: none;"></canvas>
+                                <div class="camera-overlay">
+                                    <button class="btn btn-primary" id="capture-btn">
+                                        <i class="bi bi-camera-fill me-2"></i>
+                                        Сделать снимок
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Предпросмотр фото -->
+                            <div class="photo-preview mb-3" id="photo-preview">
+                                <img id="photo-image" src="#" alt="Предпросмотр фото">
+                                <div class="d-flex justify-content-center mt-3">
+                                    <button class="btn btn-secondary me-2" id="retake-btn">
+                                        <i class="bi bi-arrow-repeat me-2"></i>
+                                        Переснять
+                                    </button>
+                                    <button class="btn btn-success" id="recognize-btn">
+                                        <i class="bi bi-person-check-fill me-2"></i>
+                                        Распознать
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Результат распознавания -->
+                            <div class="recognition-result" id="recognition-result">
+                                <div class="student-info">
+                                    <img id="student-photo" class="student-photo" src="#" alt="Фото студента">
+                                    <div class="student-details">
+                                        <h4 id="student-name" class="mb-2"></h4>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Уверенность:</span>
+                                            <span id="confidence-value" class="fw-bold"></span>
+                                        </div>
+                                        <div class="confidence-meter">
+                                            <div id="confidence-level" class="confidence-level"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="class-list">
+                                    <h5 class="mb-3">Занятия на сегодня</h5>
+                                    
+                                    <div id="no-classes-message" class="alert alert-info" style="display: none;">
+                                        <i class="bi bi-info-circle-fill me-2"></i>
+                                        У студента нет занятий на сегодня.
+                                    </div>
+                                    
+                                    <div id="class-items-container">
+                                        <!-- Здесь будут отображаться занятия студента -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex align-items-center">
+                            <i class="bi bi-clock-history me-2"></i>
+                            <span>Последние отметки</span>
+                        </div>
+                        <div class="card-body p-4">
+                            <div id="attendance-logs">
+                                {% if attendance_logs %}
+                                    {% for log in attendance_logs %}
+                                        <div class="card mb-3">
+                                            <div class="card-body py-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-3">
+                                                        {% if log.attendance.student.photo %}
+                                                            <img src="{{ log.attendance.student.photo.url }}" class="rounded-circle" width="50" height="50" alt="Фото студента">
+                                                        {% else %}
+                                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px;">
+                                                                <i class="bi bi-person-fill"></i>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1">{{ log.attendance.student.full_name }}</h5>
+                                                        <p class="mb-1 text-muted">{{ log.attendance.class_obj.name }}</p>
+                                                        <small class="text-muted">{{ log.timestamp|date:"H:i" }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="no-logs-message text-center py-5">
+                                        <i class="bi bi-clock-history display-4 text-muted"></i>
+                                        <p class="mt-3 text-muted">Нет записей о посещаемости</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM загружен, инициализация Face ID...');
+        
+        // Получаем ссылки на DOM элементы
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const recognizeBtn = document.getElementById('recognize-btn');
+        const photoImage = document.getElementById('photo-image');
+        const cameraContainer = document.getElementById('camera-container');
+        const photoPreview = document.getElementById('photo-preview');
+        const recognitionResult = document.getElementById('recognition-result');
+        const studentName = document.getElementById('student-name');
+        const studentPhoto = document.getElementById('student-photo');
+        const confidenceValue = document.getElementById('confidence-value');
+        const confidenceLevel = document.getElementById('confidence-level');
+        const classItemsContainer = document.getElementById('class-items-container');
+        const noClassesMessage = document.getElementById('no-classes-message');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        
+        // Глобальные переменные
+        let videoStream = null;
+        let capturedImage = null;
+        let recognizedStudent = null;
+        
+        // Инициализация камеры
+        function initCamera() {
+            console.log('Инициализация камеры...');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error('Браузер не поддерживает getUserMedia API');
+                showAlert('Ваш браузер не поддерживает доступ к камере. Пожалуйста, используйте современный браузер.', 'danger');
+                return;
+            }
+            
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    console.log('Доступ к камере получен успешно');
+                    videoStream = stream;
+                    video.srcObject = stream;
+                    video.play();
+                    
+                    cameraContainer.style.display = 'block';
+                    photoPreview.style.display = 'none';
+                    recognitionResult.style.display = 'none';
+                })
+                .catch(function(error) {
+                    console.error('Ошибка при получении доступа к камере:', error);
+                    showAlert('Не удалось получить доступ к камере. Пожалуйста, убедитесь, что камера подключена и разрешен доступ к ней.', 'danger');
+                });
+        }
+        
+        // Остановка камеры
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                videoStream = null;
+            }
+        }
+        
+        // Захват изображения с камеры
+        function captureImage() {
+            console.log('Попытка захвата изображения...');
+            
+            try {
+                if (!video || !canvas) {
+                    console.error('Элементы video или canvas не найдены');
+                    return;
+                }
+                
+                const context = canvas.getContext('2d');
+                
+                // Устанавливаем размеры canvas равными размерам видео
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Рисуем текущий кадр видео на canvas
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Получаем данные изображения в формате base64
+                capturedImage = canvas.toDataURL('image/jpeg');
+                
+                // Отображаем захваченное изображение
+                photoImage.src = capturedImage;
+                
+                // Скрываем камеру и показываем предпросмотр
+                cameraContainer.style.display = 'none';
+                photoPreview.style.display = 'block';
+                recognitionResult.style.display = 'none';
+                
+                console.log('Изображение успешно захвачено');
+            } catch (error) {
+                console.error('Ошибка при захвате изображения:', error);
+                showAlert('Произошла ошибка при захвате изображения. Пожалуйста, попробуйте еще раз.', 'danger');
+            }
+        }
+        
+        // Повторный захват изображения
+        function retakePhoto() {
+            console.log('Повторный захват изображения...');
+            
+            // Сбрасываем захваченное изображение
+            capturedImage = null;
+            
+            // Скрываем предпросмотр и результат распознавания, показываем камеру
+            photoPreview.style.display = 'none';
+            recognitionResult.style.display = 'none';
+            cameraContainer.style.display = 'block';
+            
+            // Если камера была остановлена, запускаем ее снова
+            if (!videoStream) {
+                initCamera();
+            }
+        }
+        
+        // Распознавание лица
+        function recognizeFace() {
+            console.log('Распознавание лица...');
+            
+            if (!capturedImage) {
+                console.error('Нет захваченного изображения для распознавания');
+                showAlert('Сначала необходимо сделать снимок', 'warning');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loadingIndicator.style.display = 'flex';
+            
+            // Отправляем запрос на распознавание лица
+            fetch('/attendance/api/quick-face/recognize/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    face_data: capturedImage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Получен ответ от сервера:', data);
+                
+                // Скрываем индикатор загрузки
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success) {
+                    // Сохраняем данные о распознанном студенте
+                    recognizedStudent = data.student;
+                    
+                    // Отображаем информацию о студенте
+                    studentName.textContent = recognizedStudent.full_name;
+                    
+                    // Отображаем фотографию студента, если она есть
+                    if (recognizedStudent.photo_url) {
+                        studentPhoto.src = recognizedStudent.photo_url;
+                        studentPhoto.style.display = 'block';
+                    } else {
+                        studentPhoto.style.display = 'none';
+                    }
+                    
+                    // Отображаем уверенность распознавания
+                    const confidencePercent = Math.round(recognizedStudent.confidence * 100);
+                    confidenceValue.textContent = `${confidencePercent}%`;
+                    confidenceLevel.style.width = `${confidencePercent}%`;
+                    
+                    // Устанавливаем цвет индикатора уверенности в зависимости от значения
+                    if (confidencePercent >= 90) {
+                        confidenceLevel.style.backgroundColor = '#28a745'; // Зеленый
+                    } else if (confidencePercent >= 80) {
+                        confidenceLevel.style.backgroundColor = '#ffc107'; // Желтый
+                    } else {
+                        confidenceLevel.style.backgroundColor = '#dc3545'; // Красный
+                    }
+                    
+                    // Отображаем список занятий студента
+                    displayClasses(data.classes);
+                    
+                    // Показываем результат распознавания
+                    recognitionResult.style.display = 'block';
+                    
+                    // Показываем уведомление об успешном распознавании
+                    showAlert(`Студент ${recognizedStudent.full_name} успешно распознан с уверенностью ${confidencePercent}%`, 'success');
+                } else {
+                    // Показываем сообщение об ошибке
+                    showAlert(data.message || 'Не удалось распознать лицо', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при распознавании лица:', error);
+                loadingIndicator.style.display = 'none';
+                showAlert('Произошла ошибка при распознавании лица. Пожалуйста, попробуйте еще раз.', 'danger');
+            });
+        }
+        
+        // Отображение списка занятий студента
+        function displayClasses(classes) {
+            console.log('Отображение списка занятий:', classes);
+            
+            // Очищаем контейнер
+            classItemsContainer.innerHTML = '';
+            
+            if (classes && classes.length > 0) {
+                // Скрываем сообщение об отсутствии занятий
+                noClassesMessage.style.display = 'none';
+                
+                // Создаем элементы для каждого занятия
+                classes.forEach(classItem => {
+                    const classElement = document.createElement('div');
+                    classElement.className = 'card mb-3 class-item';
+                    
+                    // Определяем статус и стиль кнопки
+                    let statusBadge = '';
+                    let buttonClass = 'btn-primary';
+                    let buttonText = 'Отметить присутствие';
+                    let buttonIcon = 'bi-check-circle-fill';
+                    let buttonDisabled = '';
+                    
+                    if (classItem.marked) {
+                        if (classItem.status === 'present') {
+                            statusBadge = '<span class="badge bg-success ms-2">Присутствовал</span>';
+                            buttonClass = 'btn-success';
+                            buttonText = 'Уже отмечен';
+                            buttonDisabled = 'disabled';
+                        } else if (classItem.status === 'absent') {
+                            statusBadge = '<span class="badge bg-danger ms-2">Отсутствовал</span>';
+                            buttonClass = 'btn-danger';
+                            buttonText = 'Уже отмечен';
+                            buttonDisabled = 'disabled';
+                        }
+                    }
+                    
+                    classElement.innerHTML = `
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title mb-0">${classItem.name} ${statusBadge}</h5>
+                                <span class="text-muted">${classItem.time}</span>
+                            </div>
+                            <div class="d-flex">
+                                <button class="btn ${buttonClass} me-2 mark-attendance-btn" data-class-id="${classItem.id}" data-schedule-id="${classItem.schedule_id}" data-status="present" ${buttonDisabled}>
+                                    <i class="bi ${buttonIcon} me-2"></i>
+                                    ${buttonText}
+                                </button>
+                                <button class="btn btn-outline-danger mark-attendance-btn" data-class-id="${classItem.id}" data-schedule-id="${classItem.schedule_id}" data-status="absent" ${buttonDisabled}>
+                                    <i class="bi bi-x-circle-fill me-2"></i>
+                                    Отметить отсутствие
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    classItemsContainer.appendChild(classElement);
+                });
+                
+                // Добавляем обработчики событий для кнопок отметки посещаемости
+                document.querySelectorAll('.mark-attendance-btn').forEach(button => {
+                    if (!button.disabled) {
+                        button.addEventListener('click', function() {
+                            const classId = this.getAttribute('data-class-id');
+                            const scheduleId = this.getAttribute('data-schedule-id');
+                            const status = this.getAttribute('data-status');
+                            markAttendance(classId, scheduleId, status, this);
+                        });
+                    }
+                });
+            } else {
+                // Показываем сообщение об отсутствии занятий
+                noClassesMessage.style.display = 'block';
+            }
+        }
+        
+        // Отметка посещаемости
+        function markAttendance(classId, scheduleId, status, buttonElement) {
+            console.log(`Отметка посещаемости: class_id=${classId}, schedule_id=${scheduleId}, status=${status}`);
+            
+            if (!recognizedStudent) {
+                console.error('Нет распознанного студента');
+                showAlert('Сначала необходимо распознать студента', 'warning');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loadingIndicator.style.display = 'flex';
+            
+            // Формируем данные для отправки
+            const attendanceData = [{
+                class_id: classId,
+                schedule_id: scheduleId,
+                status: status
+            }];
+            
+            // Отправляем запрос на отметку посещаемости
+            fetch('/attendance/api/quick-face/mark-attendance/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    student_id: recognizedStudent.id,
+                    face_data: capturedImage,
+                    attendance_data: attendanceData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Получен ответ от сервера:', data);
+                
+                // Скрываем индикатор загрузки
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success) {
+                    // Обновляем стиль кнопок
+                    const parentCard = buttonElement.closest('.card');
+                    const allButtons = parentCard.querySelectorAll('.mark-attendance-btn');
+                    
+                    allButtons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.classList.remove('btn-primary', 'btn-outline-danger');
+                        if (btn.getAttribute('data-status') === status) {
+                            if (status === 'present') {
+                                btn.classList.add('btn-success');
+                                btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Присутствует';
+                                
+                                // Добавляем бейдж "Присутствовал"
+                                const titleElement = parentCard.querySelector('.card-title');
+                                if (titleElement && !titleElement.querySelector('.badge')) {
+                                    titleElement.innerHTML += ' <span class="badge bg-success ms-2">Присутствовал</span>';
+                                }
+                            } else {
+                                btn.classList.add('btn-danger');
+                                btn.innerHTML = '<i class="bi bi-x-circle-fill me-2"></i> Отсутствует';
+                                
+                                // Добавляем бейдж "Отсутствовал"
+                                const titleElement = parentCard.querySelector('.card-title');
+                                if (titleElement && !titleElement.querySelector('.badge')) {
+                                    titleElement.innerHTML += ' <span class="badge bg-danger ms-2">Отсутствовал</span>';
+                                }
+                            }
+                        } else {
+                            btn.classList.add('btn-secondary');
+                        }
+                    });
+                    
+                    // Обновляем список логов посещаемости
+                    updateAttendanceLogs(data.attendance_logs);
+                    
+                    // Показываем уведомление об успешной отметке
+                    showAlert('Посещаемость успешно отмечена', 'success');
+                } else {
+                    // Показываем сообщение об ошибке
+                    showAlert(data.message || 'Не удалось отметить посещаемость', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при отметке посещаемости:', error);
+                loadingIndicator.style.display = 'none';
+                showAlert('Произошла ошибка при отметке посещаемости. Пожалуйста, попробуйте еще раз.', 'danger');
+            });
+        }
+        
+        // Обновление списка логов посещаемости
+        function updateAttendanceLogs(logs) {
+            console.log('Обновление списка логов посещаемости:', logs);
+            
+            const logsContainer = document.getElementById('attendance-logs');
+            if (!logsContainer) return;
+            
+            if (logs && logs.length > 0) {
+                // Очищаем контейнер
+                logsContainer.innerHTML = '';
+                
+                // Создаем элементы для каждого лога
+                logs.forEach(log => {
+                    const logElement = document.createElement('div');
+                    logElement.className = 'card mb-3';
+                    
+                    // Определяем класс для статуса
+                    const statusClass = log.status === 'present' ? 'text-success' : 'text-danger';
+                    const statusText = log.status === 'present' ? 'Присутствовал' : 'Отсутствовал';
+                    
+                    logElement.innerHTML = `
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px;">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">${log.student_name}</h5>
+                                    <p class="mb-1 text-muted">${log.class_name}</p>
+                                    <div class="d-flex align-items-center">
+                                        <small class="text-muted me-2">${log.time}</small>
+                                        <small class="${statusClass}">
+                                            <i class="bi ${log.status === 'present' ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-1"></i>
+                                            ${statusText}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    logsContainer.appendChild(logElement);
+                });
+            } else {
+                // Показываем сообщение об отсутствии логов
+                logsContainer.innerHTML = `
+                    <div class="no-logs-message text-center py-5">
+                        <i class="bi bi-clock-history display-4 text-muted"></i>
+                        <p class="mt-3 text-muted">Нет записей о посещаемости</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Получение CSRF-токена из cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Функция для показа уведомлений
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            
+            // Добавляем иконку в зависимости от типа уведомления
+            let icon = 'info-circle-fill';
+            if (type === 'success') icon = 'check-circle-fill';
+            if (type === 'warning') icon = 'exclamation-triangle-fill';
+            if (type === 'danger') icon = 'exclamation-triangle-fill';
+            
+            alertDiv.innerHTML = `
+                <i class="bi bi-${icon} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Добавляем уведомление в контейнер
+            const alertsContainer = document.getElementById('alerts-container');
+            if (alertsContainer) {
+                alertsContainer.appendChild(alertDiv);
+                
+                // Автоматически скрываем уведомление через 5 секунд
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+        }
+        
+        // Инициализация
+        function init() {
+            console.log('Инициализация Face ID...');
+            
+            // Проверяем наличие всех необходимых элементов DOM
+            console.log('DOM элементы:');
+            console.log('video:', video ? 'найден' : 'не найден');
+            console.log('canvas:', canvas ? 'найден' : 'не найден');
+            console.log('captureBtn:', captureBtn ? 'найден' : 'не найден');
+            console.log('retakeBtn:', retakeBtn ? 'найден' : 'не найден');
+            console.log('recognizeBtn:', recognizeBtn ? 'найден' : 'не найден');
+            
+            // Инициализируем камеру
+            initCamera();
+            
+            // Добавляем обработчики событий с проверкой
+            if (captureBtn) {
+                console.log('Добавляем обработчик для кнопки Сделать снимок');
+                captureBtn.addEventListener('click', function(event) {
+                    console.log('Кнопка Сделать снимок нажата');
+                    event.preventDefault();
+                    captureImage();
+                });
+            } else {
+                console.error('Кнопка Сделать снимок не найдена в DOM');
+            }
+            
+            if (retakeBtn) {
+                retakeBtn.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    retakePhoto();
+                });
+            }
+            
+            if (recognizeBtn) {
+                recognizeBtn.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    recognizeFace();
+                });
+            }
+        }
+        
+        // Запускаем инициализацию
+        init();
+    });
+</script>

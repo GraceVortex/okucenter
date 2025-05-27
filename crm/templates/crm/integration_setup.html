@@ -1,0 +1,377 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Настройка интеграций</h5>
+        <a href="{% url 'crm:integration_list' %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-left"></i> К списку интеграций
+        </a>
+      </div>
+      <div class="card-body">
+        <ul class="nav nav-tabs" id="integrationTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="whatsapp-tab" data-bs-toggle="tab" data-bs-target="#whatsapp" type="button" role="tab" aria-controls="whatsapp" aria-selected="true">
+              <i class="bi bi-whatsapp text-success"></i> WhatsApp
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="instagram-tab" data-bs-toggle="tab" data-bs-target="#instagram" type="button" role="tab" aria-controls="instagram" aria-selected="false">
+              <i class="bi bi-instagram text-danger"></i> Instagram
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram" type="button" role="tab" aria-controls="telegram" aria-selected="false">
+              <i class="bi bi-telegram text-primary"></i> Telegram
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="false">
+              <i class="bi bi-envelope text-warning"></i> Email
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sms-tab" data-bs-toggle="tab" data-bs-target="#sms" type="button" role="tab" aria-controls="sms" aria-selected="false">
+              <i class="bi bi-chat-text text-info"></i> SMS
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="integrationTabsContent">
+          <!-- WhatsApp интеграция -->
+          <div class="tab-pane fade show active" id="whatsapp" role="tabpanel" aria-labelledby="whatsapp-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <h5 class="mb-3">Настройка WhatsApp Business API</h5>
+                <form method="post" action="{% url 'crm:integration_setup_whatsapp' %}">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="whatsapp_phone" class="form-label">Номер телефона</label>
+                    <div class="input-group">
+                      <span class="input-group-text">+</span>
+                      <input type="text" class="form-control" id="whatsapp_phone" name="phone_number" placeholder="7XXXXXXXXXX" value="{{ whatsapp_integration.phone_number|default:'' }}" required>
+                    </div>
+                    <div class="form-text">Номер телефона в международном формате без символов и пробелов</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="whatsapp_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="whatsapp_api_key" name="api_key" value="{{ whatsapp_integration.api_key|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="whatsapp_business_id" class="form-label">Business Account ID</label>
+                    <input type="text" class="form-control" id="whatsapp_business_id" name="business_account_id" value="{{ whatsapp_integration.business_account_id|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="whatsapp_webhook_url" class="form-label">Webhook URL</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="whatsapp_webhook_url" value="{{ webhook_url }}/whatsapp/" readonly>
+                      <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('whatsapp_webhook_url')">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                    </div>
+                    <div class="form-text">Укажите этот URL в настройках вашего WhatsApp Business аккаунта</div>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="whatsapp_active" name="is_active" {% if whatsapp_integration.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="whatsapp_active">Активировать интеграцию</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                </form>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0">Инструкция по настройке</h6>
+                  </div>
+                  <div class="card-body">
+                    <ol>
+                      <li>Создайте бизнес-аккаунт в <a href="https://business.facebook.com/" target="_blank">Facebook Business Manager</a></li>
+                      <li>Подключите номер телефона к WhatsApp Business API</li>
+                      <li>Получите API ключ в разделе настроек</li>
+                      <li>Укажите Webhook URL из левой формы в настройках вашего аккаунта</li>
+                      <li>Сохраните настройки в этой форме</li>
+                    </ol>
+                    <div class="alert alert-info">
+                      <i class="bi bi-info-circle"></i> Для работы с WhatsApp Business API необходимо пройти верификацию бизнес-аккаунта в Facebook.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Instagram интеграция -->
+          <div class="tab-pane fade" id="instagram" role="tabpanel" aria-labelledby="instagram-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <h5 class="mb-3">Настройка Instagram API</h5>
+                <form method="post" action="{% url 'crm:integration_setup_instagram' %}">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="instagram_username" class="form-label">Имя пользователя</label>
+                    <div class="input-group">
+                      <span class="input-group-text">@</span>
+                      <input type="text" class="form-control" id="instagram_username" name="username" placeholder="your_business_account" value="{{ instagram_integration.username|default:'' }}" required>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="instagram_app_id" class="form-label">App ID</label>
+                    <input type="text" class="form-control" id="instagram_app_id" name="app_id" value="{{ instagram_integration.app_id|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="instagram_app_secret" class="form-label">App Secret</label>
+                    <input type="password" class="form-control" id="instagram_app_secret" name="app_secret" value="{{ instagram_integration.app_secret|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="instagram_access_token" class="form-label">Access Token</label>
+                    <input type="password" class="form-control" id="instagram_access_token" name="access_token" value="{{ instagram_integration.access_token|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="instagram_webhook_url" class="form-label">Webhook URL</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="instagram_webhook_url" value="{{ webhook_url }}/instagram/" readonly>
+                      <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('instagram_webhook_url')">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                    </div>
+                    <div class="form-text">Укажите этот URL в настройках вашего Instagram приложения</div>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="instagram_active" name="is_active" {% if instagram_integration.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="instagram_active">Активировать интеграцию</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                </form>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0">Инструкция по настройке</h6>
+                  </div>
+                  <div class="card-body">
+                    <ol>
+                      <li>Создайте бизнес-аккаунт в Instagram</li>
+                      <li>Создайте приложение в <a href="https://developers.facebook.com/" target="_blank">Facebook for Developers</a></li>
+                      <li>Настройте Instagram Messaging в вашем приложении</li>
+                      <li>Получите App ID, App Secret и Access Token</li>
+                      <li>Укажите Webhook URL из левой формы в настройках вашего приложения</li>
+                      <li>Сохраните настройки в этой форме</li>
+                    </ol>
+                    <div class="alert alert-info">
+                      <i class="bi bi-info-circle"></i> Для работы с Instagram API необходимо иметь бизнес-аккаунт, связанный с Facebook Page.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Telegram интеграция -->
+          <div class="tab-pane fade" id="telegram" role="tabpanel" aria-labelledby="telegram-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <h5 class="mb-3">Настройка Telegram Bot API</h5>
+                <form method="post" action="{% url 'crm:integration_setup_telegram' %}">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="telegram_bot_name" class="form-label">Имя бота</label>
+                    <div class="input-group">
+                      <span class="input-group-text">@</span>
+                      <input type="text" class="form-control" id="telegram_bot_name" name="bot_name" placeholder="your_bot_name" value="{{ telegram_integration.bot_name|default:'' }}" required>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="telegram_token" class="form-label">Bot Token</label>
+                    <input type="password" class="form-control" id="telegram_token" name="token" value="{{ telegram_integration.token|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="telegram_webhook_url" class="form-label">Webhook URL</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="telegram_webhook_url" value="{{ webhook_url }}/telegram/" readonly>
+                      <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('telegram_webhook_url')">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                    </div>
+                    <div class="form-text">Этот URL будет автоматически установлен при сохранении настроек</div>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="telegram_active" name="is_active" {% if telegram_integration.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="telegram_active">Активировать интеграцию</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                </form>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0">Инструкция по настройке</h6>
+                  </div>
+                  <div class="card-body">
+                    <ol>
+                      <li>Создайте нового бота через <a href="https://t.me/BotFather" target="_blank">@BotFather</a> в Telegram</li>
+                      <li>Получите Bot Token от BotFather</li>
+                      <li>Введите полученный токен в форму слева</li>
+                      <li>Сохраните настройки</li>
+                    </ol>
+                    <div class="alert alert-info">
+                      <i class="bi bi-info-circle"></i> После сохранения настроек webhook будет автоматически установлен для вашего бота.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Email интеграция -->
+          <div class="tab-pane fade" id="email" role="tabpanel" aria-labelledby="email-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <h5 class="mb-3">Настройка Email</h5>
+                <form method="post" action="{% url 'crm:integration_setup_email' %}">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="email_address" class="form-label">Email адрес</label>
+                    <input type="email" class="form-control" id="email_address" name="email" placeholder="your@company.com" value="{{ email_integration.email|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="email_smtp_server" class="form-label">SMTP сервер</label>
+                    <input type="text" class="form-control" id="email_smtp_server" name="smtp_server" placeholder="smtp.gmail.com" value="{{ email_integration.smtp_server|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="email_smtp_port" class="form-label">SMTP порт</label>
+                    <input type="number" class="form-control" id="email_smtp_port" name="smtp_port" placeholder="587" value="{{ email_integration.smtp_port|default:'587' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="email_username" class="form-label">Имя пользователя</label>
+                    <input type="text" class="form-control" id="email_username" name="username" placeholder="your@company.com" value="{{ email_integration.username|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="email_password" class="form-label">Пароль</label>
+                    <input type="password" class="form-control" id="email_password" name="password" value="{{ email_integration.password|default:'' }}" required>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="email_use_tls" name="use_tls" {% if email_integration.use_tls %}checked{% endif %}>
+                    <label class="form-check-label" for="email_use_tls">Использовать TLS</label>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="email_active" name="is_active" {% if email_integration.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="email_active">Активировать интеграцию</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                </form>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0">Инструкция по настройке</h6>
+                  </div>
+                  <div class="card-body">
+                    <ol>
+                      <li>Укажите email адрес, который будет использоваться для отправки и получения сообщений</li>
+                      <li>Введите данные SMTP сервера (сервер, порт, имя пользователя, пароль)</li>
+                      <li>Если ваш SMTP сервер требует TLS, отметьте соответствующий чекбокс</li>
+                      <li>Сохраните настройки</li>
+                    </ol>
+                    <div class="alert alert-info">
+                      <i class="bi bi-info-circle"></i> Для Gmail может потребоваться создание пароля приложения в настройках безопасности вашего аккаунта.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SMS интеграция -->
+          <div class="tab-pane fade" id="sms" role="tabpanel" aria-labelledby="sms-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <h5 class="mb-3">Настройка SMS</h5>
+                <form method="post" action="{% url 'crm:integration_setup_sms' %}">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="sms_provider" class="form-label">Провайдер SMS</label>
+                    <select class="form-select" id="sms_provider" name="provider" required>
+                      <option value="">Выберите провайдера</option>
+                      <option value="twilio" {% if sms_integration.provider == 'twilio' %}selected{% endif %}>Twilio</option>
+                      <option value="nexmo" {% if sms_integration.provider == 'nexmo' %}selected{% endif %}>Nexmo (Vonage)</option>
+                      <option value="sms_ru" {% if sms_integration.provider == 'sms_ru' %}selected{% endif %}>SMS.ru</option>
+                      <option value="sms_aero" {% if sms_integration.provider == 'sms_aero' %}selected{% endif %}>SMS Aero</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label for="sms_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="sms_api_key" name="api_key" value="{{ sms_integration.api_key|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="sms_api_secret" class="form-label">API Secret</label>
+                    <input type="password" class="form-control" id="sms_api_secret" name="api_secret" value="{{ sms_integration.api_secret|default:'' }}">
+                    <div class="form-text">Необходим для некоторых провайдеров (Twilio, Nexmo)</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="sms_sender_id" class="form-label">Sender ID / Номер отправителя</label>
+                    <input type="text" class="form-control" id="sms_sender_id" name="sender_id" value="{{ sms_integration.sender_id|default:'' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="sms_webhook_url" class="form-label">Webhook URL</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="sms_webhook_url" value="{{ webhook_url }}/sms/" readonly>
+                      <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('sms_webhook_url')">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                    </div>
+                    <div class="form-text">Укажите этот URL в настройках вашего SMS провайдера для получения входящих сообщений</div>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="sms_active" name="is_active" {% if sms_integration.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="sms_active">Активировать интеграцию</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                </form>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0">Инструкция по настройке</h6>
+                  </div>
+                  <div class="card-body">
+                    <ol>
+                      <li>Выберите провайдера SMS из списка</li>
+                      <li>Получите API ключ и другие необходимые данные от вашего провайдера</li>
+                      <li>Укажите Sender ID или номер отправителя</li>
+                      <li>Если ваш провайдер поддерживает входящие SMS, настройте Webhook URL</li>
+                      <li>Сохраните настройки</li>
+                    </ol>
+                    <div class="alert alert-info">
+                      <i class="bi bi-info-circle"></i> Для работы с некоторыми провайдерами может потребоваться дополнительная верификация номера отправителя.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    
+    // Показать уведомление
+    const button = event.currentTarget;
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-check"></i>';
+    setTimeout(() => {
+      button.innerHTML = originalHtml;
+    }, 2000);
+  }
+</script>
+{% endblock %}

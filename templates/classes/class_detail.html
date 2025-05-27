@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load finance_extras %}
 
 {% block title %}{{ class.name }} - Образовательный центр{% endblock %}
 
@@ -72,8 +73,12 @@
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-percent fs-4 text-success me-3"></i>
                                 <div>
-                                    <h6 class="mb-1 text-muted">Процент преподавателя</h6>
-                                    <p class="mb-0 fs-5">{{ class.teacher_percentage }}%</p>
+                                    <h6 class="mb-1 text-muted">Оплата преподавателя</h6>
+                                    {% if class.teacher_payment_type == 'percentage' %}
+                                        <p class="mb-0 fs-5">{{ class.teacher_percentage }}% ({{ class.price_per_lesson|multiply:class.teacher_percentage|divide:100 }} ₸ за урок)</p>
+                                    {% else %}
+                                        <p class="mb-0 fs-5">{{ class.teacher_fixed_payment }} ₸ за урок (фиксированная)</p>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -98,13 +103,54 @@
                 </div>
             </div>
 
+            <!-- Материалы класса -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title fw-bold mb-0">Материалы класса</h4>
+                        <div>
+                            <a href="{% url 'classes:class_materials' class_id=class.id %}" class="btn btn-primary">
+                                <i class="bi bi-folder me-1"></i> Просмотреть материалы
+                            </a>
+                            {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                                <div class="dropdown d-inline-block ms-2">
+                                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="uploadDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-upload me-1"></i> Загрузить материал
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="uploadDropdown">
+                                        <li><a class="dropdown-item" href="{% url 'classes:upload_classwork_file' class_id=class.id %}">
+                                            <i class="bi bi-file-earmark-plus"></i> Общий материал
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{% url 'classes:class_lesson_calendar' class_id=class.id %}">
+                                            <i class="bi bi-calendar-event"></i> Материал к уроку
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="text-muted mb-0">Здесь вы можете найти учебные материалы для этого класса, включая общие материалы и материалы к конкретным урокам.</p>
+                        </div>
+                        {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
+                        <div class="col-md-4">
+                            <div class="alert alert-info mb-0 p-2 text-center">
+                                <small><i class="bi bi-lightbulb"></i> Вы можете загрузить материалы к конкретным урокам через <a href="{% url 'classes:class_lesson_calendar' class_id=class.id %}" class="alert-link">календарь уроков</a></small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Расписание занятий -->
             <div class="card mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4 class="card-title fw-bold mb-0">Расписание занятий</h4>
                         {% if user.is_admin or user.is_reception or user.is_teacher and class.teacher.user == user %}
-                            <a href="{% url 'classes:add_schedule' class_id=class.id %}" class="btn btn-sm btn-outline-primary">
+                            <a href="{% url 'classes:add_schedule' class_id=class.id %}" class="btn btn-primary">
                                 <i class="bi bi-plus-circle me-1"></i> Добавить расписание
                             </a>
                         {% endif %}
@@ -183,7 +229,7 @@
                                             <div class="d-flex align-items-center w-100">
                                                 <div class="me-auto">
                                                     <i class="bi bi-calendar-date me-2"></i>
-                                                    <span class="fw-bold">{{ homework.date|date:"d.m.Y" }}</span>
+                                                    <span class="fw-bold">Дедлайн: {{ homework.due_date|date:"d.m.Y" }}</span>
                                                 </div>
                                                 <div class="text-muted">
                                                     {{ homework.description|truncatechars:50 }}

@@ -1,0 +1,544 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Распознавание лиц - Отметка посещаемости{% endblock %}
+
+{% block extra_css %}
+<style>
+    .camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    #video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    #canvas {
+        display: none;
+    }
+    
+    .capture-btn {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+    
+    .controls {
+        margin-top: 20px;
+        text-align: center;
+    }
+    
+    .result-container {
+        display: none;
+        margin-top: 30px;
+    }
+    
+    .face-preview {
+        max-width: 150px;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .face-preview img {
+        width: 100%;
+        height: auto;
+    }
+    
+    .recognition-result {
+        margin-top: 20px;
+    }
+
+    .student-info {
+        display: none;
+        margin-top: 20px;
+    }
+
+    .student-schedule {
+        margin-top: 20px;
+    }
+
+    .schedule-item {
+        border-left: 4px solid #0d6efd;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .schedule-item:hover {
+        background-color: #e9ecef;
+        transform: translateY(-2px);
+    }
+
+    .schedule-item.active {
+        border-left-color: #198754;
+        background-color: #d1e7dd;
+    }
+
+    .schedule-time {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+
+    .schedule-item.active .schedule-time {
+        color: #198754;
+    }
+
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .student-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .student-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .mark-attendance-btn {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Распознавание лиц</h1>
+            <p class="text-muted fs-5">Отметка посещаемости с помощью распознавания лиц</p>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            <a href="{% url 'face_recognition_app:face_attendance_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-list-check me-2"></i> История распознаваний
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-4">
+                        <i class="bi bi-camera-video text-primary me-2"></i> Камера
+                    </h4>
+                    
+                    <div class="camera-container">
+                        <video id="video" autoplay playsinline></video>
+                        <canvas id="canvas"></canvas>
+                        <button id="captureBtn" class="btn btn-lg btn-success capture-btn">
+                            <i class="bi bi-camera-fill me-2"></i> Сделать снимок
+                        </button>
+                    </div>
+                    
+                    <div class="controls mt-4">
+                        <button id="startBtn" class="btn btn-primary">
+                            <i class="bi bi-play-fill me-2"></i> Запустить камеру
+                        </button>
+                        <button id="switchCameraBtn" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-arrow-repeat me-2"></i> Переключить камеру
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Результат распознавания -->
+            <div id="resultContainer" class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="face-preview me-3">
+                            <img id="capturedImage" src="" alt="Captured face">
+                        </div>
+                        <div>
+                            <h4 class="card-title fw-bold mb-1">Распознавание</h4>
+                            <p class="text-muted mb-0">Идентификация студента</p>
+                        </div>
+                    </div>
+                    
+                    <div id="loadingSpinner" class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Распознавание лица...</p>
+                    </div>
+                    
+                    <div id="recognitionResult" class="recognition-result"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <!-- Информация о студенте -->
+            <div id="studentInfo" class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="me-3 rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person-fill fs-1 text-primary"></i>
+                        </div>
+                        <div>
+                            <h4 id="studentName" class="student-name mb-1">Студент не распознан</h4>
+                            <p class="text-muted mb-0">Сделайте снимок, чтобы распознать студента</p>
+                        </div>
+                    </div>
+                    
+                    <h5 class="fw-bold mb-3">Расписание на сегодня</h5>
+                    <div id="studentSchedule" class="student-schedule">
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-calendar3 fs-1 d-block mb-3"></i>
+                            <p>Сделайте снимок, чтобы увидеть расписание студента на сегодня</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Статус отметки посещаемости -->
+            <div id="attendanceStatus" class="card shadow-sm border-0 rounded-4 mb-4" style="display: none;">
+                <div class="card-body p-4">
+                    <h4 class="card-title fw-bold mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> Посещаемость отмечена
+                    </h4>
+                    <div id="attendanceStatusContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // DOM элементы камеры
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const startBtn = document.getElementById('startBtn');
+        const switchCameraBtn = document.getElementById('switchCameraBtn');
+        
+        // DOM элементы результата
+        const resultContainer = document.getElementById('resultContainer');
+        const capturedImage = document.getElementById('capturedImage');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const recognitionResult = document.getElementById('recognitionResult');
+        
+        // DOM элементы информации о студенте
+        const studentInfo = document.getElementById('studentInfo');
+        const studentName = document.getElementById('studentName');
+        const studentAvatar = document.getElementById('studentAvatar');
+        const studentSchedule = document.getElementById('studentSchedule');
+        
+        // DOM элементы статуса посещаемости
+        const attendanceStatus = document.getElementById('attendanceStatus');
+        const attendanceStatusContent = document.getElementById('attendanceStatusContent');
+        
+        // Переменные для камеры
+        let stream = null;
+        let facingMode = 'user'; // начинаем с фронтальной камеры
+        
+        // Переменные для распознавания
+        let recognizedStudentId = null;
+        let recognizedStudentSchedules = [];
+        let selectedClassId = null;
+        
+        // Функция для запуска камеры
+        async function startCamera() {
+            try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                const constraints = {
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                captureBtn.disabled = false;
+                switchCameraBtn.disabled = false;
+                startBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-2"></i> Перезапустить камеру';
+            } catch (err) {
+                console.error('Ошибка при запуске камеры:', err);
+                alert('Не удалось запустить камеру. Пожалуйста, убедитесь, что у вас есть доступ к камере и обновите страницу.');
+            }
+        }
+        
+        // Функция для переключения камеры
+        function switchCamera() {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            startCamera();
+        }
+        
+        // Функция для захвата изображения
+        function captureImage() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/jpeg');
+            capturedImage.src = imageData;
+            resultContainer.style.display = 'block';
+            
+            // Показываем индикатор загрузки
+            loadingSpinner.style.display = 'block';
+            recognitionResult.innerHTML = '';
+            
+            // Отправляем изображение на сервер для распознавания
+            const formData = new FormData();
+            
+            // Проверяем, что изображение имеет правильный формат
+            if (!imageData.startsWith('data:image')) {
+                console.error('Неверный формат изображения');
+                recognitionResult.innerHTML = '<div class="alert alert-danger">'+
+                    '<h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i> Ошибка формата</h5>'+
+                    '<p class="mb-0">Неверный формат изображения. Пожалуйста, попробуйте еще раз.</p>'+
+                    '</div>';
+                loadingSpinner.style.display = 'none';
+                return;
+            }
+            
+            // Добавляем данные в форму
+            formData.append('image_data', imageData);
+            formData.append('mark_attendance', 'false'); // Сначала только распознаем без отметки посещаемости
+            
+            // Выводим отладочную информацию
+            console.log('Отправляем изображение длиной: ' + imageData.length + ' символов');
+            
+            // Получаем CSRF-токен из cookie, так как у нас нет формы
+            const csrftoken = getCookie('csrftoken');
+            
+            // Добавляем отладочную информацию о запросе
+            console.log('Отправка запроса на распознавание лица...');
+            
+            fetch('/face-recognition/api/recognize-attendance/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => {
+                console.log('Получен ответ от сервера:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Получены данные:', data);
+                loadingSpinner.style.display = 'none';
+                
+                if (data.success) {
+                    // Сохраняем информацию о распознанном студенте
+                    recognizedStudentId = data.student_id;
+                    recognizedStudentSchedules = data.today_schedules || [];
+                    
+                    // Обновляем информацию о студенте
+                    studentName.textContent = data.student_name || 'Студент распознан';
+                    studentInfo.style.display = 'block';
+                    
+                    // Показываем успешное распознавание
+                    recognitionResult.innerHTML = '<div class="alert alert-success">'+
+                        '<h5 class="alert-heading"><i class="bi bi-check-circle-fill me-2"></i> Распознавание успешно!</h5>'+
+                        '<p class="mb-0">Студент успешно распознан. Уверенность: ' + (data.confidence ? (data.confidence * 100).toFixed(1) + '%' : 'не указана') + '</p>'+
+                        '</div>';
+                    
+                    // Отображаем расписание на сегодня
+                    displayStudentSchedule(data.today_schedules || []);
+                    
+                    // Если посещаемость уже отмечена
+                    if (data.attendance_marked) {
+                        showAttendanceStatus(data.class_name || 'занятие');
+                    }
+                } else {
+                    // Показываем ошибку
+                    recognitionResult.innerHTML = '<div class="alert alert-danger">'+
+                        '<h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i> Ошибка распознавания</h5>'+
+                        '<p class="mb-0">' + (data.error || data.message || 'Неизвестная ошибка') + '</p>'+
+                        '</div>';
+                    
+                    // Сбрасываем информацию о студенте
+                    studentName.textContent = 'Студент не распознан';
+                    studentSchedule.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-calendar3 fs-1 d-block mb-3"></i>
+                            <p>Сделайте снимок, чтобы увидеть расписание студента на сегодня</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                let errorMessage = error.message || 'Неизвестная ошибка';
+                recognitionResult.innerHTML = '<div class="alert alert-danger">'+
+                    '<h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i> Ошибка</h5>'+
+                    '<p class="mb-0">Произошла ошибка при отправке запроса: ' + errorMessage + '</p>'+
+                    '</div>';
+            });
+        }
+        
+        // Функция для отображения расписания студента
+        function displayStudentSchedule(schedules) {
+            if (!schedules || schedules.length === 0) {
+                studentSchedule.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-3"></i>
+                        <p>На сегодня нет запланированных уроков</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            schedules.forEach(schedule => {
+                html += `
+                    <div class="schedule-item" data-class-id="${schedule.class_id}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="schedule-time">${schedule.start_time} - ${schedule.end_time}</div>
+                                <div class="fw-bold">${schedule.class_name}</div>
+                                <div class="text-muted small">Преподаватель: ${schedule.teacher}</div>
+                                <div class="text-muted small">Кабинет: ${schedule.room}</div>
+                            </div>
+                            <button class="btn btn-sm btn-success mark-attendance-btn" data-class-id="${schedule.class_id}">
+                                <i class="bi bi-check-lg"></i> Отметить
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            studentSchedule.innerHTML = html;
+            
+            // Добавляем обработчики событий для кнопок отметки посещаемости
+            document.querySelectorAll('.mark-attendance-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const classId = this.getAttribute('data-class-id');
+                    markAttendance(classId);
+                });
+            });
+        }
+        
+        // Функция для отметки посещаемости
+        function markAttendance(classId) {
+            if (!recognizedStudentId) {
+                alert('Сначала необходимо распознать студента');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loadingSpinner.style.display = 'block';
+            
+            // Отправляем запрос на отметку посещаемости
+            const formData = new FormData();
+            formData.append('image_data', capturedImage.src);
+            formData.append('mark_attendance', 'true');
+            formData.append('class_id', classId);
+            
+            const csrftoken = getCookie('csrftoken');
+            
+            fetch('/face-recognition/api/recognize-attendance/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+                
+                if (data.success && data.attendance_marked) {
+                    // Отмечаем урок как посещенный в интерфейсе
+                    const scheduleItem = document.querySelector(`.schedule-item[data-class-id="${classId}"]`);
+                    if (scheduleItem) {
+                        scheduleItem.classList.add('active');
+                        const markBtn = scheduleItem.querySelector('.mark-attendance-btn');
+                        if (markBtn) {
+                            markBtn.disabled = true;
+                            markBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Отмечено';
+                        }
+                    }
+                    
+                    // Показываем статус посещаемости
+                    showAttendanceStatus(data.class_name);
+                } else if (data.success && !data.attendance_marked) {
+                    // Показываем ошибку
+                    alert('Не удалось отметить посещаемость: ' + (data.attendance_error || 'Неизвестная ошибка'));
+                } else {
+                    // Показываем ошибку
+                    alert('Не удалось отметить посещаемость: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                alert('Произошла ошибка при отправке запроса: ' + (error.message || 'Неизвестная ошибка'));
+            });
+        }
+        
+        // Функция для отображения статуса посещаемости
+        function showAttendanceStatus(className) {
+            attendanceStatusContent.innerHTML = `
+                <p class="mb-3">Посещаемость успешно отмечена для класса:</p>
+                <div class="alert alert-success mb-3">
+                    <strong>${className}</strong>
+                </div>
+                <a href="/attendance/list/" class="btn btn-primary">
+                    <i class="bi bi-list-check me-2"></i> Перейти к списку посещаемости
+                </a>
+            `;
+            attendanceStatus.style.display = 'block';
+        }
+        
+        // Функция для получения CSRF-токена из cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Обработчики событий
+        startBtn.addEventListener('click', startCamera);
+        switchCameraBtn.addEventListener('click', switchCamera);
+        captureBtn.addEventListener('click', captureImage);
+        
+        // Инициализация
+        captureBtn.disabled = true;
+        switchCameraBtn.disabled = true;
+        resultContainer.style.display = 'none';
+    });
+</script>
+{% endblock %}

@@ -11,7 +11,7 @@
         </div>
         <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
             {% if user.is_admin %}
-                <a href="#" class="btn btn-primary">
+                <a href="{% url 'accounts:add_parent' %}" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-2"></i> Добавить родителя
                 </a>
             {% endif %}
@@ -35,7 +35,11 @@
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="card-title fw-bold mb-0">{{ parent.full_name }}</h5>
-                                <span class="badge bg-info">Родитель</span>
+                                {% if parent.parent_type == 'student' %}
+                                    <span class="badge bg-warning">Ученик</span>
+                                {% else %}
+                                    <span class="badge bg-info">Родитель</span>
+                                {% endif %}
                             </div>
                             
                             <div class="mb-3">
@@ -93,7 +97,7 @@
                 <p class="text-muted">В системе пока не зарегистрировано ни одного родителя</p>
                 
                 {% if user.is_admin %}
-                    <a href="#" class="btn btn-primary mt-3">
+                    <a href="{% url 'accounts:add_parent' %}" class="btn btn-primary mt-3">
                         <i class="bi bi-plus-circle me-2"></i> Добавить первого родителя
                     </a>
                 {% endif %}

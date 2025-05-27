@@ -1,0 +1,210 @@
+.stat-card {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    height: 100%;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background-color: rgba(245, 245, 247, 0.5);
+}
+
+.stat-card-body {
+    padding: 1.5rem;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+}
+
+.stat-icon.homework {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
+.stat-icon.attendance {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+.stat-icon.timeliness {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #1d1d1f;
+    line-height: 1.1;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.progress {
+    height: 8px;
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.05);
+    margin-top: 0.75rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: 12px;
+}
+
+.progress-bar.excellent {
+    background-color: #198754;
+}
+
+.progress-bar.good {
+    background-color: #0d6efd;
+}
+
+.progress-bar.average {
+    background-color: #ffc107;
+}
+
+.progress-bar.poor {
+    background-color: #dc3545;
+}
+
+.grade-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.grade-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.grade-dot.excellent {
+    background-color: #198754;
+}
+
+.grade-dot.good {
+    background-color: #0d6efd;
+}
+
+.grade-dot.average {
+    background-color: #ffc107;
+}
+
+.grade-dot.poor {
+    background-color: #dc3545;
+}
+
+.chart-container {
+    height: 400px !important;
+    position: relative;
+    padding: 1rem 0;
+    width: 100% !important;
+    min-height: 400px !important;
+    margin: 0 auto;
+    display: block;
+}
+
+.section-title {
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #1d1d1f;
+    border-left: 4px solid #0d6efd;
+    padding-left: 1rem;
+}
+
+.recommendation-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.grade-distribution {
+    min-height: 300px !important;
+    padding-bottom: 2rem;
+    overflow: visible !important;
+}
+
+.attendance-chart-container {
+    min-height: 450px !important;
+    padding: 1.5rem;
+    overflow: visible !important;
+}
+
+.attendance-chart-container .chart-container {
+    height: 400px !important;
+    overflow: visible !important;
+}
+
+/* Force proper display of charts */
+canvas {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Ensure charts are visible and properly sized */
+.chart-wrapper {
+    position: relative;
+    margin: auto;
+    height: 100%;
+    width: 100%;
+    overflow: visible !important;
+}
+
+/* Fix for chart rendering issues */
+.chart-container canvas {
+    position: relative !important;
+    height: 100% !important;
+    width: 100% !important;
+}
+
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 2rem;
+    }
+    
+    .chart-container {
+        height: 300px !important;
+        min-height: 300px !important;
+    }
+    
+    .grade-distribution,
+    .attendance-chart-container {
+        min-height: 350px !important;
+    }
+    
+    .attendance-chart-container .chart-container {
+        height: 250px;
+    }
+}

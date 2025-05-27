@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои классы сегодня - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .schedule-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    
+    .schedule-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .schedule-header {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .class-item {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid #007bff;
+    }
+    
+    .homework-item {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid #28a745;
+        transition: all 0.2s ease;
+    }
+    
+    .homework-item:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .class-time {
+        font-size: 1rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .class-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+        font-size: 1.2rem;
+    }
+    
+    .class-room {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .homework-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .homework-student {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .homework-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .badge-count {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 0.7rem;
+    }
+    
+    .today-date {
+        font-size: 1.2rem;
+        font-weight: 500;
+        color: #007bff;
+    }
+    
+    .no-schedules {
+        padding: 30px;
+        text-align: center;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Мои классы сегодня</h1>
+            <p class="text-muted fs-5">
+                <span class="today-date">{{ today|date:"d.m.Y" }} ({% if today.weekday == 0 %}Понедельник{% elif today.weekday == 1 %}Вторник{% elif today.weekday == 2 %}Среда{% elif today.weekday == 3 %}Четверг{% elif today.weekday == 4 %}Пятница{% elif today.weekday == 5 %}Суббота{% else %}Воскресенье{% endif %})</span>
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'classes:unchecked_teacher_homework' %}" class="btn btn-warning position-relative">
+                <i class="bi bi-check-square me-2"></i> Непроверенные задания
+                {% if total_unchecked > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ total_unchecked }}
+                    <span class="visually-hidden">непроверенных заданий</span>
+                </span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
+    {% if schedule_data %}
+        <div class="row">
+            {% for item in schedule_data %}
+                <div class="col-md-6">
+                    <div class="schedule-card">
+                        <div class="schedule-header">
+                            <h4 class="mb-0">{{ item.class.name }}</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="class-item">
+                                <div class="class-time">
+                                    <i class="bi bi-clock me-1"></i> {{ item.schedule.start_time|time:"H:i" }} - {{ item.schedule.end_time|time:"H:i" }}
+                                </div>
+                                <div class="class-name">{{ item.class.subject }}</div>
+                                <div class="class-room">
+                                    <i class="bi bi-geo-alt me-1"></i> Кабинет: {{ item.schedule.room }}
+                                </div>
+                                <div class="mt-3">
+                                    <a href="{% url 'classes:class_detail' item.class.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-info-circle me-1"></i> Подробнее о классе
+                                    </a>
+                                    <a href="{% url 'classes:lesson_detail' item.class.id item.schedule.id today|date:'Y-m-d' %}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-journal-text me-1"></i> Открыть урок
+                                    </a>
+                                    <a href="{% url 'attendance:mark_attendance' item.class.id %}?date={{ today|date:'Y-m-d' }}&schedule_id={{ item.schedule.id }}&from_teacher_today=true" class="btn btn-sm btn-success fw-bold" style="background-color: #28a745; border-color: #28a745;">
+                                        <i class="bi bi-check-circle me-1"></i> Отметить посещаемость
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            {% if item.homework %}
+                                <h5 class="mt-4 mb-3">
+                                    <i class="bi bi-clipboard-check me-2"></i> Домашние задания для проверки
+                                    <span class="badge bg-danger">{{ item.homework|length }}</span>
+                                </h5>
+                                
+                                {% for hw in item.homework %}
+                                    <div class="homework-item">
+                                        <div class="homework-title">{{ hw.homework.title }}</div>
+                                        <div class="homework-student">
+                                            <i class="bi bi-person me-1"></i> {{ hw.student.full_name }}
+                                        </div>
+                                        <div class="homework-date">
+                                            <i class="bi bi-calendar-check me-1"></i> Отправлено: {{ hw.submitted_at|date:"d.m.Y H:i" }}
+                                        </div>
+                                        <div class="mt-3">
+                                            {% if hw.submission.file %}
+                                                <a href="{{ hw.submission.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    <i class="bi bi-file-earmark-text me-1"></i> Просмотреть работу
+                                                </a>
+                                            {% endif %}
+                                            
+                                            {% if hw.homework.file %}
+                                                <a href="{{ hw.homework.file.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                                    <i class="bi bi-file-earmark-text me-1"></i> Условие задания
+                                                </a>
+                                            {% endif %}
+                                            
+                                            <button type="button" class="btn btn-sm btn-success grade-homework-btn" 
+                                                data-bs-toggle="modal" data-bs-target="#gradeHomeworkModal" 
+                                                data-submission-id="{{ hw.submission.id }}"
+                                                data-homework-title="{{ hw.homework.title }}"
+                                                data-student-name="{{ hw.student.full_name }}">
+                                                <i class="bi bi-check-lg me-1"></i> Оценить
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                
+                                <div class="text-center mt-3">
+                                    <a href="{% url 'classes:unchecked_class_homework' item.class.id %}" class="btn btn-outline-success">
+                                        <i class="bi bi-list-check me-1"></i> Все непроверенные задания класса
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info mt-4">
+                                    <i class="bi bi-info-circle me-2"></i> Нет непроверенных домашних заданий для этого класса
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-schedules">
+            <i class="bi bi-calendar-x display-1 text-muted"></i>
+            <h3 class="mt-4">Сегодня нет запланированных занятий</h3>
+            <p class="text-muted">У вас нет занятий на сегодня. Вы можете посмотреть полное расписание или проверить непроверенные домашние задания.</p>
+            <div class="mt-4">
+                <a href="{% url 'classes:teacher_schedule' %}" class="btn btn-primary me-2">
+                    <i class="bi bi-calendar-week me-1"></i> Полное расписание
+                </a>
+                <a href="{% url 'classes:unchecked_teacher_homework' %}" class="btn btn-warning">
+                    <i class="bi bi-check-square me-1"></i> Непроверенные задания
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно для оценки домашнего задания -->
+<div class="modal fade" id="gradeHomeworkModal" tabindex="-1" aria-labelledby="gradeHomeworkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gradeHomeworkModalLabel">Оценка домашнего задания</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="gradeHomeworkForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="submissionId" name="submission_id">
+                    
+                    <div class="mb-3">
+                        <label for="completionStatus" class="form-label">Статус выполнения</label>
+                        <select class="form-select" id="completionStatus" name="completion_status" required>
+                            <option value="" selected disabled>Выберите статус...</option>
+                            <option value="completed">Выполнено полностью</option>
+                            <option value="partially_completed">Выполнено частично</option>
+                            <option value="not_completed">Не выполнено</option>
+                        </select>
+                        <div class="alert alert-info mt-3">
+                            <ul class="mb-0 fs-5">
+                                <li><strong>Выполнено полностью</strong> - 85% и более задания решено верно</li>
+                                <li><strong>Выполнено частично</strong> - от 40% до 85% задания решено верно</li>
+                                <li><strong>Не выполнено</strong> - менее 40% задания решено верно</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="teacherComment" class="form-label">Комментарий</label>
+                        <textarea class="form-control" id="teacherComment" name="teacher_comment" rows="4" placeholder="Введите ваш комментарий к работе студента..."></textarea>
+                    </div>
+                </form>
+                <div id="gradeResult" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="submitGradeBtn">Сохранить оценку</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработчик для кнопок "Оценить"
+        const gradeButtons = document.querySelectorAll('.grade-homework-btn');
+        gradeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const submissionId = this.getAttribute('data-submission-id');
+                const homeworkTitle = this.getAttribute('data-homework-title');
+                const studentName = this.getAttribute('data-student-name');
+                
+                document.getElementById('submissionId').value = submissionId;
+                document.getElementById('gradeHomeworkModalLabel').textContent = 
+                    'Оценка задания: ' + homeworkTitle + ' (' + studentName + ')';
+                
+                // Сбрасываем форму и скрываем сообщение о результате
+                document.getElementById('gradeHomeworkForm').reset();
+                const resultDiv = document.getElementById('gradeResult');
+                resultDiv.classList.add('d-none');
+                resultDiv.classList.remove('alert-success', 'alert-danger');
+            });
+        });
+        
+        // Обработчик для кнопки сохранения оценки
+        document.getElementById('submitGradeBtn').addEventListener('click', function() {
+            const form = document.getElementById('gradeHomeworkForm');
+            const formData = new FormData(form);
+            const submissionId = document.getElementById('submissionId').value;
+            const resultDiv = document.getElementById('gradeResult');
+            
+            // Проверка заполнения формы
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Отправка AJAX-запроса
+            fetch(`/classes/homework-submission/${submissionId}/grade-ajax/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.classList.remove('d-none');
+                
+                if (data.success) {
+                    resultDiv.classList.add('alert-success');
+                    resultDiv.textContent = data.message || 'Оценка успешно сохранена';
+                    
+                    // Закрываем модальное окно через 2 секунды и перезагружаем страницу
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('gradeHomeworkModal'));
+                        modal.hide();
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    resultDiv.classList.add('alert-danger');
+                    resultDiv.textContent = data.message || 'Произошла ошибка при сохранении оценки';
+                }
+            })
+            .catch(error => {
+                resultDiv.classList.remove('d-none');
+                resultDiv.classList.add('alert-danger');
+                resultDiv.textContent = 'Произошла ошибка при отправке запроса';
+                console.error('Error:', error);
+            });
+        });
+    });
+</script>
+{% endblock %}

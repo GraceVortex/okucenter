@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Материалы класса {{ class.name }} - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .material-card {
+        transition: transform 0.2s;
+        margin-bottom: 20px;
+    }
+    
+    .material-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .material-icon {
+        font-size: 2rem;
+        color: #0d6efd;
+    }
+    
+    .material-type-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .material-date {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .material-description {
+        color: #495057;
+        margin-top: 10px;
+    }
+    
+    .material-actions {
+        margin-top: 15px;
+    }
+    
+    .filter-container {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .filter-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Материалы класса</h1>
+            <h3 class="text-muted">{{ class.name }}</h3>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            {% if is_teacher or is_admin %}
+            <div class="dropdown me-2">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="uploadDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-upload"></i> Загрузить материал
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="uploadDropdown">
+                    <li><a class="dropdown-item" href="{% url 'classes:upload_classwork_file' class.id %}">
+                        <i class="bi bi-file-earmark-plus"></i> Общий материал
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'classes:class_lesson_calendar' class.id %}">
+                        <i class="bi bi-calendar-event"></i> Материал к уроку
+                    </a></li>
+                </ul>
+            </div>
+            {% endif %}
+            <a href="{% url 'classes:class_detail' class.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> К классу
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="filter-container">
+                <div class="filter-title">Фильтр материалов</div>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'classes:class_materials' class.id %}" class="btn btn-outline-primary {% if material_type == 'all' %}active{% endif %}">
+                        Все материалы
+                    </a>
+                    <a href="{% url 'classes:class_materials' class.id %}?type=general" class="btn btn-outline-primary {% if material_type == 'general' %}active{% endif %}">
+                        Общие материалы
+                    </a>
+                    <a href="{% url 'classes:class_materials' class.id %}?type=lesson_specific" class="btn btn-outline-primary {% if material_type == 'lesson_specific' %}active{% endif %}">
+                        Материалы к урокам
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if materials %}
+    <div class="row">
+        {% for material in materials %}
+        <div class="col-md-4">
+            <div class="card material-card">
+                <div class="card-body">
+                    {% if material.material_type == 'general' %}
+                    <span class="badge bg-primary material-type-badge">Общий материал</span>
+                    {% else %}
+                    <span class="badge bg-success material-type-badge">К уроку</span>
+                    {% endif %}
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            {% with filename=material.file.name|lower %}
+                            {% if '.pdf' in filename %}
+                            <i class="bi bi-file-earmark-pdf material-icon"></i>
+                            {% elif '.doc' in filename or '.docx' in filename %}
+                            <i class="bi bi-file-earmark-word material-icon"></i>
+                            {% elif '.xls' in filename or '.xlsx' in filename %}
+                            <i class="bi bi-file-earmark-excel material-icon"></i>
+                            {% elif '.ppt' in filename or '.pptx' in filename %}
+                            <i class="bi bi-file-earmark-slides material-icon"></i>
+                            {% elif '.jpg' in filename or '.jpeg' in filename or '.png' in filename or '.gif' in filename %}
+                            <i class="bi bi-file-earmark-image material-icon"></i>
+                            {% elif '.zip' in filename or '.rar' in filename %}
+                            <i class="bi bi-file-earmark-zip material-icon"></i>
+                            {% else %}
+                            <i class="bi bi-file-earmark material-icon"></i>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">{{ material.title }}</h5>
+                            <div class="material-date">
+                                <i class="bi bi-calendar-date"></i> {{ material.date }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if material.description %}
+                    <div class="material-description">
+                        {{ material.description|truncatechars:100 }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if material.material_type == 'lesson_specific' and material.schedule %}
+                    <div class="mt-2">
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-clock"></i> {{ material.schedule.get_day_of_week_display }} {{ material.schedule.start_time|time:"H:i" }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="material-actions">
+                        <a href="{{ material.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="bi bi-download"></i> Скачать
+                        </a>
+                        
+                        {% if is_teacher or is_admin %}
+                        <a href="{% url 'classes:delete_classwork_file' material.id %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i> Удалить
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="bi bi-folder"></i>
+        </div>
+        <h4>Материалы отсутствуют</h4>
+        <p class="text-muted">
+            {% if material_type == 'all' %}
+                Для этого класса еще не загружено ни одного материала.
+            {% elif material_type == 'general' %}
+                Для этого класса еще не загружено ни одного общего материала.
+            {% elif material_type == 'lesson_specific' %}
+                Для этого класса еще не загружено ни одного материала к урокам.
+            {% endif %}
+        </p>
+        {% if is_teacher or is_admin %}
+        <a href="{% url 'classes:upload_classwork_file' class.id %}" class="btn btn-primary">
+            <i class="bi bi-upload"></i> Загрузить первый материал
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

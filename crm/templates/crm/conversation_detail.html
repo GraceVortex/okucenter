@@ -1,0 +1,356 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          {% if conversation.channel == 'whatsapp' %}
+          <i class="bi bi-whatsapp text-success"></i>
+          {% elif conversation.channel == 'instagram' %}
+          <i class="bi bi-instagram text-danger"></i>
+          {% elif conversation.channel == 'telegram' %}
+          <i class="bi bi-telegram text-primary"></i>
+          {% elif conversation.channel == 'email' %}
+          <i class="bi bi-envelope text-warning"></i>
+          {% elif conversation.channel == 'sms' %}
+          <i class="bi bi-chat-text text-info"></i>
+          {% else %}
+          <i class="bi bi-chat"></i>
+          {% endif %}
+          Беседа с {{ contact.full_name }} ({{ conversation.get_channel_display }})
+        </h5>
+        <div class="btn-group">
+          <a href="{% url 'crm:conversation_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left"></i> К списку
+          </a>
+          <a href="{% url 'crm:contact_detail' contact.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-person"></i> Профиль контакта
+          </a>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" onclick="archiveConversation({{ conversation.id }})">
+                <i class="bi bi-archive"></i> Архивировать
+              </a></li>
+              <li><a class="dropdown-item" href="#" onclick="assignConversation({{ conversation.id }})">
+                <i class="bi bi-person-check"></i> Назначить ответственного
+              </a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="deleteConversation({{ conversation.id }})">
+                <i class="bi bi-trash"></i> Удалить
+              </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="chat-container" style="border: none; height: 700px;">
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Информация о контакте</h6>
+                <a href="{% url 'crm:contact_update' contact.id %}" class="btn btn-sm btn-link">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </div>
+            <div class="chat-sidebar-body p-3">
+              <div class="text-center mb-3">
+                <div class="detail-avatar mx-auto">
+                  {{ contact.first_name|first }}{{ contact.last_name|first }}
+                </div>
+                <h5 class="mt-2 mb-0">{{ contact.full_name }}</h5>
+                <p class="text-muted">{{ contact.get_contact_type_display }}</p>
+              </div>
+              
+              <div class="mb-3">
+                <h6 class="border-bottom pb-2">Контактная информация</h6>
+                {% if contact.phone %}
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-telephone text-primary me-2"></i>
+                  <span>{{ contact.phone }}</span>
+                </div>
+                {% endif %}
+                {% if contact.email %}
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-envelope text-primary me-2"></i>
+                  <span>{{ contact.email }}</span>
+                </div>
+                {% endif %}
+                {% if contact.position %}
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-briefcase text-primary me-2"></i>
+                  <span>{{ contact.position }}</span>
+                </div>
+                {% endif %}
+                {% if contact.company %}
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-building text-primary me-2"></i>
+                  <span><a href="{% url 'crm:company_detail' contact.company.id %}">{{ contact.company.name }}</a></span>
+                </div>
+                {% endif %}
+              </div>
+              
+              {% if social_accounts %}
+              <div class="mb-3">
+                <h6 class="border-bottom pb-2">Социальные аккаунты</h6>
+                {% for account in social_accounts %}
+                <div class="d-flex align-items-center mb-2">
+                  {% if account.account_type == 'whatsapp' %}
+                  <i class="bi bi-whatsapp text-success me-2"></i>
+                  {% elif account.account_type == 'instagram' %}
+                  <i class="bi bi-instagram text-danger me-2"></i>
+                  {% elif account.account_type == 'telegram' %}
+                  <i class="bi bi-telegram text-primary me-2"></i>
+                  {% elif account.account_type == 'facebook' %}
+                  <i class="bi bi-facebook text-primary me-2"></i>
+                  {% elif account.account_type == 'vk' %}
+                  <i class="bi bi-chat-fill text-primary me-2"></i>
+                  {% else %}
+                  <i class="bi bi-globe me-2"></i>
+                  {% endif %}
+                  <span>{{ account.username }}</span>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+              
+              {% if deals %}
+              <div class="mb-3">
+                <h6 class="border-bottom pb-2">Сделки</h6>
+                {% for deal in deals %}
+                <div class="d-flex align-items-center mb-2">
+                  <i class="bi bi-briefcase text-primary me-2"></i>
+                  <a href="{% url 'crm:deal_detail' deal.id %}">{{ deal.title }}</a>
+                  {% if deal.status == 'open' %}
+                  <span class="badge bg-primary ms-2">{{ deal.get_status_display }}</span>
+                  {% elif deal.status == 'won' %}
+                  <span class="badge bg-success ms-2">{{ deal.get_status_display }}</span>
+                  {% elif deal.status == 'lost' %}
+                  <span class="badge bg-danger ms-2">{{ deal.get_status_display }}</span>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+              
+              <div class="d-grid gap-2">
+                <a href="{% url 'crm:deal_create' %}?contact={{ contact.id }}" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-briefcase"></i> Создать сделку
+                </a>
+                <a href="{% url 'crm:task_create' %}?content_type_id={{ contact_content_type_id }}&object_id={{ contact.id }}" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-check-square"></i> Создать задачу
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="chat-main">
+            <div class="chat-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-0">{{ contact.full_name }}</h6>
+                  <small class="text-muted">
+                    {% if conversation.assigned_to %}
+                    Ответственный: {{ conversation.assigned_to.get_full_name }}
+                    {% else %}
+                    Ответственный не назначен
+                    {% endif %}
+                  </small>
+                </div>
+                <div>
+                  {% if conversation.is_active %}
+                  <span class="badge bg-success">Активна</span>
+                  {% elif conversation.is_archived %}
+                  <span class="badge bg-secondary">В архиве</span>
+                  {% else %}
+                  <span class="badge bg-danger">Неактивна</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="chat-body" id="chat-messages">
+              {% for message in messages %}
+              <div class="chat-message {% if message.message_type == 'incoming' %}chat-message-incoming{% else %}chat-message-outgoing{% endif %}">
+                <div class="chat-message-content">
+                  {% if message.text %}
+                  <div>{{ message.text|linebreaks }}</div>
+                  {% endif %}
+                  
+                  {% if message.media_url %}
+                  <div class="mt-2">
+                    {% if message.media_type == 'image' %}
+                    <img src="{{ message.media_url }}" alt="Изображение" class="img-fluid rounded" style="max-width: 300px;">
+                    {% elif message.media_type == 'video' %}
+                    <video controls class="img-fluid rounded" style="max-width: 300px;">
+                      <source src="{{ message.media_url }}" type="video/mp4">
+                      Ваш браузер не поддерживает видео.
+                    </video>
+                    {% elif message.media_type == 'audio' %}
+                    <audio controls>
+                      <source src="{{ message.media_url }}" type="audio/mpeg">
+                      Ваш браузер не поддерживает аудио.
+                    </audio>
+                    {% elif message.media_type == 'document' %}
+                    <div>
+                      <i class="bi bi-file-earmark"></i>
+                      <a href="{{ message.media_url }}" target="_blank">Скачать документ</a>
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                  
+                  <div class="chat-message-time">
+                    {{ message.sent_at|date:"d.m.Y H:i" }}
+                    {% if message.message_type == 'outgoing' %}
+                    {% if message.is_delivered %}
+                    <i class="bi bi-check2-all"></i>
+                    {% else %}
+                    <i class="bi bi-check2"></i>
+                    {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="text-center p-5">
+                <p class="text-muted">Нет сообщений</p>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="chat-footer">
+              <form method="post" action="{% url 'crm:send_message' conversation.id %}" id="message-form">
+                {% csrf_token %}
+                <div class="chat-input-container">
+                  <textarea class="chat-input" name="text" placeholder="Введите сообщение..." rows="1" required></textarea>
+                  <button type="submit" class="btn btn-primary chat-send-button">
+                    <i class="bi bi-send"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно назначения ответственного -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assignModalLabel">Назначение ответственного</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="assignForm" method="post" action="{% url 'crm:assign_conversation' %}">
+        {% csrf_token %}
+        <input type="hidden" name="conversation_id" value="{{ conversation.id }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="assigned_to" class="form-label">Ответственный</label>
+            <select class="form-select" id="assigned_to" name="assigned_to" required>
+              <option value="">Выберите ответственного</option>
+              {% for user in users %}
+              <option value="{{ user.id }}" {% if conversation.assigned_to.id == user.id %}selected{% endif %}>{{ user.get_full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Назначить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения архивации -->
+<div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="archiveModalLabel">Подтверждение архивации</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите архивировать эту беседу?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <form id="archiveForm" method="post" action="{% url 'crm:archive_conversation' conversation.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">Архивировать</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Подтверждение удаления</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Вы уверены, что хотите удалить эту беседу? Это действие нельзя отменить.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <form id="deleteForm" method="post" action="{% url 'crm:delete_conversation' conversation.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Прокрутка чата вниз при загрузке страницы
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Автоматическое изменение высоты текстового поля при вводе
+    const textarea = document.querySelector('.chat-input');
+    textarea.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Отправка формы по Ctrl+Enter
+    textarea.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.keyCode === 13) {
+        document.getElementById('message-form').submit();
+      }
+    });
+  });
+  
+  function assignConversation(conversationId) {
+    var assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
+    assignModal.show();
+  }
+  
+  function archiveConversation(conversationId) {
+    var archiveModal = new bootstrap.Modal(document.getElementById('archiveModal'));
+    archiveModal.show();
+  }
+  
+  function deleteConversation(conversationId) {
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+</script>
+{% endblock %}

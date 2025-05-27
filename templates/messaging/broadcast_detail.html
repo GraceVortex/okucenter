@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Детали рассылки WhatsApp{% endblock %}
+
+{% block extra_css %}
+<style>
+    .message-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .status-badge {
+        min-width: 80px;
+    }
+    .message-card {
+        border-left: 4px solid #25D366;
+    }
+    .media-preview {
+        max-width: 100%;
+        max-height: 200px;
+        margin-bottom: 10px;
+    }
+    .progress {
+        height: 25px;
+    }
+    .progress-bar {
+        line-height: 25px;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Рассылка: {{ broadcast.title }}</h1>
+                <div>
+                    <a href="{% url 'messaging:whatsapp_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к списку
+                    </a>
+                    {% if broadcast.status == 'draft' %}
+                    <a href="{% url 'messaging:send_broadcast' broadcast.id %}" class="btn btn-success">
+                        <i class="fas fa-paper-plane"></i> Отправить
+                    </a>
+                    {% elif broadcast.status == 'scheduled' %}
+                    <a href="{% url 'messaging:cancel_broadcast' broadcast.id %}" class="btn btn-warning">
+                        <i class="fas fa-ban"></i> Отменить отправку
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Информация о рассылке -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Информация о рассылке</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Статус:</div>
+                        <div class="col-md-8">
+                            {% if broadcast.status == 'draft' %}
+                            <span class="badge bg-secondary">Черновик</span>
+                            {% elif broadcast.status == 'scheduled' %}
+                            <span class="badge bg-warning text-dark">Запланировано на {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</span>
+                            {% elif broadcast.status == 'in_progress' %}
+                            <span class="badge bg-info">В процессе</span>
+                            {% elif broadcast.status == 'completed' %}
+                            <span class="badge bg-success">Завершено</span>
+                            {% elif broadcast.status == 'failed' %}
+                            <span class="badge bg-danger">Ошибка</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Создано:</div>
+                        <div class="col-md-8">{{ broadcast.created_at|date:"d.m.Y H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Создатель:</div>
+                        <div class="col-md-8">{{ broadcast.created_by.get_full_name }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Получатели:</div>
+                        <div class="col-md-8">
+                            {% if broadcast.recipient_type == 'parents' %}
+                            Родители
+                            {% elif broadcast.recipient_type == 'students' %}
+                            Студенты
+                            {% elif broadcast.recipient_type == 'both' %}
+                            Родители и студенты
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Класс:</div>
+                        <div class="col-md-8">
+                            {% if broadcast.target_class %}
+                            {{ broadcast.target_class.name }}
+                            {% else %}
+                            Все классы
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">День недели:</div>
+                        <div class="col-md-8">
+                            {% if broadcast.target_day is not None %}
+                            {{ broadcast.get_target_day_display }}
+                            {% else %}
+                            Все дни
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Расписание:</div>
+                        <div class="col-md-8">
+                            {% if broadcast.target_schedule %}
+                            {{ broadcast.target_schedule.class_obj.name }} - 
+                            {{ broadcast.target_schedule.get_day_of_week_display }}, 
+                            {{ broadcast.target_schedule.start_time|time:"H:i" }}-{{ broadcast.target_schedule.end_time|time:"H:i" }}
+                            {% else %}
+                            Все расписания
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Содержание сообщения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="message-card p-3 mb-3">
+                        {% if broadcast.media_file %}
+                        <div class="mb-3">
+                            {% if broadcast.media_file.url|lower|endswith:'.jpg' or broadcast.media_file.url|lower|endswith:'.jpeg' or broadcast.media_file.url|lower|endswith:'.png' %}
+                            <img src="{{ broadcast.media_file.url }}" class="media-preview" alt="Медиа-файл">
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-file"></i> Прикреплен файл: {{ broadcast.media_file.name }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="message-text">
+                            {{ broadcast.message|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика и сообщения -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Статистика отправки</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3">
+                        {% with sent_percent=broadcast.successful_sent|default:0|floatformat:0 %}
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ sent_percent }}%;" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ broadcast.successful_sent }} / {{ broadcast.total_recipients }} ({{ sent_percent }}%)
+                        </div>
+                        {% endwith %}
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>Всего получателей</h6>
+                                    <h3>{{ broadcast.total_recipients }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6>Успешно отправлено</h6>
+                                    <h3>{{ broadcast.successful_sent }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <h6>Ошибок</h6>
+                                    <h3>{{ broadcast.failed_sent }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Статусы сообщений</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Ожидает отправки:</span>
+                                        <span class="badge bg-secondary">{{ message_stats.pending }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Отправлено:</span>
+                                        <span class="badge bg-primary">{{ message_stats.sent }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Доставлено:</span>
+                                        <span class="badge bg-info">{{ message_stats.delivered }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Прочитано:</span>
+                                        <span class="badge bg-success">{{ message_stats.read }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Ошибки:</span>
+                                        <span class="badge bg-danger">{{ message_stats.failed }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>Сообщения</h5>
+                </div>
+                <div class="card-body message-list">
+                    {% if messages %}
+                    <div class="list-group">
+                        {% for message in messages %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ message.recipient_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ message.recipient_phone }}</small>
+                                </div>
+                                <span class="badge status-badge 
+                                    {% if message.status == 'pending' %}bg-secondary{% endif %}
+                                    {% if message.status == 'sent' %}bg-primary{% endif %}
+                                    {% if message.status == 'delivered' %}bg-info{% endif %}
+                                    {% if message.status == 'read' %}bg-success{% endif %}
+                                    {% if message.status == 'failed' %}bg-danger{% endif %}
+                                ">
+                                    {{ message.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    {% if message.status == 'pending' %}
+                                    Ожидает отправки
+                                    {% elif message.status == 'sent' %}
+                                    Отправлено: {{ message.sent_at|date:"d.m.Y H:i" }}
+                                    {% elif message.status == 'delivered' %}
+                                    Доставлено: {{ message.delivered_at|date:"d.m.Y H:i" }}
+                                    {% elif message.status == 'read' %}
+                                    Прочитано: {{ message.read_at|date:"d.m.Y H:i" }}
+                                    {% elif message.status == 'failed' %}
+                                    Ошибка: {{ message.error_message }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Нет сообщений для отображения
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Автоматическое обновление страницы для отслеживания статуса рассылки
+    {% if broadcast.status == 'in_progress' %}
+    setTimeout(function() {
+        location.reload();
+    }, 10000);
+    {% endif %}
+</script>
+{% endblock %}

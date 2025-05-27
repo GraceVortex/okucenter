@@ -1,0 +1,244 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Интеграции</h5>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createIntegrationModal">
+          <i class="bi bi-plus"></i> Добавить интеграцию
+        </button>
+      </div>
+      <div class="card-body">
+        {% if integrations %}
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+          {% for integration in integrations %}
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                  {% if integration.integration_type == 'whatsapp' %}
+                  <i class="bi bi-whatsapp text-success"></i>
+                  {% elif integration.integration_type == 'instagram' %}
+                  <i class="bi bi-instagram text-danger"></i>
+                  {% elif integration.integration_type == 'telegram' %}
+                  <i class="bi bi-telegram text-primary"></i>
+                  {% elif integration.integration_type == 'email' %}
+                  <i class="bi bi-envelope text-warning"></i>
+                  {% elif integration.integration_type == 'sms' %}
+                  <i class="bi bi-chat-text text-info"></i>
+                  {% else %}
+                  <i class="bi bi-gear"></i>
+                  {% endif %}
+                  {{ integration.name }}
+                </h5>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="integration-{{ integration.id }}" 
+                         {% if integration.is_active %}checked{% endif %}
+                         onchange="toggleIntegration({{ integration.id }}, this.checked)">
+                </div>
+              </div>
+              <div class="card-body">
+                <p class="card-text">{{ integration.get_integration_type_display }}</p>
+                <div class="d-grid gap-2">
+                  <a href="{% url 'crm:integration_detail' integration.id %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye"></i> Подробнее
+                  </a>
+                  <a href="{% url 'crm:integration_setup' integration.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-gear"></i> Настройки
+                  </a>
+                </div>
+              </div>
+              <div class="card-footer">
+                <small class="text-muted">Создана: {{ integration.created_at|date:"d.m.Y" }}</small>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <p class="text-muted mb-3">У вас пока нет настроенных интеграций</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createIntegrationModal">
+            <i class="bi bi-plus"></i> Добавить интеграцию
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header">
+        <h5 class="mb-0">Доступные интеграции</h5>
+      </div>
+      <div class="card-body">
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+          <!-- WhatsApp -->
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-body text-center">
+                <i class="bi bi-whatsapp text-success" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">WhatsApp Business API</h5>
+                <p class="card-text">Интеграция с WhatsApp Business API для отправки и получения сообщений.</p>
+                <button type="button" class="btn btn-success" onclick="createIntegration('whatsapp', 'WhatsApp Business')">
+                  <i class="bi bi-plus"></i> Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Instagram -->
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-body text-center">
+                <i class="bi bi-instagram text-danger" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Instagram Messaging</h5>
+                <p class="card-text">Интеграция с Instagram Messaging API для обмена сообщениями.</p>
+                <button type="button" class="btn btn-danger" onclick="createIntegration('instagram', 'Instagram Messaging')">
+                  <i class="bi bi-plus"></i> Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Email -->
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-body text-center">
+                <i class="bi bi-envelope text-warning" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Email</h5>
+                <p class="card-text">Интеграция с почтовыми сервисами для отправки и получения писем.</p>
+                <button type="button" class="btn btn-warning" onclick="createIntegration('email', 'Email')">
+                  <i class="bi bi-plus"></i> Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SMS -->
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-body text-center">
+                <i class="bi bi-chat-text text-info" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">SMS</h5>
+                <p class="card-text">Интеграция с SMS-провайдерами для отправки и получения SMS-сообщений.</p>
+                <button type="button" class="btn btn-info" onclick="createIntegration('sms', 'SMS')">
+                  <i class="bi bi-plus"></i> Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Telegram -->
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-body text-center">
+                <i class="bi bi-telegram text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Telegram</h5>
+                <p class="card-text">Интеграция с Telegram Bot API для обмена сообщениями.</p>
+                <button type="button" class="btn btn-primary" onclick="createIntegration('telegram', 'Telegram Bot')">
+                  <i class="bi bi-plus"></i> Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Пользовательская интеграция -->
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-body text-center">
+                <i class="bi bi-gear text-secondary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Пользовательская</h5>
+                <p class="card-text">Создайте пользовательскую интеграцию с любым внешним сервисом.</p>
+                <button type="button" class="btn btn-secondary" onclick="createIntegration('custom', 'Пользовательская')">
+                  <i class="bi bi-plus"></i> Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно создания интеграции -->
+<div class="modal fade" id="createIntegrationModal" tabindex="-1" aria-labelledby="createIntegrationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createIntegrationModalLabel">Создание интеграции</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'crm:integration_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="integration_type" class="form-label">Тип интеграции</label>
+            <select class="form-select" id="integration_type" name="integration_type" required>
+              <option value="">Выберите тип интеграции</option>
+              {% for type_code, type_name in integration_types %}
+              <option value="{{ type_code }}">{{ type_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="integration_name" class="form-label">Название интеграции</label>
+            <input type="text" class="form-control" id="integration_name" name="name" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block crm_js %}
+<script>
+  function createIntegration(type, name) {
+    document.getElementById('integration_type').value = type;
+    document.getElementById('integration_name').value = name;
+    
+    var modal = new bootstrap.Modal(document.getElementById('createIntegrationModal'));
+    modal.show();
+  }
+  
+  function toggleIntegration(integrationId, isActive) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('{% url "crm:toggle_integration" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: `integration_id=${integrationId}&is_active=${isActive}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        alert('Произошла ошибка при изменении статуса интеграции.');
+        // Возвращаем переключатель в исходное состояние
+        document.getElementById(`integration-${integrationId}`).checked = !isActive;
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка:', error);
+      alert('Произошла ошибка при изменении статуса интеграции.');
+      // Возвращаем переключатель в исходное состояние
+      document.getElementById(`integration-${integrationId}`).checked = !isActive;
+    });
+  }
+</script>
+{% endblock %}

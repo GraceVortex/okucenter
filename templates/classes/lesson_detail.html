@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ class.name }} - {{ date|date:"d.m.Y" }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'classes:teacher_schedule' %}">Расписание</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Урок {{ class.name }} - {{ date|date:"d.m.Y" }}</li>
+                </ol>
+            </nav>
+            <h1 class="display-5 fw-bold">{{ class.name }}</h1>
+            <p class="text-muted fs-5">{{ date|date:"d.m.Y" }}, {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'classes:teacher_schedule' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i> Вернуться к расписанию
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Основная информация</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Класс:</span>
+                            <span class="fw-bold">{{ class.name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Дата:</span>
+                            <span class="fw-bold">{{ date|date:"d.m.Y" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Время:</span>
+                            <span class="fw-bold">{{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Кабинет:</span>
+                            <span class="fw-bold">{{ schedule.room }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Статус:</span>
+                            {% if cancellation_request %}
+                                {% if cancellation_request.status == 'approved' %}
+                                    <span class="badge bg-danger">Отменен</span>
+                                {% elif cancellation_request.status == 'pending' %}
+                                    <span class="badge bg-warning">Ожидает подтверждения отмены</span>
+                                {% elif cancellation_request.status == 'rejected' %}
+                                    <span class="badge bg-secondary">Отклонен</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-success">Активный</span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Действия</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'classes:class_detail' class.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-info-circle me-2"></i> Подробнее о классе
+                        </a>
+                        <a href="{% url 'attendance:mark_attendance' class.id %}?date={{ date|date:'Y-m-d' }}" class="btn btn-primary mb-2">
+                            <i class="bi bi-check-square me-2"></i> Отметить посещаемость
+                        </a>
+                        {% if date >= today and not cancellation_request %}
+                            <a href="{% url 'attendance:request_class_cancellation_date' class.id date|date:'Y-m-d' %}" class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle me-2"></i> Запросить отмену
+                            </a>
+                        {% endif %}
+                        {% if is_teacher or is_admin %}
+                            <a href="{% url 'classes:upload_classwork_file' class.id %}" class="btn btn-outline-primary mt-2">
+                                <i class="bi bi-upload me-2"></i> Загрузить материал к уроку
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            {% if lesson_materials %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Материалы к уроку</h5>
+                    <div class="list-group">
+                        {% for material in lesson_materials %}
+                            <a href="{{ material.file.url }}" class="list-group-item list-group-item-action" target="_blank">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ material.title }}</h6>
+                                    <small>{{ material.date|date:"d.m.Y" }}</small>
+                                </div>
+                                {% if material.description %}
+                                    <p class="mb-1 text-muted">{{ material.description|truncatechars:100 }}</p>
+                                {% endif %}
+                                <small><i class="bi bi-download"></i> Скачать</small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Список студентов</h5>
+                    {% if student_attendances %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Студент</th>
+                                        <th>Телефон</th>
+                                        <th>Статус посещения</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in student_attendances %}
+                                        <tr>
+                                            <td>{{ item.student.full_name }}</td>
+                                            <td>{{ item.student.phone }}</td>
+                                            <td>
+                                                {% if item.attendance %}
+                                                    {% if item.status == 'present' %}
+                                                        <span class="badge bg-success">Присутствует</span>
+                                                    {% elif item.status == 'absent' %}
+                                                        <span class="badge bg-danger">Отсутствует</span>
+                                                    {% elif item.status == 'late' %}
+                                                        <span class="badge bg-warning">Опоздал</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Не отмечен</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Не отмечен</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'attendance:mark_attendance' class.id %}?date={{ date|date:'Y-m-d' }}&student_id={{ item.student.id }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            В этом классе нет активных студентов.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

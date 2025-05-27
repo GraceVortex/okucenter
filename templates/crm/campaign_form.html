@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if campaign %}Редактирование кампании{% else %}Создание кампании{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{% if campaign %}Редактирование кампании{% else %}Создание кампании{% endif %}</h1>
+        <a href="{% if campaign %}{% url 'crm:campaign_detail' campaign.id %}{% else %}{% url 'crm:campaign_list' %}{% endif %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Назад
+        </a>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Название кампании <span class="text-danger">*</span></label>
+                    <input type="text" name="name" id="name" class="form-control" required value="{{ campaign.name|default:'' }}">
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="status" class="form-label">Статус</label>
+                    <select name="status" id="status" class="form-select" {% if not campaign %}disabled{% endif %}>
+                        {% if not campaign %}
+                            <option value="planned" selected>Запланирована</option>
+                        {% else %}
+                            <option value="planned" {% if campaign.status == 'planned' %}selected{% endif %}>Запланирована</option>
+                            <option value="active" {% if campaign.status == 'active' %}selected{% endif %}>Активна</option>
+                            <option value="paused" {% if campaign.status == 'paused' %}selected{% endif %}>Приостановлена</option>
+                            <option value="completed" {% if campaign.status == 'completed' %}selected{% endif %}>Завершена</option>
+                            <option value="cancelled" {% if campaign.status == 'cancelled' %}selected{% endif %}>Отменена</option>
+                        {% endif %}
+                    </select>
+                    <div class="form-text">Статус новой кампании будет установлен автоматически в зависимости от даты начала</div>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="description" class="form-label">Описание</label>
+                    <textarea name="description" id="description" class="form-control" rows="3">{{ campaign.description|default:'' }}</textarea>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="start_date" class="form-label">Дата начала <span class="text-danger">*</span></label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" required value="{{ campaign.start_date|date:'Y-m-d'|default:'' }}">
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="end_date" class="form-label">Дата окончания</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ campaign.end_date|date:'Y-m-d'|default:'' }}">
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="budget" class="form-label">Бюджет (₸)</label>
+                    <input type="number" name="budget" id="budget" class="form-control" min="0" step="1000" value="{{ campaign.budget|default:'0' }}">
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Каналы кампании</label>
+                    <div class="row">
+                        {% for channel_key, channel_name in channel_types %}
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="channels" value="{{ channel_key }}" id="channel_{{ channel_key }}" 
+                                        {% if selected_channels and channel_key in selected_channels %}checked{% endif %}>
+                                    <label class="form-check-label" for="channel_{{ channel_key }}">
+                                        {{ channel_name }}
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="target_audience" class="form-label">Целевая аудитория</label>
+                    <textarea name="target_audience" id="target_audience" class="form-control" rows="3">{{ campaign.target_audience|default:'' }}</textarea>
+                </div>
+                
+                <div class="col-12 mt-4 d-flex justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="history.back()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        {% if campaign %}Сохранить изменения{% else %}Создать кампанию{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Установка минимальной даты окончания в зависимости от даты начала
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        startDateInput.addEventListener('change', function() {
+            if (this.value) {
+                endDateInput.min = this.value;
+                
+                // Если дата окончания раньше даты начала, сбрасываем её
+                if (endDateInput.value && endDateInput.value < this.value) {
+                    endDateInput.value = '';
+                }
+            }
+        });
+        
+        // Инициализация при загрузке страницы
+        if (startDateInput.value) {
+            endDateInput.min = startDateInput.value;
+        }
+    });
+</script>
+{% endblock %}

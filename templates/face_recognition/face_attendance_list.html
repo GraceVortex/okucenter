@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отметки посещаемости по лицу{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 fw-bold mb-3">Отметки посещаемости по лицу</h1>
+            <p class="text-muted">Список отметок посещаемости, сделанных через распознавание лиц</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            {% if face_attendances %}
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold mb-3">История отметок</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Студент</th>
+                                        <th>Класс</th>
+                                        <th>Уверенность</th>
+                                        <th>Фото</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for face_attendance in face_attendances %}
+                                    <tr>
+                                        <td>{{ face_attendance.attendance.date|date:"d.m.Y" }}</td>
+                                        <td>{{ face_attendance.attendance.student.full_name }}</td>
+                                        <td>{{ face_attendance.attendance.class_obj.name }}</td>
+                                        <td>{{ face_attendance.confidence|floatformat:2 }}</td>
+                                        <td>
+                                            {% if face_attendance.image %}
+                                                <a href="{{ face_attendance.image.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-image"></i> Просмотр
+                                                </a>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Нет фото</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'attendance:attendance_log_detail' face_attendance.attendance.id %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-eye"></i> Детали
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <h5 class="alert-heading"><i class="bi bi-info-circle-fill me-2"></i> Нет данных</h5>
+                    <p class="mb-0">История отметок посещаемости через распознавание лиц пуста.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -19,4 +19,9 @@ urlpatterns = [
     path('admin/salaries/', views.admin_salary_summary, name='admin_salary_summary'),
     path('admin/salaries/<int:year>/<int:month>/', views.admin_salary_summary, name='admin_salary_summary'),
     path('teacher/<int:teacher_id>/salary/mark-paid/<int:year>/<int:month>/', views.mark_salary_paid, name='mark_salary_paid'),
+    path('teacher/<int:teacher_id>/salary/pay-advance/<int:year>/<int:month>/', views.pay_salary_advance, name='pay_salary_advance'),
+    path('teacher/<int:teacher_id>/salary/detail/<int:year>/<int:month>/', views.teacher_salary_detail, name='teacher_salary_detail'),
+    
+    # URL-маршрут для экспорта транзакций в Excel
+    path('transactions/export/excel/', views.export_transactions_excel, name='export_transactions_excel'),
 ]

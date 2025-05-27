@@ -15,11 +15,21 @@
                         {% csrf_token %}
                         
                         <div class="mb-3">
-                            <label for="{{ form.date.id_for_label }}" class="form-label">Дата</label>
-                            {{ form.date }}
-                            {% if form.date.errors %}
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Название</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.date.errors }}
+                                    {{ form.title.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label">Дедлайн</label>
+                            {{ form.due_date }}
+                            {% if form.due_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.due_date.errors }}
                                 </div>
                             {% endif %}
                         </div>

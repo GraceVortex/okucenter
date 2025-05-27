@@ -38,3 +38,44 @@ def add_month(date_value):
         return last_day.strftime('%d.%m.%Y')
     except:
         return date_value
+
+@register.filter
+def split(value, arg):
+    """
+    Разделяет строку по указанному разделителю и возвращает список.
+    Пример использования: {{ value|split:"," }}
+    """
+    return value.split(arg)
+
+@register.filter
+def index(value, arg):
+    """
+    Возвращает элемент списка по указанному индексу.
+    Пример использования: {{ value|index:0 }}
+    """
+    try:
+        return value[int(arg)]
+    except (IndexError, TypeError):
+        return ''
+
+@register.filter
+def multiply(value, arg):
+    """
+    Умножает value на arg.
+    Пример использования: {{ value|multiply:2 }}
+    """
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return value
+
+@register.filter
+def divide(value, arg):
+    """
+    Делит value на arg.
+    Пример использования: {{ value|divide:2 }}
+    """
+    try:
+        return float(value) / float(arg)
+    except (ValueError, TypeError, ZeroDivisionError):
+        return value

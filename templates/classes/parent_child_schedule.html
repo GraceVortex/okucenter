@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Расписание занятий - {{ student.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendar-container {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    .calendar-header {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .calendar-day {
+        border-right: 1px solid #eaeaea;
+        border-bottom: 1px solid #eaeaea;
+        min-height: 150px;
+        padding: 10px;
+    }
+    
+    .calendar-day:nth-child(7n) {
+        border-right: none;
+    }
+    
+    .day-header {
+        padding: 5px;
+        text-align: center;
+        font-weight: 600;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .day-number {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        border-radius: 50%;
+        margin-bottom: 10px;
+    }
+    
+    .today .day-number {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .class-item {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid #007bff;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .class-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .class-time {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .class-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .class-room {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .class-teacher {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-style: italic;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold">Моё расписание</h4>
+            </div>
+            <p class="text-muted fs-5">Управление расписанием и запросы на отмену уроков</p>
+        </div>
+        <div class="col-md-4 d-flex justify-content-end align-items-center">
+            <div class="btn-group">
+                <a href="{% url 'classes:parent_child_homework' student_id=student.id %}" class="btn btn-outline-success">
+                    <i class="bi bi-journal-check me-1"></i> Домашние задания
+                </a>
+                <a href="{% url 'classes:parent_child_lessons' student_id=student.id %}" class="btn btn-outline-info">
+                    <i class="bi bi-journal-text me-1"></i> Прошедшие занятия
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body p-4">
+            <div class="mb-4">
+                <h4 class="fw-bold mb-2">Календарь занятий</h4>
+                <p class="text-muted mb-3">Период: {{ weekdays.0.date|date:"d.m.Y" }} - {{ weekdays.6.date|date:"d.m.Y" }}</p>
+                
+                <!-- Навигация по неделям -->
+                <div class="text-center mb-4">
+                    <div style="display: inline-block; border-radius: 30px; overflow: hidden; border: 1px solid #dee2e6;">
+                        <a href="{% url 'classes:parent_child_schedule' student_id=student.id %}?week_offset={{ prev_week }}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd; border-right: 1px solid #dee2e6;">
+                            <i class="bi bi-chevron-left"></i> Предыдущая неделя
+                        </a>
+                        <a href="{% url 'classes:parent_child_schedule' student_id=student.id %}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #6c757d; border-right: 1px solid #dee2e6;">
+                            Сегодня
+                        </a>
+                        <a href="{% url 'classes:parent_child_schedule' student_id=student.id %}?week_offset={{ next_week }}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd;">
+                            Следующая неделя <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="calendar-container">
+                <div class="row calendar-header">
+                    <div class="col">Пн</div>
+                    <div class="col">Вт</div>
+                    <div class="col">Ср</div>
+                    <div class="col">Чт</div>
+                    <div class="col">Пт</div>
+                    <div class="col">Сб</div>
+                    <div class="col">Вс</div>
+                </div>
+                
+                <div class="row">
+                    {% for day in weekdays %}
+                        <div class="col calendar-day {% if day.date == today %}today{% endif %}">
+                            <div class="day-header">
+                                <span class="day-number">{{ day.date|date:"d" }}</span>
+                                <small class="text-muted d-block">{{ day.date|date:"d.m.Y" }}</small>
+                            </div>
+                            
+                            {% if day.lessons %}
+                                {% for lesson in day.lessons %}
+                                    <a href="{% url 'core:schedule_detail' lesson.schedule_id %}?date={{ day.date|date:'Y-m-d' }}" class="text-decoration-none">
+                                        <div class="class-item">
+                                            <div class="class-time">
+                                                {{ lesson.start_time|time:"H:i" }} - {{ lesson.end_time|time:"H:i" }}
+                                            </div>
+                                            <div class="class-name">{{ lesson.class_name }}</div>
+                                            <div class="class-room">Кабинет: {{ lesson.room }}</div>
+                                            <div class="class-teacher">
+                                                <i class="bi bi-person"></i> {{ lesson.teacher }}
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted mt-3">
+                                    <small>Нет занятий</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Условные обозначения</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div style="width: 20px; height: 20px; border-radius: 4px; background-color: #007bff; margin-right: 10px;"></div>
+                                <span>Обычное занятие</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

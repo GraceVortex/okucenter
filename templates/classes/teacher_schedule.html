@@ -65,7 +65,19 @@
     }
     
     .class-item.pending-cancel {
-        border-left: 4px solid #ffc107;
+        border-left-color: #ffc107;
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    .class-item.no-students {
+        border-left-color: #6c757d;
+        background-color: rgba(108, 117, 125, 0.05);
+        opacity: 0.7;
+    }
+    
+    .class-item.substitute {
+        border-left-color: #fd7e14;
+        background-color: rgba(253, 126, 20, 0.05);
     }
     
     .class-time {
@@ -88,6 +100,20 @@
         font-size: 0.75rem;
         padding: 2px 5px;
     }
+    
+    .enrollment-info {
+        font-size: 0.7rem;
+        color: #28a745;
+        margin-top: 5px;
+    }
+    
+    .substitute-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
 </style>
 {% endblock %}
 
@@ -95,22 +121,28 @@
 <div class="container mt-5">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Моё расписание</h1>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold">Моё расписание</h4>
+                <div>
+                    <a href="{% url 'attendance:cancellation_requests_list' %}" class="btn btn-outline-primary position-relative">
+                        Запросы на отмену
+                        {% if pending_requests > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ pending_requests }}
+                            </span>
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'attendance:substitute_classes_list' %}" class="btn btn-outline-warning position-relative ms-2">
+                        Уроки замены
+                        {% if substitute_classes_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ substitute_classes_count }}
+                            </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
             <p class="text-muted fs-5">Управление расписанием и запросы на отмену уроков</p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{% url 'attendance:cancellation_requests_list' %}" class="btn btn-warning me-2">
-                <i class="bi bi-clock-history me-2"></i> Запросы на отмену
-                {% if pending_requests > 0 %}
-                <span class="badge bg-danger">{{ pending_requests }}</span>
-                {% endif %}
-            </a>
-            <a href="{% url 'attendance:substitute_classes_list' %}" class="btn btn-info">
-                <i class="bi bi-person-plus-fill me-2"></i> Уроки замены
-                {% if substitute_classes > 0 %}
-                <span class="badge bg-danger">{{ substitute_classes }}</span>
-                {% endif %}
-            </a>
         </div>
     </div>
 
@@ -125,7 +157,25 @@
 
     <div class="card mb-4 shadow-sm">
         <div class="card-body p-4">
-            <h4 class="fw-bold mb-4">Календарь занятий</h4>
+            <div class="mb-4">
+                <h4 class="fw-bold mb-2">Календарь занятий</h4>
+                <p class="text-muted mb-3">Период: {{ start_of_week|date:"d.m.Y" }} - {{ end_of_week|date:"d.m.Y" }}</p>
+                
+                <!-- Простая и надежная верстка для кнопок навигации -->
+                <div class="text-center mb-4">
+                    <div style="display: inline-block; border-radius: 30px; overflow: hidden; border: 1px solid #dee2e6;">
+                        <a href="{% url 'classes:teacher_schedule' %}?week_offset={{ prev_week_offset }}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd; border-right: 1px solid #dee2e6;">
+                            <i class="bi bi-chevron-left"></i> Предыдущая неделя
+                        </a>
+                        <a href="{% url 'classes:teacher_schedule' %}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #6c757d; border-right: 1px solid #dee2e6;">
+                            Сегодня
+                        </a>
+                        <a href="{% url 'classes:teacher_schedule' %}?week_offset={{ next_week_offset }}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd;">
+                            Следующая неделя <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
             
             <div class="calendar-container">
                 <div class="row calendar-header">
@@ -151,12 +201,22 @@
                             </div>
                             
                             {% for schedule_info in day.schedules %}
-                                <div class="class-item {% if schedule_info.cancellation_request %}{% if schedule_info.cancellation_request.status == 'approved' %}canceled{% elif schedule_info.cancellation_request.status == 'pending' %}pending-cancel{% endif %}{% endif %}">
-                                    <div class="class-time">
-                                        {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
-                                    </div>
-                                    <div class="class-name">{{ schedule_info.schedule.class_obj.name }}</div>
-                                    <div class="class-room">Кабинет: {{ schedule_info.schedule.room }}</div>
+                                <div class="class-item {% if schedule_info.cancellation_request %}{% if schedule_info.cancellation_request.status == 'approved' %}canceled{% elif schedule_info.cancellation_request.status == 'pending' %}pending-cancel{% endif %}{% endif %} {% if not schedule_info.has_students %}no-students{% endif %}">
+                                    <a href="{% url 'classes:lesson_detail' schedule_info.schedule.class_obj.id schedule_info.schedule.id day.date|date:'Y-m-d' %}" style="text-decoration: none; color: inherit;">
+                                        <div class="class-time">
+                                            {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
+                                        </div>
+                                        <div class="class-name">{{ schedule_info.schedule.class_obj.name }}</div>
+                                        <div class="class-room">Кабинет: {{ schedule_info.schedule.room }}</div>
+                                        {% if not schedule_info.has_students %}
+                                            <div class="enrollment-info text-muted">
+                                                <i class="bi bi-exclamation-circle"></i> Нет студентов на эту дату
+                                                {% if schedule_info.earliest_enrollment %}
+                                                    <br><small>Первое зачисление: {{ schedule_info.earliest_enrollment|date:"d.m.Y" }}</small>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </a>
                                     
                                     {% if schedule_info.cancellation_request %}
                                         {% if schedule_info.cancellation_request.status == 'approved' %}
@@ -168,15 +228,36 @@
                                         {% endif %}
                                     {% else %}
                                         {% if day.date >= today %}
-                                            <a href="{% url 'attendance:request_class_cancellation_date' schedule_info.schedule.class_obj.id day.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger mt-2">
-                                                Запросить отмену
-                                            </a>
+                                            <div class="text-center mt-2">
+                                                <a href="{% url 'attendance:request_class_cancellation_date' schedule_info.schedule.class_obj.id day.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger">
+                                                    Запросить отмену
+                                                </a>
+                                            </div>
                                         {% endif %}
                                     {% endif %}
                                 </div>
                             {% empty %}
-                                <div class="text-center text-muted mt-3">
-                                    <small>Нет занятий</small>
+                                {% if not day.substitute_schedules %}
+                                    <div class="text-center text-muted mt-3">
+                                        <small>Нет занятий</small>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- Отображаем уроки замены -->
+                            {% for substitute in day.substitute_schedules %}
+                                <div class="class-item substitute position-relative">
+                                    <a href="{% url 'attendance:mark_substitute_attendance' substitute.class_obj.id day.date|date:'Y-m-d' %}" style="text-decoration: none; color: inherit;">
+                                        <div class="class-time">
+                                            {{ substitute.schedule.start_time|time:"H:i" }} - {{ substitute.schedule.end_time|time:"H:i" }}
+                                        </div>
+                                        <div class="class-name">{{ substitute.class_obj.name }}</div>
+                                        <div class="class-room">Кабинет: {{ substitute.schedule.room }}</div>
+                                        <div class="enrollment-info text-warning">
+                                            <i class="bi bi-person-badge"></i> Вы назначены заменяющим учителем
+                                        </div>
+                                    </a>
+                                    <span class="badge bg-warning substitute-badge">Замена</span>
                                 </div>
                             {% endfor %}
                         </div>
@@ -185,6 +266,30 @@
             </div>
         </div>
     </div>
+    
+    {% if classes_without_schedule %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-4">Классы без расписания</h4>
+            <p class="text-muted">Эти классы прикреплены к вам, но для них еще не создано расписание занятий.</p>
+            
+            <div class="row mt-3">
+                {% for class in classes_without_schedule %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ class.name }}</h5>
+                            <p class="card-text text-muted">Цена за урок: {{ class.price_per_lesson }} ₸</p>
+                            <a href="{% url 'classes:class_detail' class.id %}" class="btn btn-sm btn-primary">Подробнее</a>
+                            <a href="{% url 'classes:add_schedule' class.id %}" class="btn btn-sm btn-success">Добавить расписание</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
     
     <div class="card mb-4 shadow-sm">
         <div class="card-body p-4">

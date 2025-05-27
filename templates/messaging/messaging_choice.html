@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Выбор типа рассылки{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Выбор типа рассылки</h1>
+            <p class="lead">Выберите платформу для создания новой рассылки</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- WhatsApp рассылка -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-whatsapp fa-2x"></i>
+                        </div>
+                        <h3 class="card-title mb-0">WhatsApp рассылка</h3>
+                    </div>
+                    <p class="card-text">Отправляйте сообщения через WhatsApp вашим студентам и их родителям. Поддерживает текст и медиа-файлы.</p>
+                    
+                    <div class="mt-3">
+                        <h5>Статистика</h5>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><i class="fas fa-paper-plane me-2"></i> Всего рассылок: {{ whatsapp_stats.total_broadcasts }}</p>
+                            </div>
+                            <div class="col-6">
+                                <p><i class="fas fa-comment me-2"></i> Всего сообщений: {{ whatsapp_stats.total_messages }}</p>
+                            </div>
+                            <div class="col-12">
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ whatsapp_stats.success_rate }}%;" aria-valuenow="{{ whatsapp_stats.success_rate }}" aria-valuemin="0" aria-valuemax="100">{{ whatsapp_stats.success_rate }}%</div>
+                                </div>
+                                <p class="small text-muted">Успешно доставлено: {{ whatsapp_stats.success_rate }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0">
+                    <a href="{% url 'messaging:whatsapp_dashboard' %}" class="btn btn-success w-100">
+                        <i class="fas fa-whatsapp me-2"></i> Перейти к WhatsApp рассылкам
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telegram рассылка -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary text-white rounded-circle p-3 me-3">
+                            <i class="fab fa-telegram-plane fa-2x"></i>
+                        </div>
+                        <h3 class="card-title mb-0">Telegram рассылка</h3>
+                    </div>
+                    <p class="card-text">Отправляйте сообщения через Telegram вашим студентам и их родителям. Поддерживает текст, медиа-файлы и интерактивные кнопки.</p>
+                    
+                    <div class="mt-3">
+                        <h5>Статистика</h5>
+                        <div class="row">
+                            <div class="col-6">
+                                <p><i class="fas fa-paper-plane me-2"></i> Всего рассылок: {{ telegram_stats.total_broadcasts }}</p>
+                            </div>
+                            <div class="col-6">
+                                <p><i class="fas fa-users me-2"></i> Пользователей: {{ telegram_stats.total_users }}</p>
+                            </div>
+                            <div class="col-6">
+                                <p><i class="fas fa-comment me-2"></i> Всего сообщений: {{ telegram_stats.total_messages }}</p>
+                            </div>
+                            <div class="col-6">
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ telegram_stats.success_rate }}%;" aria-valuenow="{{ telegram_stats.success_rate }}" aria-valuemin="0" aria-valuemax="100">{{ telegram_stats.success_rate }}%</div>
+                                </div>
+                                <p class="small text-muted">Успешно доставлено: {{ telegram_stats.success_rate }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0">
+                    <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-primary w-100">
+                        <i class="fab fa-telegram-plane me-2"></i> Перейти к Telegram рассылкам
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

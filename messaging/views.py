@@ -28,15 +28,35 @@ def inbox(request):
         last_message=Max('messages__content')
     ).order_by('-last_message_date')
     
-    # Получаем список администраторов и ресепшн для создания нового диалога
-    if request.user.is_parent:
-        admin_users = User.objects.filter(user_type__in=['admin', 'reception'])
-    else:
-        admin_users = None
+    # Получаем список пользователей для создания нового диалога
+    admin_users = User.objects.filter(user_type__in=['admin', 'reception'])
+    
+    # Для студентов добавляем их учителей
+    teacher_users = None
+    if request.user.is_student:
+        from classes.models import Enrollment
+        from accounts.models import Teacher
+        
+        # Получаем активные зачисления студента
+        student_classes = Enrollment.objects.filter(
+            student=request.user.student_profile, 
+            is_active=True
+        ).select_related('class_obj__teacher__user')
+        
+        # Получаем ID учителей
+        teacher_ids = set()
+        for enrollment in student_classes:
+            if enrollment.class_obj.teacher and enrollment.class_obj.teacher.user:
+                teacher_ids.add(enrollment.class_obj.teacher.user.id)
+        
+        # Получаем пользователей-учителей
+        if teacher_ids:
+            teacher_users = User.objects.filter(id__in=teacher_ids)
     
     context = {
         'conversations': conversations,
         'admin_users': admin_users,
+        'teacher_users': teacher_users,
     }
     
     return render(request, 'messaging/inbox.html', context)
@@ -111,11 +131,44 @@ def conversation_detail(request, conversation_id):
 def create_conversation(request):
     """Создает новый диалог"""
     
-    # Только родители и администраторы могут создавать диалоги
-    if not request.user.user_type in ['parent', 'admin', 'reception']:
-        return HttpResponseForbidden("У вас нет доступа к этой функции.")
+    # Подготовка списка получателей в зависимости от типа пользователя
+    recipients = []
     
-    if request.method == 'POST':
+    # Администраторы и ресепшн доступны всем пользователям
+    admin_users = User.objects.filter(user_type__in=['admin', 'reception'])
+    recipients.extend(admin_users)
+    
+    # Для студентов - добавляем их учителей
+    if request.user.is_student:
+        from classes.models import Enrollment
+        
+        # Получаем активные зачисления студента
+        student_classes = Enrollment.objects.filter(
+            student=request.user.student_profile, 
+            is_active=True
+        ).select_related('class_obj__teacher__user')
+        
+        # Получаем ID учителей
+        teacher_ids = set()
+        for enrollment in student_classes:
+            if enrollment.class_obj.teacher and enrollment.class_obj.teacher.user:
+                teacher_ids.add(enrollment.class_obj.teacher.user.id)
+        
+        # Получаем пользователей-учителей
+        if teacher_ids:
+            teacher_users = User.objects.filter(id__in=teacher_ids)
+            recipients.extend(teacher_users)
+    
+    # Разрешаем всем пользователям создавать диалоги с определенными ограничениями
+    
+    # Если GET-запрос, показываем форму создания диалога
+    if request.method == 'GET':
+        return render(request, 'messaging/create_conversation.html', {
+            'recipients': recipients
+        })
+    
+    # Если POST-запрос, обрабатываем форму
+    elif request.method == 'POST':
         recipient_id = request.POST.get('recipient')
         subject = request.POST.get('subject', '').strip()
         content = request.POST.get('content', '').strip()
@@ -132,9 +185,20 @@ def create_conversation(request):
             messages.error(request, "Указанный получатель не существует.")
             return redirect('messaging:inbox')
         
-        # Проверяем, что родитель может писать только администраторам и ресепшн
+        # Проверка ограничений для разных типов пользователей
         if request.user.is_parent and not recipient.user_type in ['admin', 'reception']:
             return HttpResponseForbidden("Родители могут создавать диалоги только с администрацией.")
+        
+        # Для студентов - проверяем, что они могут писать только своим учителям
+        if request.user.is_student:
+            # Получаем ID учителей, которые преподают студенту
+            from classes.models import Enrollment
+            student_classes = Enrollment.objects.filter(student=request.user.student_profile, is_active=True)
+            teacher_ids = [enrollment.class_obj.teacher.user.id for enrollment in student_classes]
+            
+            # Проверяем, что получатель - учитель студента или администратор/ресепшн
+            if not (recipient.id in teacher_ids or recipient.user_type in ['admin', 'reception']):
+                return HttpResponseForbidden("Студенты могут создавать диалоги только со своими учителями или администрацией.")
         
         # Создаем новый диалог
         conversation = Conversation.objects.create(subject=subject)

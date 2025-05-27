@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Сравнение лиц{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Сравнение лиц</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Эталонное фото</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="benchmarkContainer" style="display: none;">
+                        <img id="benchmarkImage" class="img-fluid mb-3" style="max-height: 300px;" alt="Эталонное фото">
+                        <button id="clearBenchmarkBtn" class="btn btn-outline-danger btn-sm">Очистить</button>
+                    </div>
+                    <div id="benchmarkCameraContainer">
+                        <video id="benchmarkVideo" width="100%" height="300" autoplay playsinline style="display: none;"></video>
+                        <canvas id="benchmarkCanvas" width="640" height="480" style="display: none;"></canvas>
+                        <button id="startBenchmarkCameraBtn" class="btn btn-primary">Включить камеру</button>
+                        <button id="takeBenchmarkPictureBtn" class="btn btn-success" disabled>Сделать фото</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Фото для проверки</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="checkContainer" style="display: none;">
+                        <img id="checkImage" class="img-fluid mb-3" style="max-height: 300px;" alt="Фото для проверки">
+                        <button id="clearCheckBtn" class="btn btn-outline-danger btn-sm">Очистить</button>
+                    </div>
+                    <div id="checkCameraContainer">
+                        <video id="checkVideo" width="100%" height="300" autoplay playsinline style="display: none;"></video>
+                        <canvas id="checkCanvas" width="640" height="480" style="display: none;"></canvas>
+                        <button id="startCheckCameraBtn" class="btn btn-primary">Включить камеру</button>
+                        <button id="takeCheckPictureBtn" class="btn btn-success" disabled>Сделать фото</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12 text-center">
+            <button id="compareBtn" class="btn btn-lg btn-primary" disabled>Сравнить фотографии</button>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Результат сравнения</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContainer" class="text-center">
+                        <p class="text-muted">Здесь будет отображаться результат сравнения</p>
+                    </div>
+                    <div id="compareSpinner" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Загрузка...</span>
+                        </div>
+                        <p>Сравнение...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5>Настройки сравнения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="confidenceThreshold">Порог уверенности:</label>
+                        <input type="range" class="form-control-range" id="confidenceThreshold" min="0.5" max="0.95" step="0.05" value="0.7">
+                        <div class="d-flex justify-content-between">
+                            <small>0.5 (Больше совпадений)</small>
+                            <small id="thresholdValue">0.7</small>
+                            <small>0.95 (Точнее)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Переменные для хранения данных
+        let benchmarkImageData = null;
+        let checkImageData = null;
+        let benchmarkStream = null;
+        let checkStream = null;
+        
+        // Обновление значения порога уверенности
+        $('#confidenceThreshold').on('input', function() {
+            $('#thresholdValue').text($(this).val());
+        });
+        
+        // Функции для работы с эталонным фото
+        $('#startBenchmarkCameraBtn').click(function() {
+            if ($('#benchmarkVideo').css('display') === 'none') {
+                // Включаем камеру
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(mediaStream) {
+                        benchmarkStream = mediaStream;
+                        $('#benchmarkVideo').get(0).srcObject = mediaStream;
+                        $('#benchmarkVideo').show();
+                        $('#takeBenchmarkPictureBtn').prop('disabled', false);
+                        $(this).text('Выключить камеру');
+                    }.bind(this))
+                    .catch(function(error) {
+                        console.error('Ошибка доступа к камере:', error);
+                        alert('Не удалось получить доступ к камере. Проверьте разрешения.');
+                    });
+            } else {
+                // Выключаем камеру
+                if (benchmarkStream) {
+                    benchmarkStream.getTracks().forEach(track => track.stop());
+                }
+                $('#benchmarkVideo').hide();
+                $(this).text('Включить камеру');
+                $('#takeBenchmarkPictureBtn').prop('disabled', true);
+            }
+        });
+        
+        $('#takeBenchmarkPictureBtn').click(function() {
+            if ($('#benchmarkVideo').css('display') !== 'none') {
+                const canvas = $('#benchmarkCanvas').get(0);
+                const video = $('#benchmarkVideo').get(0);
+                const context = canvas.getContext('2d');
+                
+                // Рисуем текущий кадр с видео на холсте
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Получаем изображение с холста
+                benchmarkImageData = canvas.toDataURL('image/jpeg');
+                
+                // Отображаем сделанное фото
+                $('#benchmarkImage').attr('src', benchmarkImageData);
+                $('#benchmarkContainer').show();
+                $('#benchmarkVideo').hide();
+                
+                // Выключаем камеру
+                if (benchmarkStream) {
+                    benchmarkStream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Меняем текст кнопки
+                $('#startBenchmarkCameraBtn').text('Включить камеру');
+                $('#takeBenchmarkPictureBtn').prop('disabled', true);
+                
+                // Проверяем, можно ли активировать кнопку сравнения
+                checkCompareButton();
+            }
+        });
+        
+        $('#clearBenchmarkBtn').click(function() {
+            $('#benchmarkContainer').hide();
+            benchmarkImageData = null;
+            $('#compareBtn').prop('disabled', true);
+        });
+        
+        // Функции для работы с фото для проверки
+        $('#startCheckCameraBtn').click(function() {
+            if ($('#checkVideo').css('display') === 'none') {
+                // Включаем камеру
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(mediaStream) {
+                        checkStream = mediaStream;
+                        $('#checkVideo').get(0).srcObject = mediaStream;
+                        $('#checkVideo').show();
+                        $('#takeCheckPictureBtn').prop('disabled', false);
+                        $(this).text('Выключить камеру');
+                    }.bind(this))
+                    .catch(function(error) {
+                        console.error('Ошибка доступа к камере:', error);
+                        alert('Не удалось получить доступ к камере. Проверьте разрешения.');
+                    });
+            } else {
+                // Выключаем камеру
+                if (checkStream) {
+                    checkStream.getTracks().forEach(track => track.stop());
+                }
+                $('#checkVideo').hide();
+                $(this).text('Включить камеру');
+                $('#takeCheckPictureBtn').prop('disabled', true);
+            }
+        });
+        
+        $('#takeCheckPictureBtn').click(function() {
+            if ($('#checkVideo').css('display') !== 'none') {
+                const canvas = $('#checkCanvas').get(0);
+                const video = $('#checkVideo').get(0);
+                const context = canvas.getContext('2d');
+                
+                // Рисуем текущий кадр с видео на холсте
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Получаем изображение с холста
+                checkImageData = canvas.toDataURL('image/jpeg');
+                
+                // Отображаем сделанное фото
+                $('#checkImage').attr('src', checkImageData);
+                $('#checkContainer').show();
+                $('#checkVideo').hide();
+                
+                // Выключаем камеру
+                if (checkStream) {
+                    checkStream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Меняем текст кнопки
+                $('#startCheckCameraBtn').text('Включить камеру');
+                $('#takeCheckPictureBtn').prop('disabled', true);
+                
+                // Проверяем, можно ли активировать кнопку сравнения
+                checkCompareButton();
+            }
+        });
+        
+        $('#clearCheckBtn').click(function() {
+            $('#checkContainer').hide();
+            checkImageData = null;
+            $('#compareBtn').prop('disabled', true);
+        });
+        
+        // Функция для проверки, можно ли активировать кнопку сравнения
+        function checkCompareButton() {
+            if (benchmarkImageData && checkImageData) {
+                $('#compareBtn').prop('disabled', false);
+            } else {
+                $('#compareBtn').prop('disabled', true);
+            }
+        }
+        
+        // Функция сравнения фотографий
+        $('#compareBtn').click(function() {
+            // Показываем спиннер загрузки
+            $('#resultContainer').hide();
+            $('#compareSpinner').show();
+            
+            // Получаем порог уверенности
+            const threshold = $('#confidenceThreshold').val();
+            
+            // Отправляем запрос на сервер
+            $.ajax({
+                url: '{% url "face_recognition_app:face_compare" %}',
+                type: 'POST',
+                data: JSON.stringify({
+                    benchmark_image: benchmarkImageData,
+                    check_image: checkImageData,
+                    threshold: threshold
+                }),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    // Скрываем спиннер
+                    $('#compareSpinner').hide();
+                    $('#resultContainer').show();
+                    
+                    // Отображаем результаты
+                    if (response.success) {
+                        let resultClass = response.match ? 'success' : 'danger';
+                        let resultText = response.match ? 'ДА' : 'НЕТ';
+                        let confidenceText = (response.confidence * 100).toFixed(2) + '%';
+                        
+                        let html = '<div class="alert alert-' + resultClass + ' text-center">' +
+                            '<h1 class="display-4">' + resultText + '</h1>' +
+                            '<p>Уверенность: ' + confidenceText + '</p>' +
+                            '</div>';
+                        
+                        $('#resultContainer').html(html);
+                    } else {
+                        $('#resultContainer').html(
+                            '<div class="alert alert-danger">' +
+                            '<h5>Ошибка сравнения</h5>' +
+                            '<p>' + response.message + '</p>' +
+                            '</div>'
+                        );
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Скрываем спиннер
+                    $('#compareSpinner').hide();
+                    $('#resultContainer').show();
+                    
+                    // Отображаем ошибку
+                    $('#resultContainer').html(
+                        '<div class="alert alert-danger">' +
+                        '<h5>Ошибка сервера</h5>' +
+                        '<p>Не удалось выполнить запрос: ' + error + '</p>' +
+                        '</div>'
+                    );
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Детали посещения{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'attendance:attendance_log' %}">Журнал посещений</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Детали посещения</li>
+                </ol>
+            </nav>
+            <h1 class="display-6 fw-bold mb-3">Детали посещения</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Информация о посещении</h5>
+                    <div class="mb-3">
+                        <strong>Студент:</strong> {{ attendance.student.full_name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Класс:</strong> {{ attendance.class_obj.name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Дата:</strong> {{ attendance.date|date:"d.m.Y" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Время:</strong> {{ attendance.class_schedule.start_time|time:"H:i" }} - {{ attendance.class_schedule.end_time|time:"H:i" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Кабинет:</strong> {{ attendance.class_schedule.room }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Статус:</strong> 
+                        <span class="badge bg-success">{{ attendance.get_status_display }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Подтверждено через Face ID:</strong> 
+                        <span class="badge bg-primary">Да</span>
+                    </div>
+                    {% if face_attendance %}
+                    <div class="mb-3">
+                        <strong>Уверенность распознавания:</strong> 
+                        {{ face_attendance.confidence|floatformat:2 }} ({{ face_attendance.confidence|floatformat:0 }}%)
+                    </div>
+                    <div class="mb-3">
+                        <strong>Время распознавания:</strong> 
+                        {{ face_attendance.timestamp|date:"d.m.Y H:i:s" }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Фотография с распознавания</h5>
+                    {% if has_image %}
+                        <div class="text-center">
+                            <img src="{{ image_url }}" alt="Фото с распознавания" class="img-fluid rounded mb-3" style="max-height: 400px;">
+                            <p class="text-muted small">Фотография, использованная для распознавания лица и подтверждения посещаемости</p>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{{ image_url }}" class="btn btn-outline-primary" target="_blank">
+                                <i class="bi bi-arrows-fullscreen me-2"></i> Открыть в полном размере
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+                            <p class="mt-3 text-muted">Фотография не сохранена</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

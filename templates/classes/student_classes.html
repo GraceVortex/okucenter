@@ -9,9 +9,14 @@
         <div class="col-md-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="display-5 fw-bold">Мои классы</h1>
-                <a href="{% url 'classes:unchecked_student_homework' %}" class="btn btn-warning">
-                    <i class="bi bi-exclamation-circle me-1"></i> Непроверенные задания
-                </a>
+                <div>
+                    <a href="{% url 'classes:student_past_lessons' %}" class="btn btn-primary me-2">
+                        <i class="bi bi-clock-history me-1"></i> Прошедшие уроки
+                    </a>
+                    <a href="{% url 'classes:unchecked_student_homework' %}" class="btn btn-warning">
+                        <i class="bi bi-exclamation-circle me-1"></i> Непроверенные задания
+                    </a>
+                </div>
             </div>
             <p class="text-muted fs-5">Просмотр ваших классов и расписания</p>
         </div>
@@ -24,6 +29,68 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
+    {% endif %}
+    
+    <!-- Предстоящие занятия -->
+    {% if upcoming_lessons %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Предстоящие занятия</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">Класс</th>
+                                    <th scope="col">Дата</th>
+                                    <th scope="col">Время</th>
+                                    <th scope="col">Кабинет</th>
+                                    <th scope="col">Учитель</th>
+                                    <th scope="col">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lesson in upcoming_lessons %}
+                                    <tr>
+                                        <td>{{ lesson.class.name }}</td>
+                                        <td>{{ lesson.date|date:"d.m.Y" }}</td>
+                                        <td>{{ lesson.schedule.start_time|time:"H:i" }} - {{ lesson.schedule.end_time|time:"H:i" }}</td>
+                                        <td>{{ lesson.schedule.room }}</td>
+                                        <td>{{ lesson.class.teacher.full_name }}</td>
+                                        <td>
+                                            {% if is_self_managed and lesson.can_cancel %}
+                                                <a href="{% url 'attendance:student_cancel_lesson' lesson.class.id lesson.schedule.id lesson.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-calendar-x me-1"></i> Отменить
+                                                </a>
+                                            {% elif is_self_managed and not lesson.can_cancel %}
+                                                <span class="badge bg-secondary">Нельзя отменить</span>
+                                                <small class="text-muted d-block">Менее 24 часов до начала</small>
+                                            {% elif not is_self_managed %}
+                                                <span class="badge bg-info">Отмена через родителя</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white p-3">
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        {% if is_self_managed %}
+                            <strong>Важно!</strong> Запрос на отмену занятия должен быть создан не менее чем за 24 часа до начала занятия. Вы можете просмотреть свои запросы на отмену в разделе <a href="{% url 'attendance:student_cancellation_requests' %}">Запросы на отмену</a>.
+                        {% else %}
+                            <strong>Важно!</strong> Для отмены занятия обратитесь к своему родителю. Запрос на отмену занятия должен быть создан не менее чем за 24 часа до начала занятия.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
     {% if classes_with_info %}

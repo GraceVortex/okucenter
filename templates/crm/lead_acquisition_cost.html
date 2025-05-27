@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Стоимость привлечения лидов{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Стоимость привлечения лидов</h1>
+        <div>
+            <a href="{% url 'crm:campaign_analytics' %}" class="btn btn-outline-primary">
+                <i class="bi bi-graph-up"></i> Аналитика кампаний
+            </a>
+            <a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Дашборд
+            </a>
+        </div>
+    </div>
+    
+    <!-- Выбор периода и сравнения -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="period" class="form-label">Период</label>
+                            <select name="period" id="period" class="form-select">
+                                <option value="current_month" {% if period == 'current_month' %}selected{% endif %}>Текущий месяц</option>
+                                <option value="last_month" {% if period == 'last_month' %}selected{% endif %}>Прошлый месяц</option>
+                                <option value="last_30_days" {% if period == 'last_30_days' %}selected{% endif %}>Последние 30 дней</option>
+                                <option value="last_90_days" {% if period == 'last_90_days' %}selected{% endif %}>Последние 90 дней</option>
+                                <option value="year_to_date" {% if period == 'year_to_date' %}selected{% endif %}>С начала года</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="comparison" class="form-label">Сравнить с</label>
+                            <select name="comparison" id="comparison" class="form-select">
+                                <option value="previous_period" {% if comparison == 'previous_period' %}selected{% endif %}>Предыдущий период</option>
+                                <option value="same_period_last_year" {% if comparison == 'same_period_last_year' %}selected{% endif %}>Тот же период год назад</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">Применить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Информация о выбранных периодах -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Текущий период</h5>
+                    <p class="card-text">{{ period_name }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Период сравнения</h5>
+                    <p class="card-text">{{ comparison_name }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Стоимость привлечения по кампаниям -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Стоимость привлечения лидов по кампаниям</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Кампания</th>
+                                    <th>Статус</th>
+                                    <th>Бюджет</th>
+                                    <th>Лидов</th>
+                                    <th>Стоимость привлечения</th>
+                                    <th>Изменение</th>
+                                    <th>Эффективность</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in campaign_lac_stats %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'crm:campaign_detail' stat.campaign.id %}">{{ stat.campaign.name }}</a>
+                                    </td>
+                                    <td>
+                                        {% if stat.campaign.status == 'planned' %}
+                                            <span class="badge bg-info">Запланирована</span>
+                                        {% elif stat.campaign.status == 'active' %}
+                                            <span class="badge bg-success">Активна</span>
+                                        {% elif stat.campaign.status == 'paused' %}
+                                            <span class="badge bg-warning">Приостановлена</span>
+                                        {% elif stat.campaign.status == 'completed' %}
+                                            <span class="badge bg-secondary">Завершена</span>
+                                        {% elif stat.campaign.status == 'cancelled' %}
+                                            <span class="badge bg-danger">Отменена</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ stat.current_budget|floatformat:0 }} ₸</td>
+                                    <td>{{ stat.current_leads_count }}</td>
+                                    <td>
+                                        {% if stat.current_lac > 0 %}
+                                            {{ stat.current_lac|floatformat:0 }} ₸
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.lac_change_percent != 0 %}
+                                            {% if stat.lac_change < 0 %}
+                                                <span class="text-success">-{{ stat.lac_change_percent|abs|floatformat:1 }}%</span>
+                                                <i class="bi bi-arrow-down-circle-fill text-success"></i>
+                                            {% else %}
+                                                <span class="text-danger">+{{ stat.lac_change_percent|floatformat:1 }}%</span>
+                                                <i class="bi bi-arrow-up-circle-fill text-danger"></i>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.current_lac > 0 %}
+                                            {% if stat.current_lac < 5000 %}
+                                                <span class="badge bg-success">Отличная</span>
+                                            {% elif stat.current_lac < 10000 %}
+                                                <span class="badge bg-primary">Хорошая</span>
+                                            {% elif stat.current_lac < 15000 %}
+                                                <span class="badge bg-warning">Средняя</span>
+                                            {% elif stat.current_lac < 20000 %}
+                                                <span class="badge bg-danger">Низкая</span>
+                                            {% else %}
+                                                <span class="badge bg-dark">Очень низкая</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.compare_lac > 0 %}
+                                            {{ stat.compare_lac|floatformat:0 }} ₸
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-3">
+                                        <p class="text-muted mb-0">Нет данных по кампаниям</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Сравнение стоимости привлечения по кампаниям</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="campaignLacChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Стоимость привлечения по источникам -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Стоимость привлечения лидов по источникам</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Источник</th>
+                                    <th>Лидов</th>
+                                    <th>Бюджет</th>
+                                    <th>Стоимость привлечения</th>
+                                    <th>Изменение</th>
+                                    <th>Эффективность</th>
+                                    <th>Сравнение</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in source_lac_stats %}
+                                <tr>
+                                    <td>{{ stat.source.name }}</td>
+                                    <td>{{ stat.current_leads_count }}</td>
+                                    <td>{{ stat.current_total_budget|floatformat:0 }} ₸</td>
+                                    <td>
+                                        {% if stat.current_lac > 0 %}
+                                            {{ stat.current_lac|floatformat:0 }} ₸
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.lac_change_percent != 0 %}
+                                            {% if stat.lac_change < 0 %}
+                                                <span class="text-success">-{{ stat.lac_change_percent|abs|floatformat:1 }}%</span>
+                                                <i class="bi bi-arrow-down-circle-fill text-success"></i>
+                                            {% else %}
+                                                <span class="text-danger">+{{ stat.lac_change_percent|floatformat:1 }}%</span>
+                                                <i class="bi bi-arrow-up-circle-fill text-danger"></i>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.current_lac > 0 %}
+                                            {% if stat.current_lac < 5000 %}
+                                                <span class="badge bg-success">Отличная</span>
+                                            {% elif stat.current_lac < 10000 %}
+                                                <span class="badge bg-primary">Хорошая</span>
+                                            {% elif stat.current_lac < 15000 %}
+                                                <span class="badge bg-warning">Средняя</span>
+                                            {% elif stat.current_lac < 20000 %}
+                                                <span class="badge bg-danger">Низкая</span>
+                                            {% else %}
+                                                <span class="badge bg-dark">Очень низкая</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.compare_lac > 0 %}
+                                            {{ stat.compare_lac|floatformat:0 }} ₸
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-3">
+                                        <p class="text-muted mb-0">Нет данных по источникам</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Сравнение стоимости привлечения по источникам</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="sourceLacChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Рекомендации -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Рекомендации по оптимизации</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Как снизить стоимость привлечения лидов:</h6>
+                        <ul class="mb-0">
+                            <li>Фокусируйтесь на источниках с наименьшей стоимостью привлечения</li>
+                            <li>Оптимизируйте рекламные кампании, отключая неэффективные каналы</li>
+                            <li>Улучшайте таргетирование для привлечения более качественных лидов</li>
+                            <li>Тестируйте разные креативы и сообщения для повышения конверсии</li>
+                            <li>Регулярно анализируйте эффективность каналов и перераспределяйте бюджет</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        margin: 0 auto;
+    }
+    
+    .table th, .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Данные для графика стоимости привлечения по кампаниям
+        const campaignLabels = [
+            {% for stat in campaign_lac_stats %}{% if stat.current_lac > 0 %}'{{ stat.campaign.name }}',{% endif %}{% endfor %}
+        ];
+        const campaignCurrentData = [
+            {% for stat in campaign_lac_stats %}{% if stat.current_lac > 0 %}{{ stat.current_lac }},{% endif %}{% endfor %}
+        ];
+        const campaignCompareData = [
+            {% for stat in campaign_lac_stats %}{% if stat.compare_lac > 0 %}{{ stat.compare_lac }},{% endif %}{% endfor %}
+        ];
+        
+        const campaignLacCtx = document.getElementById('campaignLacChart').getContext('2d');
+        const campaignLacChart = new Chart(campaignLacCtx, {
+            type: 'bar',
+            data: {
+                labels: campaignLabels,
+                datasets: [{
+                    label: 'Текущий период (₸)',
+                    data: campaignCurrentData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Период сравнения (₸)',
+                    data: campaignCompareData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Стоимость (₸)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw.toLocaleString()} ₸`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Данные для графика стоимости привлечения по источникам
+        const sourceLabels = [
+            {% for stat in source_lac_stats %}{% if stat.current_lac > 0 %}'{{ stat.source.name }}',{% endif %}{% endfor %}
+        ];
+        const sourceCurrentData = [
+            {% for stat in source_lac_stats %}{% if stat.current_lac > 0 %}{{ stat.current_lac }},{% endif %}{% endfor %}
+        ];
+        const sourceCompareData = [
+            {% for stat in source_lac_stats %}{% if stat.compare_lac > 0 %}{{ stat.compare_lac }},{% endif %}{% endfor %}
+        ];
+        
+        const sourceLacCtx = document.getElementById('sourceLacChart').getContext('2d');
+        const sourceLacChart = new Chart(sourceLacCtx, {
+            type: 'bar',
+            data: {
+                labels: sourceLabels,
+                datasets: [{
+                    label: 'Текущий период (₸)',
+                    data: sourceCurrentData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Период сравнения (₸)',
+                    data: sourceCompareData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Стоимость (₸)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw.toLocaleString()} ₸`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

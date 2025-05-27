@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Моя успеваемость - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 30px;
+    }
+    .grade-badge {
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        color: white;
+    }
+    .grade-a {background-color: #28a745;}
+    .grade-b {background-color: #17a2b8;}
+    .grade-c {background-color: #ffc107;}
+    .grade-d {background-color: #fd7e14;}
+    .grade-f {background-color: #dc3545;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Моя успеваемость</h1>
+            <p class="text-muted fs-5">Подробная статистика по вашим оценкам и прогрессу</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-2"></i> Вернуться в профиль
+            </a>
+        </div>
+    </div>
+
+    <!-- Общая статистика -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stat-card card h-100 border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(13, 110, 253, 0.2);">
+                            <i class="bi bi-graph-up fs-4 text-primary"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Средний балл</h5>
+                    </div>
+                    <h2 class="fw-bold mb-0">{{ average_grade|default:"-" }}</h2>
+                    <p class="text-muted mb-0">из 5 возможных</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card card h-100 border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(25, 135, 84, 0.2);">
+                            <i class="bi bi-calendar-check fs-4 text-success"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Посещаемость</h5>
+                    </div>
+                    <h2 class="fw-bold mb-0">{{ attendance_stats.attendance_rate|default:"-" }}%</h2>
+                    <p class="text-muted mb-0">{{ attendance_stats.present_count|default:"0" }} из {{ attendance_stats.total_count|default:"0" }} занятий</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card card h-100 border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(255, 153, 0, 0.2);">
+                            <i class="bi bi-journal-check fs-4 text-warning"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Домашние задания</h5>
+                    </div>
+                    <h2 class="fw-bold mb-0">{{ homework_stats.completion_rate|default:"-" }}%</h2>
+                    <p class="text-muted mb-0">{{ homework_stats.completed|default:"0" }} из {{ homework_stats.total|default:"0" }} заданий</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card card h-100 border-0">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-2 me-3" style="background-color: rgba(220, 53, 69, 0.2);">
+                            <i class="bi bi-award fs-4 text-danger"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0">Рейтинг</h5>
+                    </div>
+                    <h2 class="fw-bold mb-0">{{ student_rank|default:"-" }}</h2>
+                    <p class="text-muted mb-0">из {{ total_students|default:"0" }} студентов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Графики успеваемости -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Динамика оценок</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="chart-container">
+                        <canvas id="gradesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">Распределение оценок</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="chart-container">
+                        <canvas id="gradeDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по предметам -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white p-4">
+            <h4 class="fw-bold mb-0">Статистика по предметам</h4>
+        </div>
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="subjectsChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="fw-bold mb-3">Топ предметов</h5>
+                    <div class="list-group">
+                        {% if top_subjects %}
+                            {% for subject in top_subjects %}
+                            <div class="list-group-item border-0 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="grade-badge {% if subject.grade >= 5 %}grade-a{% elif subject.grade >= 4 %}grade-b{% elif subject.grade >= 3 %}grade-c{% elif subject.grade >= 2 %}grade-d{% else %}grade-f{% endif %} me-2">{{ subject.grade }}</span>
+                                    {{ subject.name }}
+                                </div>
+                                <span class="badge {% if subject.percentage >= 90 %}bg-success{% elif subject.percentage >= 75 %}bg-primary{% elif subject.percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %} rounded-pill">{{ subject.percentage }}%</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-3">
+                                Нет данных о предметах
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Домашние задания -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white p-4">
+            <h4 class="fw-bold mb-0">Статистика домашних заданий</h4>
+        </div>
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="homeworkCompletionChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="homeworkGradesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Посещаемость -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white p-4">
+            <h4 class="fw-bold mb-0">Посещаемость по месяцам</h4>
+        </div>
+        <div class="card-body p-4">
+            <div class="chart-container">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Парсим JSON-данные из контекста
+        let gradesData, gradeDistribution, subjectsChartData, attendanceChartData, homeworkCompletionData, homeworkGradesData;
+        
+        try {
+            gradesData = JSON.parse('{{ grades_data_json|escapejs }}');
+        } catch (e) {
+            console.error('Error parsing grades data:', e);
+            gradesData = {
+                labels: [],
+                datasets: [{
+                    label: 'Средний балл',
+                    data: [],
+                }]
+            };
+        }
+        
+        try {
+            gradeDistribution = JSON.parse('{{ grade_distribution_json|escapejs }}');
+        } catch (e) {
+            console.error('Error parsing grade distribution data:', e);
+            gradeDistribution = {
+                labels: ['Отлично (5)', 'Хорошо (4)', 'Удовлетворительно (3)', 'Неудовлетворительно (2)'],
+                data: [0, 0, 0, 0]
+            };
+        }
+        
+        try {
+            subjectsChartData = JSON.parse('{{ subjects_chart_data_json|escapejs }}');
+        } catch (e) {
+            console.error('Error parsing subjects chart data:', e);
+            subjectsChartData = {
+                labels: [],
+                data: []
+            };
+        }
+        
+        try {
+            attendanceChartData = JSON.parse('{{ attendance_chart_data_json|escapejs }}');
+        } catch (e) {
+            console.error('Error parsing attendance chart data:', e);
+            attendanceChartData = {
+                labels: [],
+                data: []
+            };
+        }
+        
+        try {
+            homeworkCompletionData = JSON.parse('{{ homework_completion_data_json|escapejs }}');
+        } catch (e) {
+            console.error('Error parsing homework completion data:', e);
+            homeworkCompletionData = {
+                labels: [],
+                on_time: [],
+                late: [],
+                not_completed: []
+            };
+        }
+        
+        try {
+            homeworkGradesData = JSON.parse('{{ homework_grades_data_json|escapejs }}');
+        } catch (e) {
+            console.error('Error parsing homework grades data:', e);
+            homeworkGradesData = {
+                labels: [],
+                data: []
+            };
+        }
+        
+        // Динамика оценок
+        const gradesCtx = document.getElementById('gradesChart').getContext('2d');
+        const gradesChart = new Chart(gradesCtx, {
+            type: 'line',
+            data: {
+                labels: gradesData.labels,
+                datasets: [{
+                    label: gradesData.datasets[0].label,
+                    data: gradesData.datasets[0].data,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Распределение оценок
+        const gradeDistCtx = document.getElementById('gradeDistributionChart').getContext('2d');
+        const gradeDistChart = new Chart(gradeDistCtx, {
+            type: 'doughnut',
+            data: {
+                labels: gradeDistribution.labels,
+                datasets: [{
+                    data: gradeDistribution.data,
+                    backgroundColor: [
+                        '#28a745',
+                        '#17a2b8',
+                        '#ffc107',
+                        '#dc3545'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+
+        // Статистика по предметам
+        const subjectsCtx = document.getElementById('subjectsChart').getContext('2d');
+        const subjectsChart = new Chart(subjectsCtx, {
+            type: 'radar',
+            data: {
+                labels: subjectsChartData.labels,
+                datasets: [{
+                    label: 'Успеваемость (%)',
+                    data: subjectsChartData.data,
+                    backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                    borderColor: '#0d6efd',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+
+        // Статистика домашних заданий (выполнение)
+        const homeworkCompCtx = document.getElementById('homeworkCompletionChart').getContext('2d');
+        const homeworkCompChart = new Chart(homeworkCompCtx, {
+            type: 'bar',
+            data: {
+                labels: homeworkCompletionData.labels,
+                datasets: [{
+                    label: 'Выполнено вовремя',
+                    data: homeworkCompletionData.on_time,
+                    backgroundColor: '#28a745',
+                    stack: 'Stack 0',
+                }, {
+                    label: 'Выполнено с опозданием',
+                    data: homeworkCompletionData.late,
+                    backgroundColor: '#ffc107',
+                    stack: 'Stack 0',
+                }, {
+                    label: 'Не выполнено',
+                    data: homeworkCompletionData.not_completed,
+                    backgroundColor: '#dc3545',
+                    stack: 'Stack 0',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true
+                    }
+                }
+            }
+        });
+
+        // Статистика домашних заданий (оценки)
+        const homeworkGradesCtx = document.getElementById('homeworkGradesChart').getContext('2d');
+        const homeworkGradesChart = new Chart(homeworkGradesCtx, {
+            type: 'bar',
+            data: {
+                labels: homeworkGradesData.labels,
+                datasets: [{
+                    label: 'Средний балл за домашние задания',
+                    data: homeworkGradesData.data,
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(23, 162, 184, 0.8)',
+                        'rgba(13, 110, 253, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
+                    ],
+                    borderColor: [
+                        '#28a745',
+                        '#17a2b8',
+                        '#0d6efd',
+                        '#ffc107',
+                        '#dc3545'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5
+                    }
+                }
+            }
+        });
+
+        // Посещаемость по месяцам
+        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+        const attendanceChart = new Chart(attendanceCtx, {
+            type: 'line',
+            data: {
+                labels: attendanceChartData.labels,
+                datasets: [{
+                    label: 'Посещаемость (%)',
+                    data: attendanceChartData.data,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

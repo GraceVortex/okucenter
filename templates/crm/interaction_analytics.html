@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Аналитика взаимодействий{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Аналитика взаимодействий с лидами</h1>
+        <div>
+            <a href="{% url 'crm:campaign_analytics' %}" class="btn btn-outline-primary">
+                <i class="bi bi-graph-up"></i> Аналитика кампаний
+            </a>
+            <a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Дашборд
+            </a>
+        </div>
+    </div>
+    
+    <!-- Динамика взаимодействий -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Динамика взаимодействий за последние 30 дней</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="interactionsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Статистика по типам и результатам -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Типы взаимодействий</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Тип</th>
+                                            <th>Количество</th>
+                                            <th>Процент</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for type in interaction_types %}
+                                        <tr>
+                                            <td>
+                                                {% if type.interaction_type == 'call' %}
+                                                    <span class="badge bg-primary">Звонок</span>
+                                                {% elif type.interaction_type == 'email' %}
+                                                    <span class="badge bg-info">Email</span>
+                                                {% elif type.interaction_type == 'meeting' %}
+                                                    <span class="badge bg-success">Встреча</span>
+                                                {% elif type.interaction_type == 'social' %}
+                                                    <span class="badge bg-warning">Соц. сети</span>
+                                                {% elif type.interaction_type == 'other' %}
+                                                    <span class="badge bg-secondary">Другое</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ type.count }}</td>
+                                            <td>
+                                                {% widthratio type.count interaction_types.0.count 100 %}%
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center py-3">
+                                                <p class="text-muted mb-0">Нет данных</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="chart-container" style="position: relative; height:200px;">
+                                <canvas id="typesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Результаты взаимодействий</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Результат</th>
+                                            <th>Количество</th>
+                                            <th>Процент</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for result in interaction_results %}
+                                        <tr>
+                                            <td>
+                                                {% if result.result == 'positive' %}
+                                                    <span class="badge bg-success">Положительный</span>
+                                                {% elif result.result == 'negative' %}
+                                                    <span class="badge bg-danger">Отрицательный</span>
+                                                {% elif result.result == 'neutral' %}
+                                                    <span class="badge bg-secondary">Нейтральный</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ result.count }}</td>
+                                            <td>
+                                                {% widthratio result.count interaction_results.0.count 100 %}%
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center py-3">
+                                                <p class="text-muted mb-0">Нет данных</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="chart-container" style="position: relative; height:200px;">
+                                <canvas id="resultsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Эффективность маркетологов -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Эффективность маркетологов</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Маркетолог</th>
+                                    <th>Всего взаимодействий</th>
+                                    <th>Положительных</th>
+                                    <th>Нейтральных</th>
+                                    <th>Отрицательных</th>
+                                    <th>Эффективность</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in marketer_stats %}
+                                <tr>
+                                    <td>{{ stat.created_by__first_name }} {{ stat.created_by__last_name }}</td>
+                                    <td>{{ stat.count }}</td>
+                                    <td>{{ stat.positive_count }}</td>
+                                    <td>{{ stat.neutral_count }}</td>
+                                    <td>{{ stat.negative_count }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar {% if stat.positive_percentage >= 70 %}bg-success{% elif stat.positive_percentage >= 50 %}bg-info{% elif stat.positive_percentage >= 30 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ stat.positive_percentage }}%;" aria-valuenow="{{ stat.positive_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ stat.positive_percentage }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-3">
+                                        <p class="text-muted mb-0">Нет данных по маркетологам</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Рекомендации -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Рекомендации по улучшению взаимодействий</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Как повысить эффективность взаимодействий:</h6>
+                        <ul class="mb-0">
+                            <li>Анализируйте наиболее эффективные типы взаимодействий и используйте их чаще</li>
+                            <li>Проводите обучение маркетологов, показывающих низкую эффективность</li>
+                            <li>Разработайте скрипты для различных сценариев взаимодействия с лидами</li>
+                            <li>Регулярно проводите анализ причин отрицательных результатов</li>
+                            <li>Внедрите систему мотивации маркетологов, основанную на эффективности взаимодействий</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress {
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+    
+    .chart-container {
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Данные для графика динамики взаимодействий
+        const interactionsCtx = document.getElementById('interactionsChart').getContext('2d');
+        const interactionsChart = new Chart(interactionsCtx, {
+            type: 'line',
+            data: {
+                labels: [{% for date in dates %}'{{ date }}',{% endfor %}],
+                datasets: [{
+                    label: 'Количество взаимодействий',
+                    data: [{% for count in interaction_counts %}{{ count }},{% endfor %}],
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+        
+        // Данные для графика типов взаимодействий
+        const typesCtx = document.getElementById('typesChart').getContext('2d');
+        const typesChart = new Chart(typesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    {% for type in interaction_types %}
+                        {% if type.interaction_type == 'call' %}
+                            'Звонок',
+                        {% elif type.interaction_type == 'email' %}
+                            'Email',
+                        {% elif type.interaction_type == 'meeting' %}
+                            'Встреча',
+                        {% elif type.interaction_type == 'social' %}
+                            'Соц. сети',
+                        {% elif type.interaction_type == 'other' %}
+                            'Другое',
+                        {% endif %}
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [{% for type in interaction_types %}{{ type.count }},{% endfor %}],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(153, 102, 255, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Данные для графика результатов взаимодействий
+        const resultsCtx = document.getElementById('resultsChart').getContext('2d');
+        const resultsChart = new Chart(resultsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    {% for result in interaction_results %}
+                        {% if result.result == 'positive' %}
+                            'Положительный',
+                        {% elif result.result == 'negative' %}
+                            'Отрицательный',
+                        {% elif result.result == 'neutral' %}
+                            'Нейтральный',
+                        {% endif %}
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [{% for result in interaction_results %}{{ result.count }},{% endfor %}],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(108, 117, 125, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(108, 117, 125, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

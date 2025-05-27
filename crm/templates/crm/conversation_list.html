@@ -1,0 +1,173 @@
+{% extends 'crm/crm_base.html' %}
+{% load static %}
+
+{% block crm_content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-crm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Беседы</h5>
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-funnel"></i> Фильтр
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><h6 class="dropdown-header">Каналы связи</h6></li>
+            <li><a class="dropdown-item {% if not channel %}active{% endif %}" href="{% url 'crm:conversation_list' %}?is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}">Все каналы</a></li>
+            {% for ch_code, ch_name in channel_choices %}
+            <li><a class="dropdown-item {% if channel == ch_code %}active{% endif %}" href="{% url 'crm:conversation_list' %}?channel={{ ch_code }}&is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ ch_name }}</a></li>
+            {% endfor %}
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header">Статус</h6></li>
+            <li><a class="dropdown-item {% if is_active == 'true' %}active{% endif %}" href="{% url 'crm:conversation_list' %}?{% if channel %}channel={{ channel }}&{% endif %}is_active=true{% if search_query %}&q={{ search_query }}{% endif %}">Активные</a></li>
+            <li><a class="dropdown-item {% if is_active == 'false' %}active{% endif %}" href="{% url 'crm:conversation_list' %}?{% if channel %}channel={{ channel }}&{% endif %}is_active=false{% if search_query %}&q={{ search_query }}{% endif %}">Неактивные</a></li>
+            <li><a class="dropdown-item {% if is_active == 'archived' %}active{% endif %}" href="{% url 'crm:conversation_list' %}?{% if channel %}channel={{ channel }}&{% endif %}is_active=archived{% if search_query %}&q={{ search_query }}{% endif %}">Архивные</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Поиск -->
+        <div class="row mb-4">
+          <div class="col-md-6 offset-md-3">
+            <form method="get" class="d-flex">
+              {% if channel %}<input type="hidden" name="channel" value="{{ channel }}">{% endif %}
+              <input type="hidden" name="is_active" value="{{ is_active }}">
+              <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Поиск по имени, телефону или email..." value="{{ search_query }}">
+                <button type="submit" class="btn btn-outline-secondary">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        
+        <!-- Список бесед -->
+        <div class="chat-container">
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <h6 class="mb-0">Список бесед</h6>
+            </div>
+            <div class="chat-sidebar-body">
+              {% for conversation in conversations %}
+              <div class="chat-conversation-item {% if conversation.id == active_conversation.id %}active{% endif %}" onclick="window.location.href='{% url 'crm:conversation_detail' conversation.id %}'">
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    {% if conversation.channel == 'whatsapp' %}
+                    <i class="bi bi-whatsapp text-success fs-4"></i>
+                    {% elif conversation.channel == 'instagram' %}
+                    <i class="bi bi-instagram text-danger fs-4"></i>
+                    {% elif conversation.channel == 'telegram' %}
+                    <i class="bi bi-telegram text-primary fs-4"></i>
+                    {% elif conversation.channel == 'email' %}
+                    <i class="bi bi-envelope text-warning fs-4"></i>
+                    {% elif conversation.channel == 'sms' %}
+                    <i class="bi bi-chat-text text-info fs-4"></i>
+                    {% else %}
+                    <i class="bi bi-chat fs-4"></i>
+                    {% endif %}
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">{{ conversation.contact.full_name }}</h6>
+                      <small class="text-muted">{{ conversation.last_message_at|date:"H:i" }}</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">{{ conversation.get_channel_display }}</small>
+                      {% if conversation.get_unread_messages_count > 0 %}
+                      <span class="badge bg-danger rounded-pill">{{ conversation.get_unread_messages_count }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="text-center p-4">
+                <p class="text-muted">Нет активных бесед</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="chat-main">
+            <div class="chat-header">
+              <h6 class="mb-0">Выберите беседу из списка</h6>
+            </div>
+            <div class="chat-body">
+              <div class="text-center p-5">
+                <i class="bi bi-chat-dots text-muted" style="font-size: 4rem;"></i>
+                <h5 class="mt-3">Выберите беседу</h5>
+                <p class="text-muted">Выберите беседу из списка слева, чтобы просмотреть сообщения</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if conversations.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+          <ul class="pagination justify-content-center">
+            {% if conversations.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page=1{% if channel %}&channel={{ channel }}{% endif %}&is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ conversations.previous_page_number }}{% if channel %}&channel={{ channel }}{% endif %}&is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% endif %}
+            
+            {% for i in conversations.paginator.page_range %}
+              {% if conversations.number == i %}
+              <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+              {% elif i > conversations.number|add:'-3' and i < conversations.number|add:'3' %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ i }}{% if channel %}&channel={{ channel }}{% endif %}&is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ i }}</a>
+              </li>
+              {% endif %}
+            {% endfor %}
+            
+            {% if conversations.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ conversations.next_page_number }}{% if channel %}&channel={{ channel }}{% endif %}&is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ conversations.paginator.num_pages }}{% if channel %}&channel={{ channel }}{% endif %}&is_active={{ is_active }}{% if search_query %}&q={{ search_query }}{% endif %}" aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

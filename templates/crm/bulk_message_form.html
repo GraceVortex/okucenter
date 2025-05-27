@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Массовая рассылка сообщений{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Массовая рассылка сообщений</h1>
+        <div>
+            <a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Дашборд
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Новая рассылка</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'crm:send_bulk_messages' %}" id="bulkMessageForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="account_id" class="form-label">Аккаунт WhatsApp</label>
+                            <select name="account_id" id="account_id" class="form-select" required>
+                                <option value="">Выберите аккаунт</option>
+                                {% for account in whatsapp_accounts %}
+                                    <option value="{{ account.id }}">{{ account.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="message_text" class="form-label">Текст сообщения</label>
+                            <textarea name="message_text" id="message_text" class="form-control" rows="5" required></textarea>
+                            <div class="form-text">
+                                Вы можете использовать следующие переменные: {имя}, {фамилия}, {телефон}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="source_filter" class="form-label">Источник лида</label>
+                                <select name="source_filter" id="source_filter" class="form-select filter-select">
+                                    <option value="">Все источники</option>
+                                    {% for source in lead_sources %}
+                                        <option value="{{ source }}">{{ source }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="stage_filter" class="form-label">Этап продажи</label>
+                                <select name="stage_filter" id="stage_filter" class="form-select filter-select">
+                                    <option value="">Все этапы</option>
+                                    {% for stage in sale_stages %}
+                                        <option value="{{ stage }}">{{ stage }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="status_filter" class="form-label">Статус лида</label>
+                                <select name="status_filter" id="status_filter" class="form-select filter-select">
+                                    <option value="">Все статусы</option>
+                                    <option value="new">Новый</option>
+                                    <option value="in_progress">В работе</option>
+                                    <option value="qualified">Квалифицирован</option>
+                                    <option value="converted">Конвертирован</option>
+                                    <option value="lost">Потерян</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" id="previewButton" class="btn btn-outline-primary">
+                                <i class="bi bi-eye"></i> Предварительный просмотр
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Отправить сообщения
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Получатели</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recipientsPreview">
+                        <p class="text-center text-muted">
+                            Нажмите "Предварительный просмотр" для отображения списка получателей
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Рекомендации</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <h6 class="alert-heading">Советы по рассылке:</h6>
+                        <ul class="mb-0">
+                            <li>Персонализируйте сообщения с помощью переменных</li>
+                            <li>Используйте короткие и понятные сообщения</li>
+                            <li>Избегайте спам-слов и чрезмерного использования заглавных букв</li>
+                            <li>Включайте призыв к действию</li>
+                            <li>Проверяйте список получателей перед отправкой</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для предварительного просмотра -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">Предварительный просмотр получателей</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="previewContent">
+                        <p class="text-center">Загрузка данных...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewButton = document.getElementById('previewButton');
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        const previewContent = document.getElementById('previewContent');
+        const recipientsPreview = document.getElementById('recipientsPreview');
+        
+        // Обработчик для кнопки предварительного просмотра
+        previewButton.addEventListener('click', function() {
+            // Получаем значения фильтров
+            const sourceFilter = document.getElementById('source_filter').value;
+            const stageFilter = document.getElementById('stage_filter').value;
+            const statusFilter = document.getElementById('status_filter').value;
+            
+            // Формируем URL для запроса
+            let url = `{% url 'crm:preview_recipients' %}?`;
+            if (sourceFilter) url += `source_filter=${encodeURIComponent(sourceFilter)}&`;
+            if (stageFilter) url += `stage_filter=${encodeURIComponent(stageFilter)}&`;
+            if (statusFilter) url += `status_filter=${encodeURIComponent(statusFilter)}`;
+            
+            // Отправляем AJAX-запрос
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Обновляем содержимое модального окна
+                    let modalContent = '';
+                    let sidebarContent = '';
+                    
+                    if (data.total_count > 0) {
+                        modalContent = `
+                            <p>Всего получателей: <strong>${data.total_count}</strong></p>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ФИО</th>
+                                            <th>Телефон</th>
+                                            <th>Источник</th>
+                                            <th>Этап</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        data.recipients.forEach(recipient => {
+                            modalContent += `
+                                <tr>
+                                    <td>${recipient.name}</td>
+                                    <td>${recipient.phone}</td>
+                                    <td>${recipient.source}</td>
+                                    <td>${recipient.stage}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        modalContent += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        
+                        if (data.total_count > data.preview_count) {
+                            modalContent += `<p class="text-muted">Показаны первые ${data.preview_count} из ${data.total_count} получателей</p>`;
+                        }
+                        
+                        // Содержимое для боковой панели
+                        sidebarContent = `
+                            <div class="text-center mb-3">
+                                <h3>${data.total_count}</h3>
+                                <p class="text-muted mb-0">Получателей</p>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#previewModal">
+                                    <i class="bi bi-list-ul"></i> Просмотреть список
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        modalContent = `<p class="text-center">Нет получателей, соответствующих выбранным критериям</p>`;
+                        sidebarContent = `<p class="text-center text-muted">Нет получателей, соответствующих выбранным критериям</p>`;
+                    }
+                    
+                    previewContent.innerHTML = modalContent;
+                    recipientsPreview.innerHTML = sidebarContent;
+                    
+                    // Открываем модальное окно
+                    previewModal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    previewContent.innerHTML = `<p class="text-center text-danger">Ошибка при загрузке данных</p>`;
+                    previewModal.show();
+                });
+        });
+        
+        // Обновление предварительного просмотра при изменении фильтров
+        document.querySelectorAll('.filter-select').forEach(select => {
+            select.addEventListener('change', function() {
+                // Сбрасываем содержимое предварительного просмотра
+                recipientsPreview.innerHTML = `
+                    <p class="text-center text-muted">
+                        Нажмите "Предварительный просмотр" для отображения списка получателей
+                    </p>
+                `;
+            });
+        });
+    });
+</script>
+{% endblock %}

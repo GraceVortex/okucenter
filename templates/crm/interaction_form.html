@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Добавление взаимодействия{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Добавление взаимодействия</h1>
+        <a href="{% url 'crm:lead_detail' lead.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> К деталям лида
+        </a>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Лид: {{ lead.full_name }}</h5>
+            <p class="text-muted mb-0">{{ lead.phone_number }}</p>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" class="row g-3">
+                {% csrf_token %}
+                
+                <div class="col-md-4">
+                    <label for="interaction_type" class="form-label">Тип взаимодействия <span class="text-danger">*</span></label>
+                    <select name="interaction_type" id="interaction_type" class="form-select" required>
+                        <option value="">Выберите тип</option>
+                        {% for type_key, type_name in interaction_types.items %}
+                            <option value="{{ type_key }}">{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="date_time" class="form-label">Дата и время <span class="text-danger">*</span></label>
+                    <input type="datetime-local" name="date_time" id="date_time" class="form-control" required value="{{ now|date:'Y-m-d\TH:i' }}">
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="duration" class="form-label">Длительность (в минутах)</label>
+                    <input type="number" name="duration" id="duration" class="form-control" min="1" max="240">
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="result" class="form-label">Результат <span class="text-danger">*</span></label>
+                    <select name="result" id="result" class="form-select" required>
+                        <option value="">Выберите результат</option>
+                        {% for result_key, result_name in interaction_results.items %}
+                            <option value="{{ result_key }}">{{ result_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="notes" class="form-label">Примечания</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="4"></textarea>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="attachment" class="form-label">Вложение</label>
+                    <input type="file" name="attachment" id="attachment" class="form-control">
+                    <div class="form-text">Вы можете прикрепить скриншот переписки, запись разговора или другие файлы (макс. 10 МБ)</div>
+                </div>
+                
+                <div class="col-12 mt-4 d-flex justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="history.back()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить взаимодействие</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Устанавливаем текущую дату и время по умолчанию
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!document.getElementById('date_time').value) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            document.getElementById('date_time').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        
+        // Устанавливаем значения по умолчанию в зависимости от типа взаимодействия
+        document.getElementById('interaction_type').addEventListener('change', function() {
+            const type = this.value;
+            const durationInput = document.getElementById('duration');
+            
+            if (type === 'call') {
+                durationInput.value = '5'; // 5 минут для звонка по умолчанию
+            } else if (type === 'meeting') {
+                durationInput.value = '60'; // 60 минут для встречи по умолчанию
+            } else {
+                durationInput.value = ''; // Сбрасываем для других типов
+            }
+        });
+    });
+</script>
+{% endblock %}

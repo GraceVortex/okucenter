@@ -77,9 +77,13 @@ def teacher_classes(request):
             'unchecked_homework': unchecked_homework_count
         })
     
+    # Получаем текущую дату для передачи в шаблон
+    today = timezone.now().date()
+    
     return render(request, 'classes/teacher_classes.html', {
         'classes_with_info': classes_with_info,
-        'teacher': teacher
+        'teacher': teacher,
+        'today': today
     })
 
 @login_required
@@ -1161,6 +1165,26 @@ def teacher_schedule(request):
     # Начало недели с учетом смещения
     start_of_week = current_week_start + timedelta(weeks=week_offset)
     
+    # Инициализируем словари для уроков замены
+    substitute_classes_dict = {}
+    
+    # Получаем уроки замены для учителя из модели SubstituteClass, если она существует
+    try:
+        from classes.models import SubstituteClass
+        substitute_classes = SubstituteClass.objects.filter(
+            substitute_teacher=teacher,
+            date__gte=start_of_week,
+            date__lt=start_of_week + timedelta(days=14)
+        ).select_related('class_obj', 'original_schedule')
+        
+        # Группируем уроки замены по дате, классу и расписанию
+        for sub_class in substitute_classes:
+            key = (sub_class.date, sub_class.class_obj.id, sub_class.original_schedule.id)
+            substitute_classes_dict[key] = sub_class
+    except ImportError:
+        # Если модель SubstituteClass не существует, просто продолжаем с пустым словарем
+        pass
+    
     # Создаем календарь на 2 недели (текущую и следующую)
     calendar_days = []
     for i in range(14):
@@ -1186,7 +1210,11 @@ def teacher_schedule(request):
                 if class_id in enrollment_dates and enrollment_dates[class_id]['earliest_date']:
                     earliest_enrollment = enrollment_dates[class_id]['earliest_date']
                     # Проверяем, что дата урока не раньше самой ранней даты зачисления
-                    has_students = day.date() >= earliest_enrollment.date()
+                    # Проверяем, что дата урока не раньше самой ранней даты зачисления
+                    # Приводим объекты к типу date
+                    day_date = day.date() if hasattr(day, 'date') else day
+                    enrollment_date = earliest_enrollment.date() if hasattr(earliest_enrollment, 'date') else earliest_enrollment
+                    has_students = day_date >= enrollment_date
                 
                 day_schedules.append({
                     'schedule': schedule,
@@ -1196,12 +1224,13 @@ def teacher_schedule(request):
                 })
         
         # Добавляем уроки замены для этого дня
-        for key, substitute_class in substitute_classes_by_date.items():
+        for key, substitute_class in substitute_classes_dict.items():
             substitute_date, _, _ = key
-            if substitute_date == day.date():
+            day_date = day.date() if hasattr(day, 'date') else day
+            if substitute_date == day_date:
                 substitute_schedules.append({
-                    'class_obj': substitute_class['class_obj'],
-                    'schedule': substitute_class['class_schedule'],
+                    'class_obj': substitute_class.class_obj,
+                    'schedule': substitute_class.original_schedule,
                     'is_substitute': True
                 })
         
@@ -1236,17 +1265,17 @@ def teacher_schedule(request):
     ).select_related('class_obj', 'class_schedule').order_by('date', 'class_schedule__start_time')
     
     # Группируем уроки замены по дате и классу
-    substitute_classes_by_date = {}
+    attendance_by_date = {}
     for attendance in substitute_attendances:
         key = (attendance.date, attendance.class_obj.id, attendance.class_schedule.id)
-        if key not in substitute_classes_by_date:
-            substitute_classes_by_date[key] = {
+        if key not in attendance_by_date:
+            attendance_by_date[key] = {
                 'date': attendance.date,
                 'class_obj': attendance.class_obj,
                 'class_schedule': attendance.class_schedule,
                 'attendances': []
             }
-        substitute_classes_by_date[key]['attendances'].append(attendance)
+        attendance_by_date[key]['attendances'].append(attendance)
     
     context = {
         'calendar_days': calendar_days,
@@ -1351,7 +1380,7 @@ def lesson_detail(request, class_id, schedule_id, date):
     for student in students:
         # Проверяем, что дата урока не раньше даты зачисления студента
         student_enrollment = next((e for e in enrollments if e.student_id == student.id), None)
-        if student_enrollment and student_enrollment.enrollment_date <= lesson_date:
+        if student_enrollment and student_enrollment.enrollment_date.date() <= lesson_date:
             attendance = attendance_dict.get(student.id)
             mark = mark_dict.get(student.id)
             
@@ -2240,23 +2269,132 @@ def parent_child_homework(request, student_id):
         messages.error(request, 'Студент не найден или не принадлежит вам.')
         return redirect('accounts:parent_dashboard')
     
-    # Получаем все сдачи домашних заданий студента
-    submissions = HomeworkSubmission.objects.filter(student=student).order_by('-submission_date')
+    # Получаем все активные зачисления студента
+    enrollments = Enrollment.objects.filter(student=student, is_active=True).select_related('class_obj', 'class_obj__teacher')
     
-    # Группируем сдачи по классам
-    submissions_by_class = {}
-    for submission in submissions:
-        class_id = submission.homework.class_obj.id
-        if class_id not in submissions_by_class:
-            submissions_by_class[class_id] = []
-        submissions_by_class[class_id].append(submission)
+    # Получаем все домашние задания для классов студента
+    classes_data = []
+    for enrollment in enrollments:
+        class_obj = enrollment.class_obj
+        homeworks = Homework.objects.filter(class_obj=class_obj).order_by('-due_date')
+        
+        # Получаем все сданные работы студента для этого класса
+        submissions = HomeworkSubmission.objects.filter(
+            student=student,
+            homework__class_obj=class_obj
+        ).select_related('homework')
+        
+        # Создаем словарь для быстрого доступа к сданным работам по ID домашнего задания
+        submissions_dict = {}
+        for submission in submissions:
+            submissions_dict[submission.homework.id] = submission
+        
+        # Формируем данные о домашних заданиях для этого класса
+        homework_items = []
+        for homework in homeworks:
+            submission = submissions_dict.get(homework.id)
+            homework_items.append({
+                'homework': homework,
+                'submission': submission,
+            })
+        
+        if homework_items:  # Добавляем класс только если есть домашние задания
+            classes_data.append({
+                'class': class_obj,
+                'homework_items': homework_items,
+            })
+    
+    from datetime import date
     
     context = {
         'student': student,
-        'submissions_by_class': submissions_by_class,
+        'classes_data': classes_data,
+        'current_date': date.today(),
     }
     
     return render(request, 'classes/parent_child_homework.html', context)
+
+
+@login_required
+def parent_child_schedule(request, student_id):
+    """
+    Отображает расписание занятий для ребенка родителя в формате календаря.
+    """
+    # Проверяем, является ли пользователь родителем
+    if not request.user.is_parent:
+        return HttpResponseForbidden("Доступ запрещен. Вы не являетесь родителем.")
+    
+    # Получаем объект родителя
+    try:
+        parent = Parent.objects.get(user=request.user)
+    except Parent.DoesNotExist:
+        messages.error(request, "Профиль родителя не найден.")
+        return redirect('home')
+    
+    # Проверяем, является ли студент ребенком данного родителя
+    try:
+        student = Student.objects.get(id=student_id, parent=parent)
+    except Student.DoesNotExist:
+        messages.error(request, "Студент не найден или не является вашим ребенком.")
+        return redirect('core:home')
+    
+    # Получаем все активные записи на курсы для студента
+    enrollments = Enrollment.objects.filter(student=student, is_active=True).select_related('class_obj', 'class_obj__teacher')
+    
+    # Получаем расписание для всех классов, на которые записан студент
+    class_ids = enrollments.values_list('class_obj_id', flat=True)
+    schedules = ClassSchedule.objects.filter(class_obj_id__in=class_ids).select_related('class_obj')
+    
+    # Получаем параметр для навигации по неделям
+    week_offset = int(request.GET.get('week_offset', 0))
+    
+    # Получаем текущую дату и начало недели с учетом смещения
+    today = timezone.now().date()
+    current_week_start = today - timedelta(days=today.weekday())
+    start_of_week = current_week_start + timedelta(weeks=week_offset)
+    end_of_week = start_of_week + timedelta(days=6)
+    
+    # Создаем структуру данных для расписания на неделю
+    weekdays = [
+        {'name': 'Понедельник', 'short': 'Пн', 'date': start_of_week, 'lessons': []},
+        {'name': 'Вторник', 'short': 'Вт', 'date': start_of_week + timedelta(days=1), 'lessons': []},
+        {'name': 'Среда', 'short': 'Ср', 'date': start_of_week + timedelta(days=2), 'lessons': []},
+        {'name': 'Четверг', 'short': 'Чт', 'date': start_of_week + timedelta(days=3), 'lessons': []},
+        {'name': 'Пятница', 'short': 'Пт', 'date': start_of_week + timedelta(days=4), 'lessons': []},
+        {'name': 'Суббота', 'short': 'Сб', 'date': start_of_week + timedelta(days=5), 'lessons': []},
+        {'name': 'Воскресенье', 'short': 'Вс', 'date': end_of_week, 'lessons': []},
+    ]
+    
+    # Заполняем расписание занятиями
+    for schedule in schedules:
+        weekday_index = schedule.day_of_week - 1  # Индекс дня недели (0-6)
+        if 0 <= weekday_index < 7:  # Проверка на корректный индекс
+            weekdays[weekday_index]['lessons'].append({
+                'class_name': schedule.class_obj.name,
+                'teacher': schedule.class_obj.teacher.full_name,
+                'start_time': schedule.start_time,
+                'end_time': schedule.end_time,
+                'room': schedule.room,
+                'class_id': schedule.class_obj.id,
+                'schedule_id': schedule.id,
+            })
+    
+    # Сортируем занятия по времени начала
+    for weekday in weekdays:
+        weekday['lessons'].sort(key=lambda x: x['start_time'])
+    
+    context = {
+        'student': student,
+        'weekdays': weekdays,
+        'today': today,
+        'enrollments': enrollments,
+        'week_offset': week_offset,
+        'prev_week': week_offset - 1,
+        'next_week': week_offset + 1,
+        'week_period': f"{start_of_week.strftime('%d.%m.%Y')} - {end_of_week.strftime('%d.%m.%Y')}",
+    }
+    
+    return render(request, 'classes/parent_child_schedule.html', context)
 
 
 def student_past_lessons(request):

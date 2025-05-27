@@ -88,6 +88,12 @@
         font-style: italic;
     }
     
+    .class-enrollment-date {
+        font-size: 0.7rem;
+        color: #28a745;
+        margin-top: 5px;
+    }
+    
     .class-name {
         font-weight: 600;
         margin-bottom: 5px;
@@ -203,10 +209,36 @@
                                         {% with classes=schedule_data|get_item:day|get_item:time_slot|get_item:room %}
                                             {% if classes %}
                                                 {% for schedule in classes %}
-                                                <div class="class-item {% if schedule.class_obj.subject == 'math' %}math{% elif schedule.class_obj.subject == 'science' %}science{% elif schedule.class_obj.subject == 'language' %}language{% elif schedule.class_obj.subject == 'art' %}art{% else %}other{% endif %}">
-                                                    <div class="class-name">{{ schedule.class_obj.name }}</div>
-                                                    <div class="class-teacher">{{ schedule.class_obj.teacher.full_name }}</div>
-                                                </div>
+                                                    {% with class_id=schedule.class_obj.id %}
+                                                        {% if user.is_admin or user.is_reception or user.is_teacher or not enrollment_dates or class_id not in enrollment_dates %}
+                                                            <!-- Администраторы, ресепшн и учителя видят все классы -->
+                                                            <a href="{% url 'core:schedule_detail' schedule.id %}" class="text-decoration-none">
+                                                                <div class="class-item {% if schedule.class_obj.subject == 'math' %}math{% elif schedule.class_obj.subject == 'science' %}science{% elif schedule.class_obj.subject == 'language' %}language{% elif schedule.class_obj.subject == 'art' %}art{% else %}other{% endif %}">
+                                                                    <div class="class-name">{{ schedule.class_obj.name }}</div>
+                                                                    <div class="class-teacher">{{ schedule.class_obj.teacher.full_name }}</div>
+                                                                    <div class="mt-2 small text-primary">
+                                                                        <i class="bi bi-info-circle"></i> Подробнее
+                                                                    </div>
+                                                                </div>
+                                                            </a>
+                                                        {% else %}
+                                                            <!-- Студенты и родители видят только классы после даты зачисления -->
+                                                            {% with enrollment_date=enrollment_dates|get_item:class_id %}
+                                                                {% if enrollment_date %}
+                                                                    <a href="{% url 'core:schedule_detail' schedule.id %}" class="text-decoration-none">
+                                                                        <div class="class-item {% if schedule.class_obj.subject == 'math' %}math{% elif schedule.class_obj.subject == 'science' %}science{% elif schedule.class_obj.subject == 'language' %}language{% elif schedule.class_obj.subject == 'art' %}art{% else %}other{% endif %}">
+                                                                            <div class="class-name">{{ schedule.class_obj.name }}</div>
+                                                                            <div class="class-teacher">{{ schedule.class_obj.teacher.full_name }}</div>
+                                                                            <div class="class-enrollment-date">Зачислен: {{ enrollment_date|date:"d.m.Y" }}</div>
+                                                                            <div class="mt-2 small text-primary">
+                                                                                <i class="bi bi-info-circle"></i> Подробнее
+                                                                            </div>
+                                                                        </div>
+                                                                    </a>
+                                                                {% endif %}
+                                                            {% endwith %}
+                                                        {% endif %}
+                                                    {% endwith %}
                                                 {% endfor %}
                                             {% else %}
                                                 <span class="no-classes">Нет занятий</span>

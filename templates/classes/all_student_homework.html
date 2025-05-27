@@ -18,13 +18,31 @@
                 <h2>Мои домашние задания</h2>
             </div>
             
-            <div class="card">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Все домашние задания</h5>
-                    </div>
-                </div>
-                <div class="card-body">
+            <!-- Вкладки для переключения между всеми заданиями и заданиями по классам -->
+            <ul class="nav nav-tabs mb-4" id="homeworkTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if not selected_class_id %}active{% endif %}" id="all-homework-tab" data-bs-toggle="tab" data-bs-target="#all-homework" type="button" role="tab" aria-controls="all-homework" aria-selected="{% if not selected_class_id %}true{% else %}false{% endif %}">
+                        <i class="bi bi-list-task me-2"></i> Все задания
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if selected_class_id %}active{% endif %}" id="by-class-tab" data-bs-toggle="tab" data-bs-target="#by-class" type="button" role="tab" aria-controls="by-class" aria-selected="{% if selected_class_id %}true{% else %}false{% endif %}">
+                        <i class="bi bi-grid-3x3-gap me-2"></i> По классам
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- Содержимое вкладок -->
+            <div class="tab-content" id="homeworkTabsContent">
+                <!-- Вкладка со всеми заданиями -->
+                <div class="tab-pane fade {% if not selected_class_id %}show active{% endif %}" id="all-homework" role="tabpanel" aria-labelledby="all-homework-tab">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Все домашние задания</h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
                     {% if homework_data %}
                         <div class="table-responsive">
                             <table class="table table-hover">
@@ -47,7 +65,7 @@
                                                 <p class="small text-muted mb-0">{{ item.homework.description|truncatechars:50 }}</p>
                                                 {% if item.homework.file %}
                                                     <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-secondary mt-1" target="_blank">
-                                                        <i class="bi bi-file-earmark-text"></i> Скачать задание
+                                                        <i class="bi bi-file-earmark-text"></i> Условие задания
                                                     </a>
                                                 {% endif %}
                                             </td>
@@ -110,6 +128,156 @@
                             У вас пока нет домашних заданий.
                         </div>
                     {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Вкладка с заданиями по классам -->
+                <div class="tab-pane fade {% if selected_class_id %}show active{% endif %}" id="by-class" role="tabpanel" aria-labelledby="by-class-tab">
+                    <!-- Выбор класса -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Выберите класс</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for class_data in classes_with_homework %}
+                                <div class="col-md-4 mb-3">
+                                    <a href="?class_id={{ class_data.class.id }}" class="card h-100 text-decoration-none {% if selected_class_id == class_data.class.id|stringformat:'s' %}border-primary{% else %}border{% endif %}">
+                                        <div class="card-body">
+                                            <h5 class="card-title fw-bold mb-2">
+                                                {% if selected_class_id == class_data.class.id|stringformat:'s' %}
+                                                <i class="bi bi-check-circle-fill text-primary me-2"></i>
+                                                {% endif %}
+                                                {{ class_data.class.name }}
+                                            </h5>
+                                            <p class="card-text text-muted mb-0">
+                                                <i class="bi bi-person-badge me-1"></i> {{ class_data.class.teacher.full_name }}
+                                            </p>
+                                            <p class="card-text text-muted mb-0">
+                                                <i class="bi bi-journal-check me-1"></i> {{ class_data.homework_items|length }} заданий
+                                            </p>
+                                        </div>
+                                    </a>
+                                </div>
+                                {% empty %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        У вас пока нет классов с домашними заданиями.
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Домашние задания выбранного класса -->
+                    {% if selected_class_id %}
+                        {% for class_data in classes_with_homework %}
+                            {% if class_data.class.id|stringformat:'s' == selected_class_id %}
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">Задания по классу: {{ class_data.class.name }}</h5>
+                                        <a href="{% url 'classes:all_student_homework' %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-x-circle me-1"></i> Сбросить фильтр
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    {% if class_data.homework_items %}
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Задание</th>
+                                                        <th>Срок сдачи</th>
+                                                        <th>Статус</th>
+                                                        <th>Оценка</th>
+                                                        <th>Действия</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item in class_data.homework_items %}
+                                                        <tr>
+                                                            <td>
+                                                                <strong>{{ item.homework.title }}</strong>
+                                                                <p class="small text-muted mb-0">{{ item.homework.description|truncatechars:50 }}</p>
+                                                                {% if item.homework.file %}
+                                                                    <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-secondary mt-1" target="_blank">
+                                                                        <i class="bi bi-file-earmark-text"></i> Скачать задание
+                                                                    </a>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{ item.homework.due_date|date:"d.m.Y" }}</td>
+                                                            <td>
+                                                                {% if item.submission %}
+                                                                    <span class="badge bg-success">Отправлено</span>
+                                                                    <p class="small text-muted mb-0">{{ item.submission.created_at|date:"d.m.Y H:i" }}</p>
+                                                                    {% if item.submission.file %}
+                                                                        <a href="{{ item.submission.file.url }}" class="btn btn-sm btn-outline-info mt-1" target="_blank">
+                                                                            <i class="bi bi-file-earmark-text"></i> Просмотреть
+                                                                        </a>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <span class="badge bg-danger">Не отправлено</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% if item.submission and item.submission.completion_status %}
+                                                                    <span class="badge 
+                                                                        {% if item.submission.completion_status == 'completed' %}bg-success
+                                                                        {% elif item.submission.completion_status == 'partially_completed' %}bg-warning
+                                                                        {% else %}bg-danger{% endif %}">
+                                                                        {{ item.submission.get_completion_status_display }}
+                                                                    </span>
+                                                                    {% if item.submission.teacher_comment %}
+                                                                        <div class="small text-muted mt-1">
+                                                                            <i class="bi bi-chat-left-text me-1"></i>
+                                                                            {{ item.submission.teacher_comment }}
+                                                                        </div>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <span class="text-muted">Нет оценки</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% if item.submission %}
+                                                                    {% if not item.submission.completion_status %}
+                                                                    <button type="button" class="btn btn-sm btn-danger cancel-submission-btn" 
+                                                                        data-bs-toggle="modal" data-bs-target="#cancelSubmissionModal" 
+                                                                        data-submission-id="{{ item.submission.id }}"
+                                                                        data-homework-title="{{ item.homework.title }}">
+                                                                        Отменить отправку
+                                                                    </button>
+                                                                    {% else %}
+                                                                    <span class="badge bg-secondary">Проверено учителем</span>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <button type="button" class="btn btn-sm btn-primary submit-homework-btn" 
+                                                                        data-bs-toggle="modal" data-bs-target="#homeworkModal" 
+                                                                        data-homework-id="{{ item.homework.id }}" 
+                                                                        data-homework-title="{{ item.homework.title }}">
+                                                                        Отправить работу
+                                                                    </button>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            В этом классе пока нет домашних заданий.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
                 </div>
             </div>
         </div>

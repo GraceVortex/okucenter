@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ campaign.name }}</h1>
+        <div>
+            <a href="{% url 'crm:campaign_list' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> К списку кампаний
+            </a>
+            <a href="{% url 'crm:campaign_update' campaign.id %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Редактировать
+            </a>
+        </div>
+    </div>
+    
+    <!-- Основная информация -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о кампании</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl>
+                                <dt>Статус</dt>
+                                <dd>
+                                    {% if campaign.status == 'planned' %}
+                                        <span class="badge bg-info">Запланирована</span>
+                                    {% elif campaign.status == 'active' %}
+                                        <span class="badge bg-success">Активна</span>
+                                    {% elif campaign.status == 'paused' %}
+                                        <span class="badge bg-warning">Приостановлена</span>
+                                    {% elif campaign.status == 'completed' %}
+                                        <span class="badge bg-secondary">Завершена</span>
+                                    {% elif campaign.status == 'cancelled' %}
+                                        <span class="badge bg-danger">Отменена</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt>Период</dt>
+                                <dd>
+                                    С {{ campaign.start_date|date:"d.m.Y" }}
+                                    {% if campaign.end_date %}
+                                        по {{ campaign.end_date|date:"d.m.Y" }}
+                                    {% else %}
+                                        <span class="text-muted">(без даты окончания)</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt>Бюджет</dt>
+                                <dd>{{ campaign.budget|floatformat:0 }} ₸</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl>
+                                <dt>Ответственный</dt>
+                                <dd>{{ campaign.responsible.get_full_name }}</dd>
+                                
+                                <dt>Дата создания</dt>
+                                <dd>{{ campaign.created_at|date:"d.m.Y H:i" }}</dd>
+                                
+                                <dt>Последнее обновление</dt>
+                                <dd>{{ campaign.updated_at|date:"d.m.Y H:i" }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    {% if campaign.description %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Описание</h6>
+                            <p>{{ campaign.description|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if campaign.target_audience %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Целевая аудитория</h6>
+                            <p>{{ campaign.target_audience|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Статистика</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-4">
+                            <div class="stat-card">
+                                <h2>{{ leads_count }}</h2>
+                                <p class="text-muted mb-0">Лидов</p>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="stat-card">
+                                <h2>{{ converted_count }}</h2>
+                                <p class="text-muted mb-0">Конвертировано</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="conversion-rate mt-3">
+                        <p class="mb-1 d-flex justify-content-between">
+                            <span>Конверсия:</span>
+                            <span>
+                                {% if leads_count > 0 %}
+                                    {{ conversion_rate|floatformat:1 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </span>
+                        </p>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                style="width: {{ conversion_rate }}%;" 
+                                aria-valuenow="{{ conversion_rate }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100"></div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <h6>Распределение по источникам</h6>
+                                    <canvas id="leadSourcesChart" height="150"></canvas>
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <h6>Распределение по этапам продаж</h6>
+                                    <canvas id="leadStagesChart" height="150"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <a href="{% url 'crm:campaign_leads' campaign.id %}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-people"></i> Просмотреть всех лидов
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Недавние лиды -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Недавние лиды</h5>
+                    <a href="{% url 'crm:campaign_leads' campaign.id %}" class="btn btn-sm btn-outline-primary">
+                        Все лиды <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Имя</th>
+                                    <th>Телефон</th>
+                                    <th>Источник</th>
+                                    <th>Статус</th>
+                                    <th>Дата создания</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lead in leads|slice:":5" %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'crm:lead_detail' lead.id %}">{{ lead.full_name }}</a>
+                                    </td>
+                                    <td>{{ lead.phone_number }}</td>
+                                    <td>
+                                        {% if lead.source %}
+                                            <span class="badge bg-light text-dark">{{ lead.source.name }}</span>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lead.status == 'new' %}
+                                            <span class="badge bg-info">Новый</span>
+                                        {% elif lead.status == 'in_progress' %}
+                                            <span class="badge bg-primary">В работе</span>
+                                        {% elif lead.status == 'qualified' %}
+                                            <span class="badge bg-success">Квалифицирован</span>
+                                        {% elif lead.status == 'converted' %}
+                                            <span class="badge bg-success">Конвертирован</span>
+                                        {% elif lead.status == 'lost' %}
+                                            <span class="badge bg-danger">Потерян</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ lead.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'crm:lead_detail' lead.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'crm:add_interaction' lead.id %}" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-chat"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-3">
+                                        <p class="text-muted mb-0">Нет лидов для этой кампании</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: var(--apple-secondary);
+    }
+    
+    .stat-card h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--apple-primary);
+    }
+    
+    .channel-card {
+        transition: all 0.2s ease;
+    }
+    
+    .channel-card:hover {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Подготовка данных для графиков
+        const leadsBySource = {};
+        {% for lead in campaign.leads.all %}
+            const source{{ forloop.counter }} = "{{ lead.source.name }}";
+            if (!leadsBySource[source{{ forloop.counter }}]) {
+                leadsBySource[source{{ forloop.counter }}] = 0;
+            }
+            leadsBySource[source{{ forloop.counter }}] += 1;
+        {% endfor %}
+        
+        // Подготовка данных для графика распределения лидов по источникам
+        const sourceLabels = Object.keys(leadsBySource);
+        const sourceData = sourceLabels.map(function(source) {
+            return leadsBySource[source];
+        });
+        
+        // График распределения лидов по источникам
+        const sourcesCtx = document.getElementById('leadSourcesChart').getContext('2d');
+        const sourcesChart = new Chart(sourcesCtx, {
+            type: 'pie',
+            data: {
+                labels: sourceLabels,
+                datasets: [{
+                    data: sourceData,
+                    backgroundColor: [
+                        '#f1f0f0',
+                        '#dcf8c6',
+                        '#c5e1a5',
+                        '#aed581',
+                        '#9ccc65',
+                        '#8bc34a'
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Подготовка данных для графика распределения лидов по этапам продаж
+        const leadsByStage = {};
+        {% for lead in campaign.leads.all %}
+            const stage{{ forloop.counter }} = "{{ lead.sale_stage.name }}";
+            if (!leadsByStage[stage{{ forloop.counter }}]) {
+                leadsByStage[stage{{ forloop.counter }}] = 0;
+            }
+            leadsByStage[stage{{ forloop.counter }}] += 1;
+        {% endfor %}
+        
+        const stageLabels = Object.keys(leadsByStage);
+        const stageData = stageLabels.map(function(stage) {
+            return leadsByStage[stage];
+        });
+        
+        // График распределения лидов по этапам продаж
+        const stagesCtx = document.getElementById('leadStagesChart').getContext('2d');
+        const stagesChart = new Chart(stagesCtx, {
+            type: 'bar',
+            data: {
+                labels: stageLabels,
+                datasets: [{
+                    label: 'Количество лидов',
+                    data: stageData,
+                    backgroundColor: '#8bc34a',
+                    borderColor: '#7cb342',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

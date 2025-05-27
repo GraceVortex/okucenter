@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if account %}Редактирование аккаунта{% else %}Добавление аккаунта{% endif %} Meta Business{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{% if account %}Редактирование аккаунта{% else %}Добавление аккаунта{% endif %} Meta Business</h1>
+        <a href="{% url 'crm:meta_accounts_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> К списку аккаунтов
+        </a>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Название аккаунта <span class="text-danger">*</span></label>
+                    <input type="text" name="name" id="name" class="form-control" required value="{{ account.name|default:'' }}">
+                    <div class="form-text">Укажите понятное название для этого аккаунта, например "WhatsApp Отдел продаж"</div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="account_type" class="form-label">Тип аккаунта <span class="text-danger">*</span></label>
+                    <select name="account_type" id="account_type" class="form-select" required {% if account %}{% endif %}>
+                        <option value="">Выберите тип</option>
+                        {% for type_key, type_name in account_types %}
+                            <option value="{{ type_key }}" {% if account and account.account_type == type_key %}selected{% endif %}>{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6 whatsapp-field">
+                    <label for="phone_number_id" class="form-label">Phone Number ID <span class="text-danger whatsapp-required">*</span></label>
+                    <input type="text" name="phone_number_id" id="phone_number_id" class="form-control" value="{{ account.phone_number_id|default:'' }}">
+                    <div class="form-text">ID номера телефона из Meta Developer Portal</div>
+                </div>
+                
+                <div class="col-md-6 instagram-field">
+                    <label for="business_id" class="form-label">Business ID <span class="text-danger instagram-required">*</span></label>
+                    <input type="text" name="business_id" id="business_id" class="form-control" value="{{ account.business_id|default:'' }}">
+                    <div class="form-text">ID бизнес-аккаунта из Meta Developer Portal</div>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="access_token" class="form-label">Токен доступа <span class="text-danger">*</span></label>
+                    <input type="password" name="access_token" id="access_token" class="form-control" {% if not account %}required{% endif %}>
+                    <div class="form-text">
+                        {% if account %}
+                        Оставьте поле пустым, если не хотите менять текущий токен
+                        {% else %}
+                        Токен доступа из Meta Developer Portal с необходимыми разрешениями
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="col-12 mt-4">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Важная информация о безопасности</h5>
+                        <p>Токены доступа хранятся в зашифрованном виде и используются только для отправки сообщений через API Meta.</p>
+                        <p>Для работы с WhatsApp Business API токен должен иметь следующие разрешения:</p>
+                        <ul>
+                            <li>whatsapp_business_messaging</li>
+                            <li>whatsapp_business_management</li>
+                        </ul>
+                        <p>Для работы с Instagram Messaging API токен должен иметь следующие разрешения:</p>
+                        <ul>
+                            <li>instagram_basic</li>
+                            <li>instagram_manage_messages</li>
+                            <li>pages_messaging</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="col-12 mt-4 d-flex justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="history.back()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        {% if account %}Сохранить изменения{% else %}Добавить аккаунт{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const accountTypeSelect = document.getElementById('account_type');
+        const whatsappFields = document.querySelectorAll('.whatsapp-field');
+        const instagramFields = document.querySelectorAll('.instagram-field');
+        const whatsappRequired = document.querySelectorAll('.whatsapp-required');
+        const instagramRequired = document.querySelectorAll('.instagram-required');
+        
+        function updateFieldsVisibility() {
+            const selectedType = accountTypeSelect.value;
+            
+            if (selectedType === 'whatsapp') {
+                // Показываем поля для WhatsApp
+                whatsappFields.forEach(field => field.style.display = 'block');
+                whatsappRequired.forEach(field => field.style.display = 'inline');
+                
+                // Скрываем поля для Instagram
+                instagramFields.forEach(field => field.style.display = 'none');
+                instagramRequired.forEach(field => field.style.display = 'none');
+                
+                // Делаем поле Phone Number ID обязательным
+                document.getElementById('phone_number_id').required = true;
+                document.getElementById('business_id').required = false;
+            } 
+            else if (selectedType === 'instagram') {
+                // Показываем поля для Instagram
+                instagramFields.forEach(field => field.style.display = 'block');
+                instagramRequired.forEach(field => field.style.display = 'inline');
+                
+                // Скрываем поля для WhatsApp
+                whatsappFields.forEach(field => field.style.display = 'none');
+                whatsappRequired.forEach(field => field.style.display = 'none');
+                
+                // Делаем поле Business ID обязательным
+                document.getElementById('business_id').required = true;
+                document.getElementById('phone_number_id').required = false;
+            } 
+            else {
+                // Скрываем все специфичные поля
+                whatsappFields.forEach(field => field.style.display = 'none');
+                instagramFields.forEach(field => field.style.display = 'none');
+                whatsappRequired.forEach(field => field.style.display = 'none');
+                instagramRequired.forEach(field => field.style.display = 'none');
+                
+                // Убираем обязательность полей
+                document.getElementById('phone_number_id').required = false;
+                document.getElementById('business_id').required = false;
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        updateFieldsVisibility();
+        
+        // Обновление при изменении типа аккаунта
+        accountTypeSelect.addEventListener('change', updateFieldsVisibility);
+    });
+</script>
+{% endblock %}

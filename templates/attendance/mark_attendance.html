@@ -28,15 +28,20 @@
                                     <tr>
                                         <td>{{ student.full_name }}</td>
                                         <td>
-                                            <select name="schedule_{{ student.id }}" class="form-select" required>
-                                                <option value="">Выберите расписание</option>
-                                                {% for schedule in schedules %}
-                                                    <option value="{{ schedule.id }}" 
-                                                        {% if attendance_dict and attendance_dict|get_item:student.id and attendance_dict|get_item:student.id.schedule.id == schedule.id %}selected{% endif %}>
-                                                        {{ schedule.get_day_of_week_display }}, {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}, Комната {{ schedule.room }}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
+                                            {% if specific_schedule %}
+                                                <input type="hidden" name="schedule_{{ student.id }}" value="{{ specific_schedule.id }}">
+                                                <span class="text-muted">{{ specific_schedule.get_day_of_week_display }}, {{ specific_schedule.start_time|time:"H:i" }} - {{ specific_schedule.end_time|time:"H:i" }}, Комната {{ specific_schedule.room }}</span>
+                                            {% else %}
+                                                <select name="schedule_{{ student.id }}" class="form-select" required>
+                                                    <option value="">Выберите расписание</option>
+                                                    {% for schedule in schedules %}
+                                                        <option value="{{ schedule.id }}" 
+                                                            {% if specific_schedule and specific_schedule.id == schedule.id %}selected{% elif attendance_dict and attendance_dict|get_item:student.id and attendance_dict|get_item:student.id.schedule.id == schedule.id %}selected{% endif %}>
+                                                            {{ schedule.get_day_of_week_display }}, {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}, Комната {{ schedule.room }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <select name="status_{{ student.id }}" class="form-select" required>
@@ -53,7 +58,12 @@
                     </div>
                     
                     <div class="d-flex justify-content-between mt-3">
-                        <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Отмена</a>
+                        {% if from_teacher_today %}
+                            <a href="{% url 'classes:teacher_today_schedule' %}" class="btn btn-secondary">Отмена</a>
+                            <input type="hidden" name="from_teacher_today" value="true">
+                        {% else %}
+                            <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Отмена</a>
+                        {% endif %}
                         <button type="submit" class="btn btn-primary">Сохранить</button>
                     </div>
                 </form>
@@ -61,7 +71,11 @@
                 <div class="alert alert-info">
                     <p>В этом классе нет зарегистрированных студентов.</p>
                 </div>
-                <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Назад</a>
+                {% if from_teacher_today %}
+                    <a href="{% url 'classes:teacher_today_schedule' %}" class="btn btn-secondary">Назад</a>
+                {% else %}
+                    <a href="{% url 'attendance:attendance_list' %}" class="btn btn-secondary">Назад</a>
+                {% endif %}
             {% endif %}
         </div>
     </div>

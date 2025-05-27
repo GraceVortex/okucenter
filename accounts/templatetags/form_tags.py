@@ -16,3 +16,15 @@ def add_class(value, arg):
     else:
         css_classes = arg
     return value.as_widget(attrs={'class': css_classes})
+
+@register.filter(name='get_item')
+def get_item(dictionary, key):
+    """
+    Gets an item from a dictionary by key.
+    
+    Usage:
+    {{ dictionary|get_item:key }}
+    """
+    if dictionary is None:
+        return None
+    return dictionary.get(key, [])

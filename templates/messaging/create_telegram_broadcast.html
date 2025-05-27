@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+
+{% block title %}Создание Telegram рассылки{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">Создание Telegram рассылки</h1>
+                    <p class="text-muted">Заполните форму для создания новой рассылки</p>
+                </div>
+                <div>
+                    <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Назад к рассылкам
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h5 class="mb-3">Основная информация</h5>
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Название рассылки <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="title" name="title" required>
+                                <div class="form-text">Внутреннее название для идентификации рассылки</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Текст сообщения <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                                <div class="form-text">
+                                    Поддерживается HTML-форматирование и переменные:
+                                    <ul class="mt-1">
+                                        <li><code>{имя}</code> - имя получателя</li>
+                                        <li><code>{имя_студента}</code> - имя студента (для родителей)</li>
+                                        <li><code>{имя_родителя}</code> - имя родителя (для родителей)</li>
+                                        <li><code>{класс}</code> - название класса</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="media_file" class="form-label">Медиа-файл (опционально)</label>
+                                <input type="file" class="form-control" id="media_file" name="media_file">
+                                <div class="form-text">Поддерживаются изображения, видео, аудио и документы</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="mb-3">Кнопки (опционально)</h5>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="has_buttons" name="has_buttons">
+                                <label class="form-check-label" for="has_buttons">
+                                    Добавить интерактивные кнопки
+                                </label>
+                            </div>
+                            
+                            <div id="buttons_container" class="d-none">
+                                <div class="row mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label">Текст кнопки</label>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Данные кнопки (опционально)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="button-row row mb-2">
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" name="button_text" placeholder="Текст кнопки">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" name="button_data" placeholder="callback_data">
+                                    </div>
+                                </div>
+                                
+                                <div class="button-row row mb-2">
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" name="button_text" placeholder="Текст кнопки">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" name="button_data" placeholder="callback_data">
+                                    </div>
+                                </div>
+                                
+                                <button type="button" id="add_button" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-plus me-1"></i> Добавить кнопку
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="mb-3">Получатели</h5>
+                            <div class="mb-3">
+                                <label for="recipient_type" class="form-label">Тип получателей <span class="text-danger">*</span></label>
+                                <select class="form-select" id="recipient_type" name="recipient_type" required>
+                                    <option value="">Выберите тип получателей</option>
+                                    <option value="students">Только студенты</option>
+                                    <option value="parents">Только родители</option>
+                                    <option value="teachers">Только преподаватели</option>
+                                    <option value="both">Студенты и родители</option>
+                                    <option value="all">Все</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="target_class" class="form-label">Класс (опционально)</label>
+                                <select class="form-select" id="target_class" name="target_class">
+                                    <option value="">Все классы</option>
+                                    {% for class in classes %}
+                                    <option value="{{ class.id }}">{{ class.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Выберите класс для фильтрации получателей</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="target_schedule" class="form-label">Расписание (опционально)</label>
+                                <select class="form-select" id="target_schedule" name="target_schedule">
+                                    <option value="">Все расписания</option>
+                                    {% for schedule in schedules %}
+                                    <option value="{{ schedule.id }}" data-class="{{ schedule.class_obj.id }}">
+                                        {{ schedule.class_obj.name }} - 
+                                        {{ schedule.get_day_of_week_display }}, 
+                                        {{ schedule.start_time|time:"H:i" }}-{{ schedule.end_time|time:"H:i" }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Выберите конкретное расписание для фильтрации получателей</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="target_day" class="form-label">День недели (опционально)</label>
+                                <select class="form-select" id="target_day" name="target_day">
+                                    <option value="">Все дни</option>
+                                    {% for day_id, day_name in days_of_week %}
+                                    <option value="{{ day_id }}">{{ day_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Выберите день недели для фильтрации получателей</div>
+                            </div>
+                            
+                            <div class="alert alert-info" id="recipients_info">
+                                <i class="fas fa-info-circle me-2"></i> Выберите параметры для определения получателей
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="mb-3">Время отправки</h5>
+                            <div class="mb-3">
+                                <label for="scheduled_at" class="form-label">Запланировать отправку (опционально)</label>
+                                <input type="datetime-local" class="form-control" id="scheduled_at" name="scheduled_at">
+                                <div class="form-text">Оставьте пустым для создания черновика без отправки</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Сохранить как черновик
+                            </button>
+                            <button type="submit" name="send_now" class="btn btn-success">
+                                <i class="fas fa-paper-plane me-1"></i> Отправить сейчас
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Предпросмотр</h5>
+                </div>
+                <div class="card-body">
+                    <div class="telegram-preview">
+                        <div class="telegram-header">
+                            <div class="d-flex align-items-center">
+                                <div class="telegram-avatar bg-primary text-white">
+                                    <i class="fab fa-telegram-plane"></i>
+                                </div>
+                                <div class="ms-2">
+                                    <div class="telegram-name">Ваш бот</div>
+                                    <div class="telegram-status">онлайн</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="telegram-messages" id="preview_container">
+                            <div class="telegram-message">
+                                <div class="telegram-message-text" id="preview_text">
+                                    Предпросмотр сообщения будет отображаться здесь
+                                </div>
+                                <div class="telegram-message-time">
+                                    Сейчас
+                                </div>
+                            </div>
+                            <div class="telegram-media d-none" id="preview_media">
+                                <img src="" alt="Медиа" class="img-fluid rounded mb-2" id="preview_media_content">
+                            </div>
+                            <div class="telegram-buttons d-none" id="preview_buttons">
+                                <!-- Кнопки будут добавлены динамически -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Помощь</h5>
+                </div>
+                <div class="card-body">
+                    <h6>HTML-форматирование</h6>
+                    <ul class="small">
+                        <li><code>&lt;b&gt;Жирный текст&lt;/b&gt;</code></li>
+                        <li><code>&lt;i&gt;Курсив&lt;/i&gt;</code></li>
+                        <li><code>&lt;u&gt;Подчеркнутый&lt;/u&gt;</code></li>
+                        <li><code>&lt;s&gt;Зачеркнутый&lt;/s&gt;</code></li>
+                        <li><code>&lt;a href="URL"&gt;Ссылка&lt;/a&gt;</code></li>
+                        <li><code>&lt;code&gt;Моноширинный текст&lt;/code&gt;</code></li>
+                        <li><code>&lt;pre&gt;Предварительно отформатированный текст&lt;/pre&gt;</code></li>
+                    </ul>
+                    
+                    <h6 class="mt-3">Переменные</h6>
+                    <ul class="small">
+                        <li><code>{имя}</code> - имя получателя</li>
+                        <li><code>{имя_студента}</code> - имя студента (для родителей)</li>
+                        <li><code>{имя_родителя}</code> - имя родителя (для родителей)</li>
+                        <li><code>{класс}</code> - название класса</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">Поддерживаемые типы файлов</h6>
+                    <ul class="small">
+                        <li>Изображения: jpg, jpeg, png, gif</li>
+                        <li>Видео: mp4, mov, 3gp</li>
+                        <li>Аудио: mp3, ogg, wav</li>
+                        <li>Документы: pdf, doc, docx, xls, xlsx, ppt, pptx, txt</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .telegram-preview {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    .telegram-header {
+        background-color: #5682a3;
+        color: white;
+        padding: 10px 15px;
+    }
+    
+    .telegram-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    
+    .telegram-name {
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .telegram-status {
+        font-size: 12px;
+        opacity: 0.8;
+    }
+    
+    .telegram-messages {
+        padding: 15px;
+        background-color: #e6ebee;
+        min-height: 300px;
+    }
+    
+    .telegram-message {
+        background-color: white;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+        max-width: 100%;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .telegram-message-text {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .telegram-message-time {
+        font-size: 12px;
+        color: #a0a0a0;
+        text-align: right;
+    }
+    
+    .telegram-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-top: 10px;
+    }
+    
+    .telegram-button {
+        background-color: #f0f0f0;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        text-align: center;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .telegram-button:hover {
+        background-color: #e0e0e0;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработка чекбокса для кнопок
+        const hasButtonsCheckbox = document.getElementById('has_buttons');
+        const buttonsContainer = document.getElementById('buttons_container');
+        
+        hasButtonsCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                buttonsContainer.classList.remove('d-none');
+            } else {
+                buttonsContainer.classList.add('d-none');
+            }
+            updatePreview();
+        });
+        
+        // Добавление новой кнопки
+        const addButtonBtn = document.getElementById('add_button');
+        addButtonBtn.addEventListener('click', function() {
+            const buttonRow = document.createElement('div');
+            buttonRow.className = 'button-row row mb-2';
+            buttonRow.innerHTML = `
+                <div class="col-6">
+                    <input type="text" class="form-control" name="button_text" placeholder="Текст кнопки">
+                </div>
+                <div class="col-6 d-flex">
+                    <input type="text" class="form-control" name="button_data" placeholder="callback_data">
+                    <button type="button" class="btn btn-outline-danger ms-2 remove-button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Добавляем перед кнопкой "Добавить кнопку"
+            addButtonBtn.parentNode.insertBefore(buttonRow, addButtonBtn);
+            
+            // Добавляем обработчик для кнопки удаления
+            const removeBtn = buttonRow.querySelector('.remove-button');
+            removeBtn.addEventListener('click', function() {
+                buttonRow.remove();
+                updatePreview();
+            });
+            
+            // Добавляем обработчики для полей ввода
+            const inputs = buttonRow.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+            
+            updatePreview();
+        });
+        
+        // Предпросмотр сообщения
+        const messageInput = document.getElementById('message');
+        const mediaInput = document.getElementById('media_file');
+        const previewText = document.getElementById('preview_text');
+        const previewMedia = document.getElementById('preview_media');
+        const previewMediaContent = document.getElementById('preview_media_content');
+        const previewButtons = document.getElementById('preview_buttons');
+        
+        messageInput.addEventListener('input', updatePreview);
+        mediaInput.addEventListener('change', handleMediaPreview);
+        
+        // Добавляем обработчики для существующих полей ввода кнопок
+        const buttonInputs = document.querySelectorAll('[name="button_text"], [name="button_data"]');
+        buttonInputs.forEach(input => {
+            input.addEventListener('input', updatePreview);
+        });
+        
+        // Функция обновления предпросмотра
+        function updatePreview() {
+            // Обновляем текст
+            let messageText = messageInput.value.trim();
+            if (messageText) {
+                // Заменяем переменные на примеры
+                messageText = messageText.replace(/{имя}/g, 'Иван');
+                messageText = messageText.replace(/{имя_студента}/g, 'Алексей');
+                messageText = messageText.replace(/{имя_родителя}/g, 'Мария');
+                messageText = messageText.replace(/{класс}/g, 'Математика 5А');
+                
+                previewText.innerHTML = messageText;
+            } else {
+                previewText.innerHTML = 'Предпросмотр сообщения будет отображаться здесь';
+            }
+            
+            // Обновляем кнопки
+            previewButtons.innerHTML = '';
+            if (hasButtonsCheckbox.checked) {
+                const buttonTexts = document.querySelectorAll('[name="button_text"]');
+                let hasButtons = false;
+                
+                buttonTexts.forEach(input => {
+                    const buttonText = input.value.trim();
+                    if (buttonText) {
+                        const button = document.createElement('button');
+                        button.className = 'telegram-button';
+                        button.textContent = buttonText;
+                        previewButtons.appendChild(button);
+                        hasButtons = true;
+                    }
+                });
+                
+                if (hasButtons) {
+                    previewButtons.classList.remove('d-none');
+                } else {
+                    previewButtons.classList.add('d-none');
+                }
+            } else {
+                previewButtons.classList.add('d-none');
+            }
+        }
+        
+        // Функция предпросмотра медиа
+        function handleMediaPreview() {
+            if (mediaInput.files && mediaInput.files[0]) {
+                const file = mediaInput.files[0];
+                const fileType = file.type.split('/')[0];
+                
+                if (fileType === 'image') {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewMediaContent.src = e.target.result;
+                        previewMedia.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // Для не-изображений показываем иконку
+                    let iconClass = 'fas fa-file';
+                    if (fileType === 'video') {
+                        iconClass = 'fas fa-video';
+                    } else if (fileType === 'audio') {
+                        iconClass = 'fas fa-music';
+                    } else if (file.name.endsWith('.pdf')) {
+                        iconClass = 'fas fa-file-pdf';
+                    } else if (file.name.match(/\.docx?$/)) {
+                        iconClass = 'fas fa-file-word';
+                    }
+                    
+                    previewMedia.innerHTML = `
+                        <div class="text-center p-3 bg-light rounded">
+                            <i class="${iconClass} fa-3x text-secondary"></i>
+                            <p class="mt-2 mb-0">${file.name}</p>
+                        </div>
+                    `;
+                    previewMedia.classList.remove('d-none');
+                }
+            } else {
+                previewMedia.classList.add('d-none');
+            }
+            
+            updatePreview();
+        }
+        
+        // Фильтрация расписаний по классу
+        const classSelect = document.getElementById('target_class');
+        const scheduleSelect = document.getElementById('target_schedule');
+        
+        classSelect.addEventListener('change', function() {
+            const selectedClassId = this.value;
+            
+            // Показываем все расписания, если класс не выбран
+            if (!selectedClassId) {
+                Array.from(scheduleSelect.options).forEach(option => {
+                    option.style.display = '';
+                });
+                return;
+            }
+            
+            // Фильтруем расписания по выбранному классу
+            Array.from(scheduleSelect.options).forEach(option => {
+                if (option.value === '' || option.dataset.class === selectedClassId) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // Сбрасываем выбор расписания, если оно не соответствует выбранному классу
+            if (scheduleSelect.selectedIndex > 0) {
+                const selectedOption = scheduleSelect.options[scheduleSelect.selectedIndex];
+                if (selectedOption.dataset.class !== selectedClassId) {
+                    scheduleSelect.value = '';
+                }
+            }
+        });
+        
+        // Обновление информации о получателях
+        const recipientTypeSelect = document.getElementById('recipient_type');
+        const targetDaySelect = document.getElementById('target_day');
+        const recipientsInfo = document.getElementById('recipients_info');
+        
+        function updateRecipientsInfo() {
+            // Получаем значения фильтров
+            const recipientType = recipientTypeSelect.value;
+            const targetClass = classSelect.options[classSelect.selectedIndex]?.text || 'Все классы';
+            const targetSchedule = scheduleSelect.selectedIndex > 0 ? 
+                scheduleSelect.options[scheduleSelect.selectedIndex].text : 'Все расписания';
+            const targetDay = targetDaySelect.selectedIndex > 0 ? 
+                targetDaySelect.options[targetDaySelect.selectedIndex].text : 'Все дни';
+            
+            // Формируем текст с информацией о получателях
+            let infoText = '<i class="fas fa-info-circle me-2"></i> ';
+            
+            if (!recipientType) {
+                infoText += 'Выберите тип получателей';
+            } else {
+                let recipientTypeText = '';
+                switch (recipientType) {
+                    case 'students':
+                        recipientTypeText = 'Студенты';
+                        break;
+                    case 'parents':
+                        recipientTypeText = 'Родители';
+                        break;
+                    case 'teachers':
+                        recipientTypeText = 'Преподаватели';
+                        break;
+                    case 'both':
+                        recipientTypeText = 'Студенты и родители';
+                        break;
+                    case 'all':
+                        recipientTypeText = 'Все пользователи';
+                        break;
+                }
+                
+                infoText += `Получатели: <strong>${recipientTypeText}</strong>`;
+                
+                if (targetClass !== 'Все классы' || targetSchedule !== 'Все расписания' || targetDay !== 'Все дни') {
+                    infoText += '<br>Фильтры: ';
+                    
+                    if (targetClass !== 'Все классы') {
+                        infoText += `<span class="badge bg-primary me-2">Класс: ${targetClass}</span>`;
+                    }
+                    
+                    if (targetSchedule !== 'Все расписания') {
+                        infoText += `<span class="badge bg-info me-2">Расписание: ${targetSchedule}</span>`;
+                    }
+                    
+                    if (targetDay !== 'Все дни') {
+                        infoText += `<span class="badge bg-secondary me-2">День: ${targetDay}</span>`;
+                    }
+                }
+                
+                // Добавляем кнопку для проверки количества получателей
+                infoText += `<br><button type="button" id="check_recipients" class="btn btn-sm btn-outline-primary mt-2">
+                    <i class="fas fa-users me-1"></i> Проверить количество получателей
+                </button>
+                <div id="recipients_count_info" class="mt-2 d-none"></div>`;
+            }
+            
+            recipientsInfo.innerHTML = infoText;
+            
+            // Добавляем обработчик для кнопки проверки получателей
+            const checkRecipientsBtn = document.getElementById('check_recipients');
+            if (checkRecipientsBtn) {
+                checkRecipientsBtn.addEventListener('click', checkRecipientsCount);
+            }
+        }
+        
+        // Функция для проверки количества получателей
+        function checkRecipientsCount() {
+            const recipientType = recipientTypeSelect.value;
+            const targetClass = classSelect.value;
+            const targetSchedule = scheduleSelect.value;
+            const targetDay = targetDaySelect.value;
+            
+            if (!recipientType) {
+                alert('Выберите тип получателей');
+                return;
+            }
+            
+            const recipientsCountInfo = document.getElementById('recipients_count_info');
+            recipientsCountInfo.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Загрузка...';
+            recipientsCountInfo.classList.remove('d-none');
+            
+            // Формируем URL с параметрами
+            let url = `/messaging/api/telegram/get-recipients/?recipient_type=${recipientType}`;
+            if (targetClass) url += `&target_class=${targetClass}`;
+            if (targetSchedule) url += `&target_schedule=${targetSchedule}`;
+            if (targetDay) url += `&target_day=${targetDay}`;
+            
+            // Отправляем запрос
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        recipientsCountInfo.innerHTML = `
+                            <div class="alert alert-success mb-0">
+                                <i class="fas fa-users me-2"></i> Количество получателей: <strong>${data.count}</strong>
+                            </div>
+                        `;
+                    } else {
+                        recipientsCountInfo.innerHTML = `
+                            <div class="alert alert-danger mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i> Ошибка: ${data.error}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    recipientsCountInfo.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Ошибка: ${error.message}
+                        </div>
+                    `;
+                });
+        }
+        
+        // Добавляем обработчики событий для обновления информации о получателях
+        recipientTypeSelect.addEventListener('change', updateRecipientsInfo);
+        classSelect.addEventListener('change', updateRecipientsInfo);
+        scheduleSelect.addEventListener('change', updateRecipientsInfo);
+        targetDaySelect.addEventListener('change', updateRecipientsInfo);
+        
+        // Инициализация
+        updatePreview();
+        updateRecipientsInfo();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CRM Дашборд{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">CRM Дашборд</h1>
+    
+    <!-- Статистика по лидам -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ total_leads }}</h3>
+                    <p class="card-text text-muted">Всего лидов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ new_leads }}</h3>
+                    <p class="card-text">Новые</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ in_progress_leads }}</h3>
+                    <p class="card-text">В работе</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ qualified_leads }}</h3>
+                    <p class="card-text">Квалифицированные</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ converted_leads }}</h3>
+                    <p class="card-text">Конвертированные</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ closed_leads }}</h3>
+                    <p class="card-text">Закрытые</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- Последние лиды -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Последние лиды</h5>
+                    <a href="{% url 'crm:lead_list' %}" class="btn btn-sm btn-outline-primary">Все лиды</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ФИО</th>
+                                    <th>Телефон</th>
+                                    <th>Статус</th>
+                                    <th>Дата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lead in recent_leads %}
+                                <tr>
+                                    <td><a href="{% url 'crm:lead_detail' lead.id %}">{{ lead.full_name }}</a></td>
+                                    <td>{{ lead.phone_number }}</td>
+                                    <td>
+                                        {% if lead.status == 'new' %}
+                                            <span class="badge bg-primary">Новый</span>
+                                        {% elif lead.status == 'in_progress' %}
+                                            <span class="badge bg-info">В работе</span>
+                                        {% elif lead.status == 'qualified' %}
+                                            <span class="badge bg-warning">Квалифицирован</span>
+                                        {% elif lead.status == 'converted' %}
+                                            <span class="badge bg-success">Конвертирован</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Закрыт</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ lead.created_at|date:"d.m.Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Нет лидов</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Последние взаимодействия -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Последние взаимодействия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Лид</th>
+                                    <th>Тип</th>
+                                    <th>Результат</th>
+                                    <th>Дата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interaction in recent_interactions %}
+                                <tr>
+                                    <td><a href="{% url 'crm:lead_detail' interaction.lead.id %}">{{ interaction.lead.full_name }}</a></td>
+                                    <td>
+                                        {% if interaction.interaction_type == 'call' %}
+                                            <i class="fas fa-phone"></i> Звонок
+                                        {% elif interaction.interaction_type == 'email' %}
+                                            <i class="fas fa-envelope"></i> Email
+                                        {% elif interaction.interaction_type == 'meeting' %}
+                                            <i class="fas fa-handshake"></i> Встреча
+                                        {% elif interaction.interaction_type == 'whatsapp' %}
+                                            <i class="fab fa-whatsapp"></i> WhatsApp
+                                        {% elif interaction.interaction_type == 'instagram' %}
+                                            <i class="fab fa-instagram"></i> Instagram
+                                        {% else %}
+                                            <i class="fas fa-comment"></i> Другое
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interaction.result == 'positive' %}
+                                            <span class="text-success"><i class="fas fa-thumbs-up"></i> Положительный</span>
+                                        {% elif interaction.result == 'neutral' %}
+                                            <span class="text-secondary"><i class="fas fa-minus"></i> Нейтральный</span>
+                                        {% elif interaction.result == 'negative' %}
+                                            <span class="text-danger"><i class="fas fa-thumbs-down"></i> Отрицательный</span>
+                                        {% else %}
+                                            <span class="text-muted"><i class="fas fa-question"></i> Нет ответа</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ interaction.date_time|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Нет взаимодействий</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- Активные кампании -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Активные кампании</h5>
+                    <a href="#" class="btn btn-sm btn-outline-primary">Все кампании</a>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for campaign in active_campaigns %}
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ campaign.name }}</h6>
+                                <small>{{ campaign.progress }}%</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ campaign.progress }}%;" aria-valuenow="{{ campaign.progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between">
+                                <small class="text-muted">{{ campaign.start_date|date:"d.m.Y" }} - {{ campaign.end_date|date:"d.m.Y" }}</small>
+                                <small class="text-muted">Бюджет: {{ campaign.budget_spent_percentage }}%</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3">
+                            <p class="text-muted">Нет активных кампаний</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Источники лидов -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Источники лидов</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Источник</th>
+                                    <th>Всего лидов</th>
+                                    <th>Конвертировано</th>
+                                    <th>Конверсия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in source_stats %}
+                                <tr>
+                                    <td>{{ stat.name }}</td>
+                                    <td>{{ stat.total }}</td>
+                                    <td>{{ stat.converted }}</td>
+                                    <td>
+                                        {% if stat.total > 0 %}
+                                            {{ stat.converted|floatformat:0 }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">Нет данных</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Быстрые действия -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crm:lead_create' %}" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-plus-circle"></i> Добавить лида
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crm:sales_funnel' %}" class="btn btn-info btn-lg w-100">
+                                <i class="fas fa-filter"></i> Воронка продаж
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crm:campaign_analytics' %}" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-graph-up"></i> Аналитика
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crm:campaign_list' %}" class="btn btn-warning btn-lg w-100">
+                                <i class="bi bi-bullhorn"></i> Кампании
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Здесь можно добавить JavaScript для интерактивных элементов дашборда
+</script>
+{% endblock %}
