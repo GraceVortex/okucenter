@@ -586,10 +586,22 @@ def remove_student(request, enrollment_id):
 @login_required
 def student_classes(request):
     """Отображает список классов студента с дополнительной информацией и предстоящими занятиями."""
-    if not request.user.is_student:
-        return HttpResponseForbidden("Эта страница доступна только студентам.")
+    if not (request.user.is_student or request.user.is_admin):
+        return HttpResponseForbidden("Эта страница доступна только студентам и администраторам.")
     
-    student = get_object_or_404(Student, user=request.user)
+    # Для администратора нужно выбрать студента из GET-параметра
+    if request.user.is_admin:
+        student_id = request.GET.get('student_id')
+        if student_id:
+            student = get_object_or_404(Student, id=student_id)
+        else:
+            # Если студент не выбран, показываем список студентов для выбора
+            students = Student.objects.all().order_by('full_name')
+            return render(request, 'classes/admin_select_student.html', {'students': students})
+    else:
+        # Для обычного студента используем его профиль
+        student = get_object_or_404(Student, user=request.user)
+    
     enrollments = Enrollment.objects.filter(student=student)
     classes = Class.objects.filter(enrollments__in=enrollments).order_by('name')
     
@@ -659,12 +671,15 @@ def student_classes(request):
     # Сортируем предстоящие занятия по дате и времени
     upcoming_lessons.sort(key=lambda x: x['datetime'])
     
-    return render(request, 'classes/student_classes.html', {
+    context = {
         'classes_with_info': classes_with_info,
         'student': student,
         'upcoming_lessons': upcoming_lessons,
-        'is_self_managed': student.is_self_managed
-    })
+        'is_self_managed': student.is_self_managed,
+        'is_admin_view': request.user.is_admin  # Флаг для отображения админского режима
+    }
+    
+    return render(request, 'classes/student_classes.html', context)
 
 @login_required
 def grade_homework(request, submission_id):
