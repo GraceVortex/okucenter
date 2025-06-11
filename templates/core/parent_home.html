@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% load i18n %}
+
+{% block title %}{{ trans.home }} - {{ trans.site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    
+    .profile-card {
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .balance-card {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .courses-card {
+        border-left: 4px solid #198754;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-2 px-2">
+    <!-- Переключатель языка -->
+    <div class="d-flex justify-content-end mb-3">
+        <div class="btn-group" role="group" aria-label="{% if user_language == 'kk' %}Тіл ауыстырғыш{% else %}Переключатель языка{% endif %}">
+            <a href="{% url 'core:change_language' %}?lang=ru&next={{ request.path }}" class="btn btn-sm {% if user_language == 'ru' %}btn-primary{% else %}btn-outline-primary{% endif %}">Рус</a>
+            <a href="{% url 'core:change_language' %}?lang=kk&next={{ request.path }}" class="btn btn-sm {% if user_language == 'kk' %}btn-primary{% else %}btn-outline-primary{% endif %}">Қаз</a>
+        </div>
+    </div>
+    
+    <!-- {% if user_language == 'kk' %}Пайдаланушы профилі{% else %}Профиль пользователя{% endif %} -->
+    <div class="mb-3">
+        <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded-3">
+            <a href="{% url 'accounts:profile' %}" class="text-decoration-none flex-grow-1">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <span class="text-white fw-bold">{{ user.get_full_name|default:user.username|first|upper }}</span>
+                    </div>
+                    <span class="ms-2 fw-bold">{{ user.get_full_name|default:user.username }}</span>
+                </div>
+            </a>
+            
+            <a href="{% url 'accounts:profile' %}" class="text-decoration-none ms-2">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <!-- {% if user_language == 'kk' %}"Менің балаларым" тақырыбы{% else %}Заголовок "Мои дети"{% endif %} -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 fw-bold mb-0">{{ trans.my_children }}</h1>
+        <a href="{% url 'accounts:parent_cancellation_requests' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-calendar-x me-1"></i> {{ trans.cancellation_requests }}
+            {% if pending_cancellations %}
+            <span class="badge bg-danger ms-1">{{ pending_cancellations }}</span>
+            {% endif %}
+        </a>
+    </div>
+    
+    {% if children_data %}
+        {% for child_data in children_data %}
+            <div class="card border-0 rounded-4 shadow-sm mb-4 profile-card">
+                <div class="card-body p-3">
+                    <h5 class="fw-bold mb-3">{{ child_data.student.full_name }}</h5>
+                    
+                    <!-- {% if user_language == 'kk' %}Әр балаға арналған 6 түймеден тұратын ықшам мәзір{% else %}Компактное меню из 6 кнопок для каждого ребенка{% endif %} -->
+                    <div class="row g-2 mb-3">
+                        <!-- {% if user_language == 'kk' %}Бала сыныптары{% else %}Классы ребенка{% endif %} -->
+                        <div class="col-4">
+                            <a href="{% url 'classes:parent_child_lessons' child_data.student.id %}" class="text-decoration-none">
+                                <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px;">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-book text-primary"></i>
+                                    </div>
+                                    <span class="small fw-medium">{% if user_language == 'kk' %}Сыныптар{% else %}Классы{% endif %}</span>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- {% if user_language == 'kk' %}Бала кестесі{% else %}Расписание ребенка{% endif %} -->
+                        <div class="col-4">
+                            <a href="{% url 'classes:student_schedule' %}?student_id={{ child_data.student.id }}" class="text-decoration-none">
+                                <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px;">
+                                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-calendar2-week text-white"></i>
+                                    </div>
+                                    <span class="small fw-bold">{{ trans.schedule }}</span>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- {% if user_language == 'kk' %}Бала статистикасы{% else %}Статистика ребенка{% endif %} -->
+                        <div class="col-4">
+                            <a href="{% url 'core:statistics' %}?student_id={{ child_data.student.id }}" class="text-decoration-none">
+                                <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px;">
+                                    <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-graph-up text-warning"></i>
+                                    </div>
+                                    <span class="small fw-medium">{% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %}</span>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- {% if user_language == 'kk' %}Баланың үй тапсырмалары{% else %}Домашние задания ребенка{% endif %} -->
+                        <div class="col-4">
+                            <a href="{% url 'classes:parent_child_homework' child_data.student.id %}" class="text-decoration-none">
+                                <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px;">
+                                    <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-journal-check text-info"></i>
+                                    </div>
+                                    <span class="small fw-medium">{% if user_language == 'kk' %}Үй тапсырмасы{% else %}Домашние задания{% endif %}</span>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- {% if user_language == 'kk' %}Хабарламалар{% else %}Сообщения{% endif %} -->
+                        <div class="col-4">
+                            <a href="{% url 'messaging:inbox' %}" class="text-decoration-none">
+                                <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px;">
+                                    <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-chat-dots text-danger"></i>
+                                    </div>
+                                    <span class="small fw-medium">{% if user_language == 'kk' %}Хабарламалар{% else %}Сообщения{% endif %}</span>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- {% if user_language == 'kk' %}Бас тарту сұрауы{% else %}Запрос на отмену{% endif %} -->
+                        <div class="col-4">
+                            {% if not child_data.student.is_self_managed %}
+                                <a href="{% url 'attendance:parent_child_cancel_lessons' child_data.student.id %}" class="text-decoration-none">
+                                    <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px;">
+                                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                        </div>
+                                        <span class="small fw-medium">{% if user_language == 'kk' %}Сабақты болдырмау сұранысы{% else %}Запрос на отмену{% endif %}</span>
+                                    </div>
+                                </a>
+                            {% else %}
+                                <div class="d-flex flex-column align-items-center justify-content-between p-2 bg-light rounded-3 text-center" style="height: 85px; opacity: 0.6;">
+                                    <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center mb-1" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-x-circle text-secondary"></i>
+                                    </div>
+                                    <span class="small fw-medium text-muted">{% if user_language == 'kk' %}Өзін-өзі басқаратын{% else %}Самоуправляемый{% endif %}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- {% if user_language == 'kk' %}Баланс туралы ақпарат блогы{% else %}Блок с информацией о балансе{% endif %} -->
+                    <div class="mt-3">
+                        <div class="card border-0 rounded-4 shadow-sm balance-card">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="fw-bold mb-0">{% if user_language == 'kk' %}Баланс{% else %}Баланс{% endif %}</h6>
+                                    <span class="badge {% if child_data.balance_info.amount >= 0 %}bg-success{% else %}bg-danger{% endif %} rounded-pill">
+                                        {{ child_data.balance_info.amount|floatformat:0 }} тг
+                                    </span>
+                                </div>
+                                
+                                {% if child_data.balance_info.amount >= 0 %}
+                                    <p class="small text-muted mb-2">
+                                        {% if user_language == 'kk' %}
+                                            Шамамен {{ child_data.balance_info.lessons_left }} сабаққа жетеді
+                                            {% if child_data.balance_info.date_until %}
+                                                ({{ child_data.balance_info.date_until|date:"d.m.Y" }} дейін)
+                                            {% endif %}
+                                        {% else %}
+                                            Хватит на примерно {{ child_data.balance_info.lessons_left }} занятий
+                                            {% if child_data.balance_info.date_until %}
+                                                (до {{ child_data.balance_info.date_until|date:"d.m.Y" }})
+                                            {% endif %}
+                                        {% endif %}
+                                    </p>
+                                {% else %}
+                                    <p class="small text-danger mb-2">
+                                        {% if user_language == 'kk' %}Баланс {{ child_data.balance_info.date_since|date:"d.m.Y" }} бастап минуста{% else %}Баланс в минусе с {{ child_data.balance_info.date_since|date:"d.m.Y" }}{% endif %}
+                                    </p>
+                                {% endif %}
+                                
+                                <div class="d-flex gap-2">
+                                    <a href="#" class="btn btn-primary btn-sm flex-grow-1">
+                                        <i class="bi bi-cash-coin me-1"></i> {% if user_language == 'kk' %}Балансты толықтыру{% else %}Пополнить баланс{% endif %}
+                                    </a>
+                                    <a href="{% url 'finance:parent_student_finance' child_data.student.id %}" class="btn btn-outline-primary btn-sm flex-grow-1">
+                                        <i class="bi bi-file-earmark-text me-1"></i> {% if user_language == 'kk' %}Қаржы{% else %}Финансы{% endif %}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i> {% if user_language == 'kk' %}Сіздің жүйеде тіркелген балаларыңыз жоқ.{% else %}У вас нет зарегистрированных детей в системе.{% endif %}
+        </div>
+    {% endif %}
+    
+    <!-- Стенд "Другие наши курсы" -->
+    <div class="mt-4">
+        <div class="card border-0 rounded-4 shadow-sm courses-card">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3">{% if user_language == 'kk' %}Басқа курстарымыз{% else %}Другие наши курсы{% endif %}</h5>
+                <p class="text-muted mb-3">{% if user_language == 'kk' %}Біздің орталықтың басқа да білім беру бағдарламаларымен танысыңыз{% else %}Ознакомьтесь с другими образовательными программами нашего центра{% endif %}</p>
+                <a href="#" class="btn btn-primary w-100">
+                    <i class="bi bi-book me-2"></i> {% if user_language == 'kk' %}Барлық курстарды қарау{% else %}Посмотреть все курсы{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

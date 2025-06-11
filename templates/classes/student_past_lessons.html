@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Прошедшие уроки - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Өткен сабақтар - Білім беру орталығы{% else %}Прошедшие уроки - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h1 class="display-5 fw-bold">Прошедшие уроки</h1>
-            <p class="text-muted fs-5">История ваших занятий с материалами и оценками</p>
+            <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Өткен сабақтар{% else %}Прошедшие уроки{% endif %}</h1>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Материалдар мен бағалары бар сабақтарыңыздың тарихы{% else %}История ваших занятий с материалами и оценками{% endif %}</p>
         </div>
     </div>
 
@@ -25,14 +25,14 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4">
-                    <h4 class="fw-bold mb-0">Фильтры</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Фильтрлер{% else %}Фильтры{% endif %}</h4>
                 </div>
                 <div class="card-body p-4">
                     <form method="get" class="row g-3">
                         <div class="col-md-4">
-                            <label for="class_id" class="form-label">Класс</label>
+                            <label for="class_id" class="form-label">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</label>
                             <select name="class_id" id="class_id" class="form-select">
-                                <option value="">Все классы</option>
+                                <option value="">{% if user_language == 'kk' %}Барлық сыныптар{% else %}Все классы{% endif %}</option>
                                 {% for class in student_classes %}
                                     <option value="{{ class.id }}" {% if class_filter == class.id|stringformat:"i" %}selected{% endif %}>
                                         {{ class.name }}
@@ -41,21 +41,21 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label for="status" class="form-label">Статус посещения</label>
+                            <label for="status" class="form-label">{% if user_language == 'kk' %}Қатысу мәртебесі{% else %}Статус посещения{% endif %}</label>
                             <select name="status" id="status" class="form-select">
-                                <option value="">Все статусы</option>
-                                <option value="present" {% if status_filter == 'present' %}selected{% endif %}>Присутствовал</option>
-                                <option value="absent" {% if status_filter == 'absent' %}selected{% endif %}>Отсутствовал</option>
-                                <option value="excused" {% if status_filter == 'excused' %}selected{% endif %}>Отсутствовал по уважительной причине</option>
-                                <option value="canceled" {% if status_filter == 'canceled' %}selected{% endif %}>Урок отменен</option>
+                                <option value="">{% if user_language == 'kk' %}Барлық мәртебелер{% else %}Все статусы{% endif %}</option>
+                                <option value="present" {% if status_filter == 'present' %}selected{% endif %}>{% if user_language == 'kk' %}Қатысты{% else %}Присутствовал{% endif %}</option>
+                                <option value="absent" {% if status_filter == 'absent' %}selected{% endif %}>{% if user_language == 'kk' %}Қатыспады{% else %}Отсутствовал{% endif %}</option>
+                                <option value="excused" {% if status_filter == 'excused' %}selected{% endif %}>{% if user_language == 'kk' %}Дәлелді себеппен қатыспады{% else %}Отсутствовал по уважительной причине{% endif %}</option>
+                                <option value="canceled" {% if status_filter == 'canceled' %}selected{% endif %}>{% if user_language == 'kk' %}Сабақ болмады{% else %}Урок отменен{% endif %}</option>
                             </select>
                         </div>
                         <div class="col-md-4 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-filter me-2"></i> Применить фильтры
+                                <i class="bi bi-filter me-2"></i> {% if user_language == 'kk' %}Фильтрлерді қолдану{% else %}Применить фильтры{% endif %}
                             </button>
                             <a href="{% url 'classes:student_past_lessons' %}" class="btn btn-outline-secondary ms-2">
-                                <i class="bi bi-x-circle me-2"></i> Сбросить
+                                <i class="bi bi-x-circle me-2"></i> {% if user_language == 'kk' %}Тазалау{% else %}Сбросить{% endif %}
                             </a>
                         </div>
                     </form>
@@ -68,9 +68,9 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4 d-flex justify-content-between align-items-center">
-                    <h4 class="fw-bold mb-0">История уроков</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Сабақтар тарихы{% else %}История уроков{% endif %}</h4>
                     <a href="{% url 'classes:student_classes' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-calendar-event me-2"></i> К расписанию
+                        <i class="bi bi-calendar-event me-2"></i> {% if user_language == 'kk' %}Кестеге{% else %}К расписанию{% endif %}
                     </a>
                 </div>
                 <div class="card-body p-0">
@@ -79,16 +79,16 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th scope="col">Дата</th>
-                                        <th scope="col">Класс</th>
-                                        <th scope="col">Время</th>
-                                        <th scope="col">Статус</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Күні{% else %}Дата{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Уақыты{% else %}Время{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Мәртебесі{% else %}Статус{% endif %}</th>
                                         {% if is_self_managed %}
-                                        <th scope="col">Оценка за активность</th>
-                                        <th scope="col">Комментарий</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Белсенділік бағасы{% else %}Оценка за активность{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Пікір{% else %}Комментарий{% endif %}</th>
                                         {% endif %}
-                                        <th scope="col">Материалы</th>
-                                        <th scope="col">Домашнее задание</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Материалдар{% else %}Материалы{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Үй тапсырмасы{% else %}Домашнее задание{% endif %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -105,24 +105,24 @@
                                             </td>
                                             <td>
                                                 {% if lesson.attendance.status == 'present' %}
-                                                    <span class="badge bg-success">Присутствовал</span>
+                                                    <span class="badge bg-success">{% if user_language == 'kk' %}Қатысты{% else %}Присутствовал{% endif %}</span>
                                                 {% elif lesson.attendance.status == 'absent' %}
-                                                    <span class="badge bg-danger">Отсутствовал</span>
+                                                    <span class="badge bg-danger">{% if user_language == 'kk' %}Қатыспады{% else %}Отсутствовал{% endif %}</span>
                                                 {% elif lesson.attendance.status == 'excused' %}
-                                                    <span class="badge bg-warning">Отсутствовал (уваж.)</span>
+                                                    <span class="badge bg-warning">{% if user_language == 'kk' %}Қатыспады (дәл.){% else %}Отсутствовал (уваж.){% endif %}</span>
                                                 {% elif lesson.attendance.status == 'canceled' %}
-                                                    <span class="badge bg-secondary">Урок отменен</span>
+                                                    <span class="badge bg-secondary">{% if user_language == 'kk' %}Сабақ болмады{% else %}Урок отменен{% endif %}</span>
                                                 {% endif %}
                                             </td>
                                             {% if is_self_managed %}
                                             <td>
                                                 {% if lesson.mark and lesson.mark.activity_mark %}
                                                     {% if lesson.mark.activity_mark == 'excellent' %}
-                                                        <span class="badge bg-success">Отлично</span>
+                                                        <span class="badge bg-success">{% if user_language == 'kk' %}Өте жақсы{% else %}Отлично{% endif %}</span>
                                                     {% elif lesson.mark.activity_mark == 'normal' %}
-                                                        <span class="badge bg-info">Нормально</span>
+                                                        <span class="badge bg-info">{% if user_language == 'kk' %}Қалыпты{% else %}Нормально{% endif %}</span>
                                                     {% elif lesson.mark.activity_mark == 'poor' %}
-                                                        <span class="badge bg-warning">Слабо</span>
+                                                        <span class="badge bg-warning">{% if user_language == 'kk' %}Әлсіз{% else %}Слабо{% endif %}</span>
                                                     {% endif %}
                                                 {% else %}
                                                     -
@@ -164,10 +164,10 @@
                     {% else %}
                         <div class="p-5 text-center">
                             <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
-                            <h4>У вас пока нет прошедших уроков</h4>
-                            <p class="text-muted">История уроков появится здесь после проведения занятий</p>
+                            <h4>{% if user_language == 'kk' %}Сізде әлі өткен сабақтар жоқ{% else %}У вас пока нет прошедших уроков{% endif %}</h4>
+                            <p class="text-muted">{% if user_language == 'kk' %}Сабақтар өткізілгеннен кейін сабақтар тарихы осы жерде пайда болады{% else %}История уроков появится здесь после проведения занятий{% endif %}</p>
                             <a href="{% url 'classes:student_classes' %}" class="btn btn-primary mt-3">
-                                <i class="bi bi-calendar-event me-2"></i> Перейти к расписанию
+                                <i class="bi bi-calendar-event me-2"></i> {% if user_language == 'kk' %}Кестеге өту{% else %}Перейти к расписанию{% endif %}
                             </a>
                         </div>
                     {% endif %}
@@ -180,43 +180,43 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4">
-                    <h4 class="fw-bold mb-0">Информация о статусах</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Мәртебелер туралы ақпарат{% else %}Информация о статусах{% endif %}</h4>
                 </div>
                 <div class="card-body p-4">
                     <div class="row">
                         <div class="col-md-6">
-                            <h5 class="fw-bold">Статусы посещения</h5>
+                            <h5 class="fw-bold">{% if user_language == 'kk' %}Қатысу мәртебелері{% else %}Статусы посещения{% endif %}</h5>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-success me-3 p-2">Присутствовал</div>
-                                <span>Вы присутствовали на занятии</span>
+                                <div class="badge bg-success me-3 p-2">{% if user_language == 'kk' %}Қатысты{% else %}Присутствовал{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сіз сабаққа қатыстыңыз{% else %}Вы присутствовали на занятии{% endif %}</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-danger me-3 p-2">Отсутствовал</div>
-                                <span>Вы отсутствовали на занятии без уважительной причины</span>
+                                <div class="badge bg-danger me-3 p-2">{% if user_language == 'kk' %}Қатыспады{% else %}Отсутствовал{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сіз сабаққа дәлелсіз себеппен қатыспадыңыз{% else %}Вы отсутствовали на занятии без уважительной причины{% endif %}</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-warning me-3 p-2">Отсутствовал (уваж.)</div>
-                                <span>Вы отсутствовали на занятии по уважительной причине</span>
+                                <div class="badge bg-warning me-3 p-2">{% if user_language == 'kk' %}Қатыспады (дәл.){% else %}Отсутствовал (уваж.){% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сіз сабаққа дәлелді себеппен қатыспадыңыз{% else %}Вы отсутствовали на занятии по уважительной причине{% endif %}</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-secondary me-3 p-2">Урок отменен</div>
-                                <span>Занятие было отменено преподавателем или администрацией</span>
+                                <div class="badge bg-secondary me-3 p-2">{% if user_language == 'kk' %}Сабақ болмады{% else %}Урок отменен{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сабақ мұғаліммен немесе әкімшілікпен болдырылмады{% else %}Занятие было отменено преподавателем или администрацией{% endif %}</span>
                             </div>
                         </div>
                         {% if is_self_managed %}
                         <div class="col-md-6">
-                            <h5 class="fw-bold">Оценки за активность</h5>
+                            <h5 class="fw-bold">{% if user_language == 'kk' %}Белсенділік бағалары{% else %}Оценки за активность{% endif %}</h5>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-success me-3 p-2">Отлично</div>
-                                <span>Вы проявили высокую активность на занятии</span>
+                                <div class="badge bg-success me-3 p-2">{% if user_language == 'kk' %}Өте жақсы{% else %}Отлично{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сіз сабақта жоғары белсенділік көрсеттіңіз{% else %}Вы проявили высокую активность на занятии{% endif %}</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-info me-3 p-2">Нормально</div>
-                                <span>Вы проявили среднюю активность на занятии</span>
+                                <div class="badge bg-info me-3 p-2">{% if user_language == 'kk' %}Қалыпты{% else %}Нормально{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сіз сабақта орташа белсенділік көрсеттіңіз{% else %}Вы проявили среднюю активность на занятии{% endif %}</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-warning me-3 p-2">Слабо</div>
-                                <span>Вы проявили низкую активность на занятии</span>
+                                <div class="badge bg-warning me-3 p-2">{% if user_language == 'kk' %}Әлсіз{% else %}Слабо{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сіз сабақта төмен белсенділік көрсеттіңіз{% else %}Вы проявили низкую активность на занятии{% endif %}</span>
                             </div>
                         </div>
                         {% endif %}

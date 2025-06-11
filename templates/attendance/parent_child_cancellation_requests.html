@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if user_language == 'kk' %}{{ student.full_name }} сабақтарды болдырмау сұраныстары - Оқу орталығы{% else %}Запросы на отмену занятий {{ student.full_name }} - Образовательный центр{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="{% url 'attendance:parent_child_cancel_lessons' student.id %}" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Сабақтарды болдырмауға оралу{% else %}Вернуться к отмене занятий{% endif %}
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары{% else %}Запросы на отмену занятий{% endif %}</h1>
+            </div>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}{{ student.full_name }} сабақтарды болдырмау сұраныстары{% else %}Запросы на отмену занятий {{ student.full_name }}{% endif %}</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <!-- Список запросов на отмену -->
+    {% if cancellation_requests %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white p-4">
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары{% else %}Запросы на отмену занятий{% endif %}</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</th>
+                                    <th scope="col">{% if user_language == 'kk' %}Күні{% else %}Дата{% endif %}</th>
+                                    <th scope="col">{% if user_language == 'kk' %}Уақыты{% else %}Время{% endif %}</th>
+                                    <th scope="col">{% if user_language == 'kk' %}Себебі{% else %}Причина{% endif %}</th>
+                                    <th scope="col">{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</th>
+                                    <th scope="col">{% if user_language == 'kk' %}Құрылған{% else %}Создан{% endif %}</th>
+                                    <th scope="col">{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in cancellation_requests %}
+                                    <tr>
+                                        <td>{{ request.class_obj.name }}</td>
+                                        <td>{{ request.date|date:"d.m.Y" }}</td>
+                                        <td>{{ request.class_schedule.start_time|time:"H:i" }} - {{ request.class_schedule.end_time|time:"H:i" }}</td>
+                                        <td>{{ request.reason }}</td>
+                                        <td>
+                                            {% if request.status == 'pending' %}
+                                                <span class="badge bg-warning">{% if user_language == 'kk' %}Растауды күтуде{% else %}Ожидает подтверждения{% endif %}</span>
+                                            {% elif request.status == 'approved' %}
+                                                <span class="badge bg-success">{% if user_language == 'kk' %}Расталған{% else %}Подтверждено{% endif %}</span>
+                                            {% elif request.status == 'rejected' %}
+                                                <span class="badge bg-danger">{% if user_language == 'kk' %}Қабылданбады{% else %}Отклонено{% endif %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ request.created_at|date:"d.m.Y H:i" }}</td>
+                                        <td>
+                                            {% if request.status == 'pending' %}
+                                                <a href="{% url 'attendance:cancel_student_cancellation_request' request.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('{% if user_language == \'kk\' %}Бұл сұранысты болдырмағыңыз келетініне сенімдісіз бе?{% else %}Вы уверены, что хотите отменить этот запрос?{% endif %}')">
+                                                    <i class="bi bi-x-circle me-1"></i> {% if user_language == 'kk' %}Сұранысты болдырмау{% else %}Отменить запрос{% endif %}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">{% if user_language == 'kk' %}Қол жетімді әрекеттер жоқ{% else %}Нет доступных действий{% endif %}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        {% if user_language == 'kk' %}{{ student.full_name }} үшін сабақтарды болдырмау сұраныстары жоқ.{% else %}Нет запросов на отмену занятий для {{ student.full_name }}.{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

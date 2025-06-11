@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ conversation.subject|default:"Диалог" }} - Образовательный центр{% endblock %}
+{% block title %}{{ conversation.subject|default:"{% if user_language == 'kk' %}Диалог{% else %}Диалог{% endif %}" }} - {% if user_language == 'kk' %}Білім беру орталығы{% else %}Образовательный центр{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -39,11 +39,11 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <a href="{% url 'messaging:inbox' %}" class="text-decoration-none mb-3 d-inline-block">
-                <i class="bi bi-arrow-left me-2"></i> Назад к списку сообщений
+                <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Хабарламалар тізіміне қайту{% else %}Назад к списку сообщений{% endif %}
             </a>
-            <h2 class="fw-bold">{{ conversation.subject|default:"Без темы" }}</h2>
+            <h2 class="fw-bold">{{ conversation.subject|default:"{% if user_language == 'kk' %}Тақырыпсыз{% else %}Без темы{% endif %}" }}</h2>
             <p class="text-muted">
-                Участники: 
+                {% if user_language == 'kk' %}Қатысушылар: {% else %}Участники: {% endif %}
                 {% for participant in conversation.participants.all %}
                     {{ participant.get_full_name|default:participant.username }}{% if not forloop.last %}, {% endif %}
                 {% endfor %}
@@ -53,10 +53,10 @@
             {% if user.is_admin or user.is_reception %}
                 {% if conversation.status == 'active' %}
                     <a href="{% url 'messaging:close_conversation' conversation_id=conversation.id %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-x-circle me-2"></i> Закрыть диалог
+                        <i class="bi bi-x-circle me-2"></i> {% if user_language == 'kk' %}Диалогты жабу{% else %}Закрыть диалог{% endif %}
                     </a>
                 {% else %}
-                    <span class="badge bg-secondary p-2">Диалог закрыт</span>
+                    <span class="badge bg-secondary p-2">{% if user_language == 'kk' %}Диалог жабық{% else %}Диалог закрыт{% endif %}</span>
                 {% endif %}
             {% endif %}
         </div>
@@ -76,7 +76,7 @@
                         </div>
                     {% empty %}
                         <div class="text-center py-4">
-                            <p class="text-muted">Нет сообщений. Начните диалог, отправив сообщение ниже.</p>
+                            <p class="text-muted">{% if user_language == 'kk' %}Хабарламалар жоқ. Төменде хабарлама жіберу арқылы диалогты бастаңыз.{% else %}Нет сообщений. Начните диалог, отправив сообщение ниже.{% endif %}</p>
                         </div>
                     {% endfor %}
                 </div>
@@ -88,18 +88,18 @@
                         <form method="post" id="messageForm">
                             {% csrf_token %}
                             <div class="mb-3">
-                                <label for="content" class="form-label">Ваше сообщение</label>
+                                <label for="content" class="form-label">{% if user_language == 'kk' %}Сіздің хабарламаңыз{% else %}Ваше сообщение{% endif %}</label>
                                 <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-send me-2"></i> Отправить
+                                <i class="bi bi-send me-2"></i> {% if user_language == 'kk' %}Жіберу{% else %}Отправить{% endif %}
                             </button>
                         </form>
                     </div>
                 </div>
             {% else %}
                 <div class="alert alert-secondary">
-                    <i class="bi bi-info-circle me-2"></i> Этот диалог закрыт. Вы не можете отправлять новые сообщения.
+                    <i class="bi bi-info-circle me-2"></i> {% if user_language == 'kk' %}Бұл диалог жабық. Сіз жаңа хабарламалар жібере алмайсыз.{% else %}Этот диалог закрыт. Вы не можете отправлять новые сообщения.{% endif %}
                 </div>
             {% endif %}
         </div>
@@ -110,7 +110,7 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Прокрутка к последнему сообщению при загрузке страницы
+        // {% if user_language == 'kk' %}Бет жүктелгенде соңғы хабарламаға айналдыру{% else %}Прокрутка к последнему сообщению при загрузке страницы{% endif %}
         const messageContainer = document.getElementById('messageContainer');
         if (messageContainer) {
             messageContainer.scrollTop = messageContainer.scrollHeight;

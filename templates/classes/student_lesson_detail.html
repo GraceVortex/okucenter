@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ class.name }} - {{ date|date:"d.m.Y" }} - {% if user_language == 'kk' %}Білім беру орталығы{% else %}Образовательный центр{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mt-md-5">
+    <div class="row mb-3 mb-md-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb" class="mb-2">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'classes:student_schedule' %}">{% if user_language == 'kk' %}Кесте{% else %}Расписание{% endif %}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% if user_language == 'kk' %}Сабақ{% else %}Урок{% endif %} {{ class.name }} - {{ date|date:"d.m.Y" }}</li>
+                </ol>
+            </nav>
+            <h1 class="display-5 fw-bold mobile-title">{{ class.name }}</h1>
+            <p class="text-muted fs-5 mobile-subtitle">{{ date|date:"d.m.Y" }}, {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</p>
+        </div>
+        <div class="col-md-4 d-flex justify-content-md-end mt-3 mt-md-0">
+            <a href="{% url 'classes:student_schedule' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1">
+                <i class="bi bi-arrow-left"></i> <span class="d-none d-sm-inline">{% if user_language == 'kk' %}Қайту{% else %}Вернуться к{% endif %}</span> {% if user_language == 'kk' %}кестеге{% else %}расписанию{% endif %}
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-4 col-md-12 order-md-2 order-lg-1 mb-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">{% if user_language == 'kk' %}Негізгі ақпарат{% else %}Основная информация{% endif %}</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Сынып:{% else %}Класс:{% endif %}</span>
+                            <span class="fw-bold">{{ class.name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Күні:{% else %}Дата:{% endif %}</span>
+                            <span class="fw-bold">{{ date|date:"d.m.Y" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Уақыты:{% else %}Время:{% endif %}</span>
+                            <span class="fw-bold">{{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Кабинет:{% else %}Кабинет:{% endif %}</span>
+                            <span class="fw-bold">{{ schedule.room }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Мұғалім:{% else %}Учитель:{% endif %}</span>
+                            <span class="fw-bold">{{ class.teacher.full_name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Қатысу мәртебесі:{% else %}Статус посещения:{% endif %}</span>
+                            {% if attendance %}
+                                {% if attendance.status == 'present' %}
+                                    <span class="badge bg-success">{% if user_language == 'kk' %}Қатысты{% else %}Присутствовал{% endif %}</span>
+                                {% elif attendance.status == 'absent' %}
+                                    <span class="badge bg-danger">{% if user_language == 'kk' %}Қатыспады{% else %}Отсутствовал{% endif %}</span>
+                                {% elif attendance.status == 'late' %}
+                                    <span class="badge bg-warning">{% if user_language == 'kk' %}Кешікті{% else %}Опоздал{% endif %}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{% if user_language == 'kk' %}Белгіленбеген{% else %}Не отмечен{% endif %}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary">{% if user_language == 'kk' %}Белгіленбеген{% else %}Не отмечен{% endif %}</span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Баға:{% else %}Оценка:{% endif %}</span>
+                            {% if mark %}
+                                {% if mark.value %}
+                                    <span class="badge bg-primary fs-6">{{ mark.value }}</span>
+                                {% else %}
+                                    <span class="text-muted">{% if user_language == 'kk' %}Баға жоқ{% else %}Нет оценки{% endif %}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">{% if user_language == 'kk' %}Баға жоқ{% else %}Нет оценки{% endif %}</span>
+                            {% endif %}
+                        </li>
+                        {% if cancellation_request %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{% if user_language == 'kk' %}Болдырмау өтінішінің мәртебесі:{% else %}Статус запроса на отмену:{% endif %}</span>
+                            {% if cancellation_request.status == 'approved' %}
+                                <span class="badge bg-success">{% if user_language == 'kk' %}Расталған{% else %}Подтвержден{% endif %}</span>
+                            {% elif cancellation_request.status == 'pending' %}
+                                <span class="badge bg-warning">{% if user_language == 'kk' %}Қарастырылуда{% else %}На рассмотрении{% endif %}</span>
+                            {% elif cancellation_request.status == 'rejected' %}
+                                <span class="badge bg-danger">{% if user_language == 'kk' %}Қабылданбады{% else %}Отклонен{% endif %}</span>
+                            {% endif %}
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            {% if is_self_managed and not attendance.is_canceled and not cancellation_request and date >= today %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'attendance:student_cancel_lesson' class.id schedule.id date|date:'Y-m-d' %}" class="btn btn-outline-danger btn-action">
+                            <i class="bi bi-calendar-x me-2"></i> {% if user_language == 'kk' %}Сабақты болдырмауды сұрау{% else %}Запросить отмену занятия{% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-8 col-md-12 order-md-1 order-lg-2">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">{% if user_language == 'kk' %}Сабақ материалдары{% else %}Материалы урока{% endif %}</h5>
+                    {% if lesson_materials %}
+                    <div class="list-group">
+                        {% for material in lesson_materials %}
+                            <a href="{{ material.file.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" target="_blank">
+                                <div>
+                                    <i class="bi bi-file-earmark me-2"></i>
+                                    {{ material.title }}
+                                </div>
+                                <span class="badge bg-primary rounded-pill">
+                                    <i class="bi bi-download"></i>
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light text-center">
+                        <i class="bi bi-info-circle me-2"></i>
+                        {% if user_language == 'kk' %}Сабаққа файлдар тіркелмеген{% else %}К уроку не прикреплены файлы{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if homework %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">{% if user_language == 'kk' %}Үй тапсырмасы{% else %}Домашнее задание{% endif %}</h5>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ homework.title }}</h6>
+                            <p class="card-text">{{ homework.description }}</p>
+                            <p class="text-muted small">
+                                <i class="bi bi-calendar-event me-1"></i> {% if user_language == 'kk' %}Өткізу мерзімі: {% else %}Срок сдачи: {% endif %}{{ homework.due_date|date:"d.m.Y" }}
+                            </p>
+                            
+                            {% if homework.file %}
+                            <a href="{{ homework.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="bi bi-download me-1"></i> {% if user_language == 'kk' %}Тапсырманы жүктеу{% else %}Скачать задание{% endif %}
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if homework_submission %}
+                        <div class="card {% if homework_submission.completion_status == 'completed' %}border-success{% elif homework_submission.completion_status == 'incomplete' %}border-warning{% else %}border-info{% endif %}">
+                            <div class="card-header">
+                                <h6 class="mb-0">{% if user_language == 'kk' %}Сіздің жұмысыңыз{% else %}Ваша работа{% endif %}</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ homework_submission.comment }}</p>
+                                {% if homework_submission.file %}
+                                <a href="{{ homework_submission.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="bi bi-download me-1"></i> {% if user_language == 'kk' %}Жіберілген жұмысты жүктеу{% else %}Скачать отправленную работу{% endif %}
+                                </a>
+                                {% endif %}
+                                
+                                <div class="mt-3">
+                                    <p class="mb-1"><strong>{% if user_language == 'kk' %}Мәртебесі:{% else %}Статус:{% endif %}</strong> 
+                                        {% if homework_submission.completion_status == 'completed' %}
+                                            <span class="badge bg-success">{% if user_language == 'kk' %}Орындалды{% else %}Выполнено{% endif %}</span>
+                                        {% elif homework_submission.completion_status == 'incomplete' %}
+                                            <span class="badge bg-warning">{% if user_language == 'kk' %}Толықтыруды қажет етеді{% else %}Требует доработки{% endif %}</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{% if user_language == 'kk' %}Тексеруде{% else %}На проверке{% endif %}</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="mb-1"><strong>{% if user_language == 'kk' %}Жіберілген:{% else %}Отправлено:{% endif %}</strong> {{ homework_submission.submitted_at|date:"d.m.Y H:i" }}</p>
+                                    {% if homework_submission.grade %}
+                                    <p class="mb-1"><strong>{% if user_language == 'kk' %}Баға:{% else %}Оценка:{% endif %}</strong> <span class="badge bg-primary">{{ homework_submission.grade }}</span></p>
+                                    {% endif %}
+                                    {% if homework_submission.teacher_comment %}
+                                    <p class="mb-0"><strong>{% if user_language == 'kk' %}Мұғалімнің пікірі:{% else %}Комментарий учителя:{% endif %}</strong> {{ homework_submission.teacher_comment }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% elif not homework.is_past_due %}
+                        <div class="d-grid">
+                            <a href="{% url 'classes:submit_homework' homework.id %}" class="btn btn-primary">
+                                <i class="bi bi-upload me-2"></i> {% if user_language == 'kk' %}Үй тапсырмасын жіберу{% else %}Отправить домашнее задание{% endif %}
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i> {% if user_language == 'kk' %}Үй тапсырмасының өткізу мерзімі аяқталды.{% else %}Срок сдачи домашнего задания истек.{% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if mark and mark.comment %}
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">{% if user_language == 'kk' %}Мұғалімнің пікірі{% else %}Комментарий учителя{% endif %}</h5>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="card-text">{{ mark.comment }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 767px) {
+        .mobile-title {
+            font-size: 1.8rem;
+        }
+        
+        .mobile-subtitle {
+            font-size: 1rem !important;
+        }
+        
+        .card {
+            border-radius: 0.75rem;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .list-group-item {
+            padding: 0.75rem 1rem;
+        }
+        
+        .btn-action {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .breadcrumb {
+            font-size: 0.85rem;
+        }
+        
+        .table {
+            font-size: 0.9rem;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+    }
+</style>
+{% endblock %}
+
+{% endblock %}

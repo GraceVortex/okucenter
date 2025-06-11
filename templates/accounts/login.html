@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
 
-{% block title %}Вход в систему - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Жүйеге кіру - Білім беру орталығы{% else %}Вход в систему - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="text-center mb-5 mt-5">
-                <h1 class="display-4 fw-bold">Образовательный центр</h1>
-                <p class="text-muted">Система управления образовательным процессом</p>
+        <div class="col-md-5 col-sm-10 col-11">
+            <div class="text-center mb-4 mb-md-5 mt-4 mt-md-5">
+                <h1 class="display-4 fw-bold mobile-title">{% if user_language == 'kk' %}Білім беру орталығы{% else %}Образовательный центр{% endif %}</h1>
+                <p class="text-muted">{% if user_language == 'kk' %}Білім беру процесін басқару жүйесі{% else %}Система управления образовательным процессом{% endif %}</p>
             </div>
             
-            <div class="card shadow-sm border-0 mb-5">
-                <div class="card-body p-5">
-                    <h3 class="fw-bold mb-4 text-center">Вход в систему</h3>
+            <div class="card shadow-sm border-0 mb-4 mb-md-5">
+                <div class="card-body p-4 p-md-5">
+                    <h3 class="fw-bold mb-3 mb-md-4 text-center">{% if user_language == 'kk' %}Жүйеге кіру{% else %}Вход в систему{% endif %}</h3>
                     
                     {% if messages %}
                         {% for message in messages %}
@@ -29,36 +29,36 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="mb-4">
-                            <label for="username" class="form-label">Имя пользователя</label>
+                            <label for="username" class="form-label">{% if user_language == 'kk' %}Пайдаланушы аты{% else %}Имя пользователя{% endif %}</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0">
                                     <i class="bi bi-person text-primary"></i>
                                 </span>
-                                <input type="text" class="form-control border-start-0 ps-0" id="username" name="username" placeholder="Введите имя пользователя" required>
+                                <input type="text" class="form-control border-start-0 ps-0" id="username" name="username" placeholder="{% if user_language == 'kk' %}Пайдаланушы атын енгізіңіз{% else %}Введите имя пользователя{% endif %}" required>
                             </div>
                         </div>
                         <div class="mb-4">
                             <div class="d-flex justify-content-between">
-                                <label for="password" class="form-label">Пароль</label>
-                                <a href="#" class="text-decoration-none small">Забыли пароль?</a>
+                                <label for="password" class="form-label">{% if user_language == 'kk' %}Құпия сөз{% else %}Пароль{% endif %}</label>
+                                <a href="#" class="text-decoration-none small">{% if user_language == 'kk' %}Құпия сөзді ұмыттыңыз ба?{% else %}Забыли пароль?{% endif %}</a>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0">
                                     <i class="bi bi-lock text-primary"></i>
                                 </span>
-                                <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="Введите пароль" required>
+                                <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="{% if user_language == 'kk' %}Құпия сөзді енгізіңіз{% else %}Введите пароль{% endif %}" required>
                             </div>
                         </div>
                         <div class="mb-4">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" value="" id="rememberMe">
                                 <label class="form-check-label" for="rememberMe">
-                                    Запомнить меня
+                                    {% if user_language == 'kk' %}Мені есте сақтау{% else %}Запомнить меня{% endif %}
                                 </label>
                             </div>
                         </div>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Войти</button>
+                            <button type="submit" class="btn btn-primary btn-lg">{% if user_language == 'kk' %}Кіру{% else %}Войти{% endif %}</button>
                         </div>
                     </form>
                 </div>
@@ -66,10 +66,10 @@
             
             <div class="text-center mb-5">
                 <p class="text-muted">
-                    <i class="bi bi-shield-lock me-2"></i> Защищенное соединение
+                    <i class="bi bi-shield-lock me-2"></i> {% if user_language == 'kk' %}Қорғалған байланыс{% else %}Защищенное соединение{% endif %}
                 </p>
                 <p class="text-muted small">
-                    2023 Образовательный центр. Все права защищены.
+                    {% if user_language == 'kk' %}2023 Білім беру орталығы. Барлық құқықтар қорғалған.{% else %}2023 Образовательный центр. Все права защищены.{% endif %}
                 </p>
             </div>
         </div>
@@ -93,6 +93,33 @@
 .form-control:focus, .btn:focus {
     box-shadow: none;
     border-color: #0d6efd;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 576px) {
+    .mobile-title {
+        font-size: 1.8rem;
+    }
+    
+    .btn-primary {
+        padding: 0.6rem 1.2rem;
+    }
+    
+    .form-control {
+        font-size: 0.95rem;
+    }
+    
+    .input-group-text {
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+    }
+    
+    .small, small {
+        font-size: 0.75rem;
+    }
 }
 </style>
 {% endblock %}

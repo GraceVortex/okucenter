@@ -1,11 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from classes.models import Class, ClassSchedule, Homework, HomeworkSubmission, Enrollment
 from accounts.models import Student, Teacher, Parent
-from attendance.models import Attendance, CancellationRequest, Mark
+from attendance.models import Attendance, CancellationRequest, StudentCancellationRequest, Mark
 from finance.models import Transaction, TeacherSalary
 from django.db.models import Count, Q, Sum
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.conf import settings
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -17,6 +19,10 @@ def home(request):
     if request.user.is_authenticated:
         user = request.user
         context['user_type'] = user.user_type
+        
+        # Перенаправляем родителей на их страницу
+        if user.is_parent:
+            return redirect('core:parent_home')
         
         if user.is_admin:
             # Базовая статистика
@@ -36,63 +42,48 @@ def home(request):
             today = timezone.now().date()
             first_day_of_month = today.replace(day=1)
             
-            # Доход от уроков (платежи)
-            lesson_income = Transaction.objects.filter(
+            # Доход от уроков (все списания от учеников минус все возвраты)
+            # Получаем сумму всех платежей (отрицательные значения)
+            payments = Transaction.objects.filter(
                 transaction_type='payment',
                 date__gte=first_day_of_month,
                 date__lte=today
             ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
             
-            # Выплаты учителям за текущий месяц - используем тот же метод, что и на странице зарплат
+            # Получаем сумму всех возвратов (положительные значения)
+            refunds = Transaction.objects.filter(
+                transaction_type='refund',
+                date__gte=first_day_of_month,
+                date__lte=today
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            
+            # Доход от уроков = абсолютное значение платежей - возвраты
+            lesson_income = abs(payments) - refunds
+            lesson_income = round(lesson_income, 2)
+            
+            # Выплаты учителям за текущий месяц - используем метод calculate_teacher_salary
             teacher_payments = Decimal('0.00')
             
             # Получаем всех учителей
             teachers = Teacher.objects.all()
             
-            # Для каждого учителя рассчитываем зарплату на основе фактических посещений
+            # Для каждого учителя рассчитываем зарплату используя метод calculate_teacher_salary
             for teacher in teachers:
-                # Получаем все посещения для подсчета уникальных занятий
-                attendances = Attendance.objects.filter(
-                    class_schedule__class_obj__teacher=teacher,
-                    date__gte=first_day_of_month,
-                    date__lte=today,
-                    reception_confirmed=True
-                ).select_related('class_schedule')
-                
-                # Считаем уникальные занятия по дате и расписанию
-                unique_classes = {}
-                for attendance in attendances:
-                    # Создаем уникальный ключ для каждой комбинации даты, класса и расписания
-                    key = (attendance.date, attendance.class_schedule.class_obj.id, attendance.class_schedule.id)
-                    if key not in unique_classes:
-                        unique_classes[key] = {
-                            'date': attendance.date,
-                            'class_obj': attendance.class_schedule.class_obj,
-                            'class_schedule': attendance.class_schedule
-                        }
-                
-                # Рассчитываем сумму зарплаты на основе уникальных занятий
-                for key, data in unique_classes.items():
-                    class_obj = data['class_obj']
-                    
-                    # Определяем сумму за занятие
-                    if class_obj.teacher_payment_type == 'percentage':
-                        price = class_obj.price_per_lesson
-                        percentage = Decimal(str(class_obj.teacher_percentage)) / Decimal('100')
-                        amount = price * percentage
-                    else:  # fixed payment
-                        amount = class_obj.teacher_fixed_payment
-                    
-                    teacher_payments += amount
+                # Используем метод calculate_teacher_salary для получения полной информации о зарплате
+                # Этот метод учитывает как уроки по расписанию, так и уроки не по расписанию
+                salary_data = TeacherSalary.calculate_teacher_salary(teacher, first_day_of_month)
+                teacher_payments += salary_data['total']
             
             # Предконечный доход = доход от уроков - выплаты учителям
-            net_income = lesson_income - teacher_payments
+            pre_final_income = lesson_income - teacher_payments
+            pre_final_income = round(pre_final_income, 2)
             
             # Общий баланс учеников (сумма всех нынешних балансов)
             total_balance = Student.objects.aggregate(total=Sum('balance'))['total'] or Decimal('0')
+            total_balance = round(total_balance, 2)
             
             # Добавляем финансовую статистику в контекст
-            context['admin_data']['monthly_income'] = net_income
+            context['admin_data']['monthly_income'] = pre_final_income
             context['admin_data']['total_balance'] = total_balance
             
             # Статистика посещаемости
@@ -541,6 +532,40 @@ def home(request):
     
     return render(request, 'core/home.html', context)
 
+def handler404(request, exception):
+    return render(request, '404.html', status=404)
+
+def change_language(request):
+    """
+    Представление для переключения языка сайта.
+    Поддерживает русский и казахский языки.
+    """
+    # Получаем код языка из параметра URL
+    lang_code = request.GET.get('lang', 'ru')
+    
+    # Проверяем, что выбранный язык поддерживается
+    valid_langs = ['ru', 'kk']
+    if lang_code not in valid_langs:
+        lang_code = 'ru'  # По умолчанию русский
+    
+    # Активируем выбранный язык для текущего запроса
+    translation.activate(lang_code)
+    
+    # Сохраняем выбранный язык в сессии
+    request.session['user_language'] = lang_code
+    request.session['django_language'] = lang_code  # Django использует этот ключ
+    
+    # Перенаправляем пользователя на предыдущую страницу или на главную
+    next_url = request.GET.get('next', '/')
+    response = redirect(next_url)
+    
+    # Устанавливаем cookie для языка (срок действия 1 год)
+    max_age = 365 * 24 * 60 * 60  # 1 год в секундах
+    response.set_cookie('user_language', lang_code, max_age=max_age)
+    response.set_cookie(settings.LANGUAGE_COOKIE_NAME, lang_code, max_age=max_age)
+    
+    return response
+
 def schedule_view(request):
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     rooms = [f'Room {i}' for i in range(1, 9)]
@@ -587,7 +612,7 @@ def schedule_view(request):
         elif request.user.is_parent:
             # Родители видят классы своих детей только после даты зачисления
             parent = request.user.get_parent_profile()
-            children = parent.students.all()
+            children = parent.children.all()
             
             # Получаем все записи о зачислении для детей родителя
             enrollments = []
@@ -1287,3 +1312,218 @@ def student_statistics(request, student_id=None):
         return render(request, 'core/student_statistics.html', context)
     
     return view_func(request)
+
+def render_student_statistics(request, student):
+    # 1. Процент выполненных домашних заданий
+    # Получаем все домашние задания для классов студента
+    enrollments = student.enrollments.filter(is_active=True)
+    class_ids = [enrollment.class_obj.id for enrollment in enrollments]
+    
+    # Получаем все домашние задания для этих классов
+    homework_assignments = Homework.objects.filter(class_obj__id__in=class_ids)
+    
+    # Получаем все выполненные домашние задания студента
+    homework_submissions = HomeworkSubmission.objects.filter(student=student)
+    
+    # Рассчитываем процент выполненных заданий
+    total_homework = homework_assignments.count()
+    completed_homework = homework_submissions.count()
+    
+    homework_completion_rate = 0
+    if total_homework > 0:
+        homework_completion_rate = round((completed_homework / total_homework) * 100)
+    
+    # 2. Насколько вовремя сдаются домашние задания
+    on_time_submissions = 0
+    late_submissions = 0
+    
+    for submission in homework_submissions:
+        if submission.submission_date.date() <= submission.homework.due_date:
+            on_time_submissions += 1
+        else:
+            late_submissions += 1
+    
+    on_time_rate = 0
+    if completed_homework > 0:
+        on_time_rate = round((on_time_submissions / completed_homework) * 100)
+    
+    # 3. Процент посещаемости
+    attendance_stats = Attendance.objects.filter(student=student)
+    total_attendance = attendance_stats.count()
+    present_attendance = attendance_stats.filter(status='present').count()
+    
+    attendance_rate = 0
+    if total_attendance > 0:
+        attendance_rate = round((present_attendance / total_attendance) * 100)
+    
+    # 4. Процент оценок за урок
+    lesson_grades = StudentLessonGrade.objects.filter(student=student)
+    total_lesson_grades = lesson_grades.count()
+    
+    # Распределение оценок за урок
+    excellent_lesson_grades = lesson_grades.filter(grade__gte=90).count()
+    good_lesson_grades = lesson_grades.filter(grade__gte=75, grade__lt=90).count()
+    average_lesson_grades = lesson_grades.filter(grade__gte=60, grade__lt=75).count()
+    poor_lesson_grades = lesson_grades.filter(grade__lt=60).count()
+    
+    # 5. Процент оценок за домашние задания
+    homework_grades = homework_submissions.exclude(grade=None)
+    total_homework_grades = homework_grades.count()
+    
+    # Распределение оценок за домашние задания
+    excellent_homework_grades = homework_grades.filter(grade__gte=90).count()
+    good_homework_grades = homework_grades.filter(grade__gte=75, grade__lt=90).count()
+    average_homework_grades = homework_grades.filter(grade__gte=60, grade__lt=75).count()
+    poor_homework_grades = homework_grades.filter(grade__lt=60).count()
+    
+    # Средние оценки
+    avg_lesson_grade = lesson_grades.aggregate(Avg('grade'))['grade__avg'] or 0
+    avg_homework_grade = homework_grades.aggregate(Avg('grade'))['grade__avg'] or 0
+    
+    # Формируем контекст для шаблона
+    context = {
+        'student': student,
+        'homework_completion_rate': homework_completion_rate,
+        'on_time_rate': on_time_rate,
+        'attendance_rate': attendance_rate,
+        'avg_lesson_grade': round(avg_lesson_grade, 1),
+        'avg_homework_grade': round(avg_homework_grade, 1),
+        'excellent_lesson_grades': excellent_lesson_grades,
+        'good_lesson_grades': good_lesson_grades,
+        'average_lesson_grades': average_lesson_grades,
+        'poor_lesson_grades': poor_lesson_grades,
+        'excellent_homework_grades': excellent_homework_grades,
+        'good_homework_grades': good_homework_grades,
+        'average_homework_grades': average_homework_grades,
+        'poor_homework_grades': poor_homework_grades,
+        'total_homework': total_homework,
+        'completed_homework': completed_homework,
+        'on_time_submissions': on_time_submissions,
+        'late_submissions': late_submissions,
+        'total_attendance': total_attendance,
+        'present_attendance': present_attendance,
+        'total_lesson_grades': total_lesson_grades,
+        'total_homework_grades': total_homework_grades
+    }
+    
+    return render(request, 'core/student_statistics.html', context)
+
+@login_required
+def parent_home(request):
+    """
+    Главная страница для родителей, показывающая информацию о детях.
+    """
+    if not request.user.is_parent:
+        return redirect('core:home')
+    
+    # Получаем родителя и его детей
+    parent = get_object_or_404(Parent, user=request.user)
+    children = Student.objects.filter(parent=parent)
+    
+    children_data = []
+    pending_cancellations = 0
+    
+    for student in children:
+        # Данные о ближайшем уроке
+        next_class = None
+        today = timezone.now().date()
+        
+        # Получаем все классы, в которых учится студент
+        enrollments = Enrollment.objects.filter(student=student, active=True)
+        class_ids = enrollments.values_list('class_obj_id', flat=True)
+        
+        # Получаем все расписания для этих классов
+        schedules = ClassSchedule.objects.filter(class_obj_id__in=class_ids)
+        
+        # Находим ближайший урок
+        next_lesson = None
+        min_days_until = float('inf')
+        
+        for schedule in schedules:
+            # Находим ближайшую дату для этого расписания
+            next_date = today
+            days_to_add = (schedule.day_of_week - today.weekday()) % 7
+            
+            if days_to_add == 0 and timezone.now().time() > schedule.start_time:
+                days_to_add = 7  # Если сегодняшний урок уже прошел, берем следующую неделю
+                
+            next_date = today + timedelta(days=days_to_add)
+            
+            # Проверяем, не отменен ли урок
+            is_cancelled = CancellationRequest.objects.filter(
+                class_obj=schedule.class_obj,
+                date=next_date,
+                status='approved'
+            ).exists()
+            
+            if not is_cancelled and days_to_add < min_days_until:
+                min_days_until = days_to_add
+                next_lesson = {
+                    'schedule': schedule,
+                    'date': next_date,
+                    'days_until': days_to_add
+                }
+        
+        if next_lesson:
+            day_names = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']
+            next_class = {
+                'class_name': next_lesson['schedule'].class_obj.name,
+                'teacher': next_lesson['schedule'].class_obj.teacher.full_name,
+                'room': next_lesson['schedule'].room,
+                'start_time': next_lesson['schedule'].start_time.strftime('%H:%M'),
+                'end_time': next_lesson['schedule'].end_time.strftime('%H:%M'),
+                'date': next_lesson['date'],
+                'day_name': day_names[next_lesson['date'].weekday()],
+                'days_until': next_lesson['days_until']
+            }
+        
+        # Данные о ближайшем домашнем задании
+        next_homework = None
+        
+        # Получаем все невыполненные домашние задания для классов студента
+        homeworks = Homework.objects.filter(
+            class_obj_id__in=class_ids,
+            due_date__gte=today
+        ).order_by('due_date')
+        
+        # Исключаем уже выполненные задания
+        for homework in homeworks:
+            submission_exists = HomeworkSubmission.objects.filter(
+                homework=homework,
+                student=student
+            ).exists()
+            
+            if not submission_exists:
+                days_until = (homework.due_date - today).days
+                deadline_passed = homework.due_date < today
+                
+                next_homework = {
+                    'title': homework.title,
+                    'class_name': homework.class_obj.name,
+                    'due_date': homework.due_date,
+                    'days_until': days_until,
+                    'deadline_passed': deadline_passed
+                }
+                break
+        
+        # Получаем количество запросов на отмену
+        student_cancellations = StudentCancellationRequest.objects.filter(
+            student=student, 
+            status='pending'
+        ).count()
+        
+        pending_cancellations += student_cancellations
+        
+        children_data.append({
+            'student': student,
+            'next_class': next_class,
+            'next_homework': next_homework,
+            'pending_cancellations': student_cancellations
+        })
+    
+    context = {
+        'children_data': children_data,
+        'pending_cancellations': pending_cancellations
+    }
+    
+    return render(request, 'core/parent_home.html', context)

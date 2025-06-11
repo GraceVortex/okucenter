@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru">
+{% load i18n %}
+<html lang="{{ LANGUAGE_CODE|default:'ru' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Образовательный центр{% endblock %}</title>
+    <title>{% block title %}{% trans "Образовательный центр" %}{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <style>
         :root {
             --apple-bg: #ffffff;
@@ -48,10 +50,12 @@
         }
         
         .navbar {
-            background-color: rgba(255, 255, 255, 0.8) !important;
+            background-color: rgba(255, 255, 255, 0.95) !important;
             backdrop-filter: saturate(180%) blur(20px);
             box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
             padding: 0.5rem 0;
+            position: relative;
+            z-index: 1030; /* Высокое значение z-index для навигационной панели */
         }
         
         .navbar-brand {
@@ -77,6 +81,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             border: none;
             padding: 0.5rem;
+            z-index: 9999; /* Высокое значение z-index, чтобы меню было поверх всех элементов */
         }
         
         .dropdown-item {
@@ -132,13 +137,8 @@
         
         .card-header {
             background-color: white;
-            border-bottom: 1px solid var(--apple-border);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding: 1.25rem 1.5rem;
-        }
-        
-        .card-header.bg-primary {
-            background: linear-gradient(135deg, var(--apple-primary), #0091ff) !important;
-            color: white;
         }
         
         .card-body {
@@ -146,10 +146,10 @@
         }
         
         .form-control {
-            border-radius: 8px;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
             border: 1px solid var(--apple-border);
-            padding: 0.625rem 1rem;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         
@@ -168,32 +168,26 @@
         .table {
             border-collapse: separate;
             border-spacing: 0;
+            width: 100%;
         }
         
         .table th {
-            font-weight: 500;
+            font-weight: 600;
             color: var(--apple-dark-gray);
-            border-bottom: 1px solid var(--apple-border);
+            border-top: none;
             padding: 1rem;
+            font-size: 0.9rem;
         }
         
         .table td {
             padding: 1rem;
             vertical-align: middle;
-            border-bottom: 1px solid var(--apple-border);
-        }
-        
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(245, 245, 247, 0.5);
-        }
-        
-        .table-hover tbody tr:hover {
-            background-color: rgba(0, 113, 227, 0.05);
+            border-color: rgba(0, 0, 0, 0.05);
         }
         
         .badge {
             font-weight: 500;
-            padding: 0.35em 0.65em;
+            padding: 0.4em 0.8em;
             border-radius: 980px;
         }
         
@@ -225,22 +219,181 @@
         
         .alert-success {
             background-color: rgba(76, 217, 100, 0.1);
-            color: var(--apple-success);
+            color: #198754;
         }
         
         .alert-warning {
             background-color: rgba(255, 149, 0, 0.1);
-            color: var(--apple-warning);
+            color: #fd7e14;
         }
         
         .alert-danger {
             background-color: rgba(255, 59, 48, 0.1);
-            color: var(--apple-danger);
+            color: #dc3545;
         }
         
         .alert-info {
             background-color: rgba(90, 200, 250, 0.1);
-            color: var(--apple-info);
+            color: #0dcaf0;
+        }
+        
+        /* Улучшенная адаптивность */
+        @media (max-width: 992px) {
+            .navbar-collapse {
+                background-color: rgba(255, 255, 255, 0.98);
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+                padding: 1rem;
+                margin-top: 0.5rem;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            
+            .navbar-nav .dropdown-menu {
+                box-shadow: none;
+                border: 1px solid var(--apple-border);
+                margin-left: 1rem;
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .navbar-nav .nav-item {
+                margin-bottom: 0.25rem;
+            }
+            
+            .navbar-toggler {
+                border: none;
+                padding: 0.5rem;
+            }
+            
+            .navbar-toggler:focus {
+                box-shadow: none;
+            }
+            
+            .table-responsive {
+                border-radius: 12px;
+                overflow-x: auto;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 1.25rem;
+                padding-right: 1.25rem;
+            }
+            
+            .card {
+                border-radius: 12px;
+                margin-bottom: 1rem;
+            }
+            
+            .card-body {
+                padding: 1.25rem;
+            }
+            
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .display-5 {
+                font-size: 1.75rem;
+            }
+            
+            .fs-5 {
+                font-size: 0.95rem !important;
+            }
+            
+            h1 {
+                font-size: 1.75rem;
+            }
+            
+            h4 {
+                font-size: 1.25rem;
+            }
+            
+            .table th, .table td {
+                padding: 0.75rem;
+                font-size: 0.85rem;
+            }
+            
+            /* Улучшенная мобильная навигация */
+            .navbar-brand {
+                font-size: 1.2rem;
+            }
+            
+            .dropdown-item {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.85rem;
+            }
+            
+            /* Улучшенные формы для мобильных устройств */
+            .form-control {
+                padding: 0.6rem 0.75rem;
+                font-size: 0.85rem;
+            }
+            
+            .form-label {
+                font-size: 0.85rem;
+                margin-bottom: 0.4rem;
+            }
+            
+            /* Улучшенные отступы для мобильных устройств */
+            .mt-4, .my-4 {
+                margin-top: 1rem !important;
+            }
+            
+            .mb-4, .my-4 {
+                margin-bottom: 1rem !important;
+            }
+            
+            .pt-4, .py-4 {
+                padding-top: 1rem !important;
+            }
+            
+            .pb-4, .py-4 {
+                padding-bottom: 1rem !important;
+            }
+            
+            .badge {
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .display-5 {
+                font-size: 1.5rem;
+            }
+            
+            .btn-group-sm > .btn, .btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            .table-responsive {
+                margin-left: -1rem;
+                margin-right: -1rem;
+                width: calc(100% + 2rem);
+                padding: 0 1rem;
+            }
+            
+            .table th, .table td {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
         }
         
         /* Анимации и переходы */
@@ -253,8 +406,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Адаптивность */
-        @media (max-width: 768px) {
+        @media (max-width: 576px) {
             .card {
                 border-radius: 12px;
             }
@@ -266,10 +418,12 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 {% if user.is_student %}user-student{% endif %}">
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'core:home' %}">Образовательный центр</a>
+            <a class="navbar-brand" href="{% url 'core:home' %}">
+                {% trans "Образовательный центр" %}
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -279,46 +433,44 @@
                         {% if user.is_admin %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="usersDropdown" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-people me-1"></i> Пользователи
+                                    <i class="bi bi-people me-1"></i> {% trans "Пользователи" %}
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'accounts:teacher_list' %}"><i class="bi bi-person-badge me-2"></i>Преподаватели</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'accounts:reception_list' %}"><i class="bi bi-headset me-2"></i>Ресепшенисты</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'accounts:marketer_list' %}"><i class="bi bi-graph-up me-2"></i>Маркетологи</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'accounts:student_list' %}"><i class="bi bi-mortarboard me-2"></i>Студенты</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'accounts:parent_list' %}"><i class="bi bi-people me-2"></i>Родители</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:teacher_list' %}"><i class="bi bi-person-badge me-2"></i> {% trans "Преподаватели" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:reception_list' %}"><i class="bi bi-headset me-2"></i> {% trans "Ресепшенисты" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:marketer_list' %}"><i class="bi bi-graph-up me-2"></i> {% trans "Маркетологи" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:student_list' %}"><i class="bi bi-mortarboard me-2"></i> {% trans "Студенты" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:parent_list' %}"><i class="bi bi-people me-2"></i> {% trans "Родители" %}</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'classes:class_list' %}">Классы</a>
+                                <a class="nav-link" href="{% url 'classes:class_list' %}">
+                                    <i class="bi bi-book me-1"></i> {% trans "Классы" %}
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">Посещаемость</a>
+                                <a class="nav-link" href="{% url 'core:schedule' %}">
+                                    <i class="bi bi-calendar-week me-1"></i> {% trans "Расписание" %}
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'finance:transaction_list' %}">Финансы</a>
+                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">
+                                    <i class="bi bi-calendar-check me-1"></i> {% trans "Посещаемость" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'finance:transaction_list' %}">
+                                    <i class="bi bi-cash me-1"></i> {% trans "Финансы" %}
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'finance:admin_salary_summary' %}">
-                                    <i class="bi bi-cash-stack me-1"></i> Зарплаты
+                                    <i class="bi bi-cash-stack me-1"></i> {% trans "Зарплаты" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'messaging:inbox' %}">
-                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
-                                    {% if unread_messages_count > 0 %}
-                                        <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
-                                    {% endif %}
-                                </a>
-                            </li>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'finance:transaction_list' %}">Финансы</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'messaging:inbox' %}">
-                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    <i class="bi bi-chat-dots me-1"></i> {% trans "Сообщения" %}
                                     {% if unread_messages_count > 0 %}
                                         <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
                                     {% endif %}
@@ -326,55 +478,59 @@
                             </li>
                         {% elif user.is_teacher %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'classes:teacher_classes' %}">Мои классы</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'classes:teacher_schedule' %}">
-                                    <i class="bi bi-calendar-week me-1"></i> Расписание
+                                <a class="nav-link" href="{% url 'classes:teacher_classes' %}">
+                                    {% trans "Мои классы" %}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">Посещаемость</a>
+                                <a class="nav-link" href="{% url 'classes:teacher_schedule' %}">
+                                    <i class="bi bi-calendar-week me-1"></i> {% trans "Расписание" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:attendance_list' %}">
+                                    {% trans "Посещаемость" %}
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'attendance:substitute_classes_list' %}">
-                                    <i class="bi bi-person-plus-fill me-1"></i> Уроки замены
+                                    <i class="bi bi-person-plus-fill me-1"></i> {% trans "Уроки замены" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'finance:teacher_salary' %}">
-                                    <i class="bi bi-cash-coin me-1"></i> Моя зарплата
+                                    <i class="bi bi-cash-coin me-1"></i> {% trans "Моя зарплата" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
-                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
+                                    <i class="bi bi-calendar-x me-1"></i> {% trans "Запросы на отмену" %}
                                 </a>
                             </li>
                         {% elif user.is_student %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'classes:student_classes' %}">
-                                    <i class="bi bi-book me-1"></i> Мои классы
+                                    <i class="bi bi-book me-1"></i> {% trans "Мои классы" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'core:schedule' %}">
-                                    <i class="bi bi-calendar-week me-1"></i> Расписание
+                                    <i class="bi bi-calendar-week me-1"></i> {% trans "Расписание" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'core:statistics' %}">
-                                    <i class="bi bi-graph-up me-1"></i> Статистика
+                                    <i class="bi bi-graph-up me-1"></i> {% trans "Статистика" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'classes:all_student_homework' %}">
-                                    <i class="bi bi-journal-check me-1"></i> Мои домашние задания
+                                    <i class="bi bi-journal-check me-1"></i> {% trans "Мои домашние задания" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'messaging:inbox' %}">
-                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    <i class="bi bi-chat-dots me-1"></i> {% trans "Сообщения" %}
                                     {% if unread_messages_count > 0 %}
                                         <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
                                     {% endif %}
@@ -383,17 +539,17 @@
                         {% elif user.is_parent %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'accounts:parent_children' %}">
-                                    <i class="bi bi-calendar-x me-1"></i> Запросы на отмену
+                                    <i class="bi bi-calendar-x me-1"></i> {% trans "Запросы на отмену" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'core:statistics' %}">
-                                    <i class="bi bi-graph-up me-1"></i> Статистика
+                                    <i class="bi bi-graph-up me-1"></i> {% trans "Статистика" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'messaging:inbox' %}">
-                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    <i class="bi bi-chat-dots me-1"></i> {% trans "Сообщения" %}
                                     {% if unread_messages_count > 0 %}
                                         <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
                                     {% endif %}
@@ -401,18 +557,43 @@
                             </li>
                         {% elif user.is_receptionist %}
                             <li class="nav-item">
+                                <a class="nav-link" href="{% url 'face_recognition_app:face_attendance' %}">
+                                    <i class="bi bi-camera me-1"></i> {% trans "Распознавание лиц" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{% url 'attendance:attendance_list' %}">
-                                    <i class="bi bi-calendar-check me-1"></i> Посещаемость
+                                    <i class="bi bi-calendar-check me-1"></i> {% trans "Посещаемость" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'accounts:student_list' %}">
-                                    <i class="bi bi-people me-1"></i> Студенты
+                                    <i class="bi bi-people me-1"></i> {% trans "Студенты" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'finance:transaction_list' %}">
+                                    <i class="bi bi-cash me-1"></i> {% trans "Финансы" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'classes:class_list' %}">
+                                    <i class="bi bi-book me-1"></i> {% trans "Классы" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:schedule' %}">
+                                    <i class="bi bi-calendar-week me-1"></i> {% trans "Расписание" %}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance:cancellation_requests_list' %}">
+                                    <i class="bi bi-calendar-x me-1"></i> {% trans "Запросы на отмену" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'messaging:inbox' %}">
-                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    <i class="bi bi-chat-dots me-1"></i> {% trans "Сообщения" %}
                                     {% if unread_messages_count > 0 %}
                                         <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
                                     {% endif %}
@@ -426,27 +607,27 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'crm:lead_list' %}">
-                                    <i class="bi bi-person-plus me-1"></i> Лиды
+                                    <i class="bi bi-person-plus me-1"></i> {% trans "Лиды" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'crm:campaign_list' %}">
-                                    <i class="bi bi-megaphone me-1"></i> Кампании
+                                    <i class="bi bi-megaphone me-1"></i> {% trans "Кампании" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'crm:campaign_analytics' %}">
-                                    <i class="bi bi-graph-up me-1"></i> Аналитика кампаний
+                                    <i class="bi bi-graph-up me-1"></i> {% trans "Аналитика" %} кампаний
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'crm:lead_acquisition_cost' %}">
-                                    <i class="bi bi-cash-coin me-1"></i> Стоимость привлечения
+                                    <i class="bi bi-cash-coin me-1"></i> {% trans "Стоимость привлечения" %}
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'messaging:inbox' %}">
-                                    <i class="bi bi-chat-dots me-1"></i> Сообщения
+                                    <i class="bi bi-chat-dots me-1"></i> {% trans "Сообщения" %}
                                     {% if unread_messages_count > 0 %}
                                         <span class="badge bg-danger rounded-pill">{{ unread_messages_count }}</span>
                                     {% endif %}
@@ -455,6 +636,20 @@
                         {% endif %}
                     {% endif %}
                 </ul>
+                <!-- Языковые кнопки -->
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if LANGUAGE_CODE == 'ru' %}active{% endif %}" href="{% url 'core:change_language' %}?lang=ru&next={{ request.path }}">
+                            Рус
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if LANGUAGE_CODE == 'kk' %}active{% endif %}" href="{% url 'core:change_language' %}?lang=kk&next={{ request.path }}">
+                            Қаз
+                        </a>
+                    </li>
+                </ul>
+                
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown">
@@ -462,14 +657,14 @@
                                 <i class="bi bi-person-circle me-1"></i> {{ user.get_full_name|default:user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Профиль</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>{% if LANGUAGE_CODE == 'kk' %}Профиль{% else %}Профиль{% endif %}</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Выйти</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>{% if LANGUAGE_CODE == 'kk' %}Шығу{% else %}Выйти{% endif %}</a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:login' %}"><i class="bi bi-box-arrow-in-right me-1"></i> Вход</a>
+                            <a class="nav-link" href="{% url 'accounts:login' %}"><i class="bi bi-box-arrow-in-right me-1"></i> {% if LANGUAGE_CODE == 'kk' %}Кіру{% else %}Вход{% endif %}</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -483,7 +678,7 @@
 
     <footer class="py-4 bg-light mt-auto">
         <div class="container text-center">
-            <p class="mb-0 text-muted">&copy; {% now "Y" %} Образовательный центр. Все права защищены.</p>
+            <p class="mb-0 text-muted">&copy; {% now "Y" %} {% trans "Образовательный центр" %}. {% trans "Все права защищены" %}.</p>
         </div>
     </footer>
 
@@ -515,5 +710,10 @@
         });
     </script>
     {% block extra_js %}{% endblock %}
+    
+    {% if user.is_student %}
+    <!-- Скрипт для перенаправления студентов на их личное расписание -->
+    <script src="/static/js/student_redirect.js"></script>
+    {% endif %}
 </body>
 </html>

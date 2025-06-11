@@ -3,6 +3,7 @@ from . import views
 from . import views_face_id
 from . import views_face_attendance_new
 from . import views_attendance_log
+from . import parent_views
 
 app_name = 'attendance'
 
@@ -42,8 +43,11 @@ urlpatterns = [
     
     # URL-маршруты для отмены занятий студентами
     path('student/cancel/<int:class_id>/<int:schedule_id>/<str:date>/', views.student_cancel_lesson, name='student_cancel_lesson'),
+    path('student/cancel-lessons/', views.student_cancel_lessons, name='student_cancel_lessons'),
     path('student/cancellation-requests/', views.student_cancellation_requests, name='student_cancellation_requests'),
     path('parent/cancel/<int:student_id>/<int:class_id>/<int:schedule_id>/<str:date>/', views.parent_cancel_lesson, name='parent_cancel_lesson'),
+    path('parent/cancel-lessons/<int:student_id>/', parent_views.parent_child_cancel_lessons, name='parent_child_cancel_lessons'),
+    path('parent/cancellation-requests/<int:student_id>/', parent_views.parent_child_cancellation_requests, name='parent_child_cancellation_requests'),
     path('admin/student-cancellation-requests/', views.admin_student_cancellation_requests, name='admin_student_cancellation_requests'),
     path('admin/process-student-cancellation/<int:request_id>/<str:action>/', views.process_student_cancellation_request, name='process_student_cancellation_request'),
     path('cancel-student-cancellation/<int:request_id>/', views.cancel_student_cancellation_request, name='cancel_student_cancellation_request'),

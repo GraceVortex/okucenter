@@ -1416,88 +1416,239 @@ def lesson_detail(request, class_id, schedule_id, date):
     return render(request, 'classes/lesson_detail.html', context)
 
 @login_required
-def parent_child_lessons(request, student_id):
-    user = request.user
+def parent_child_schedule(request, student_id):
+    """
+    Отображает расписание занятий ребенка для родителя.
+    """
+    # Проверяем, что пользователь является родителем
+    if not request.user.is_parent:
+        return HttpResponseForbidden("Эта страница доступна только родителям.")
     
-    if not hasattr(user, 'parent'):
-        return redirect('core:home')
+    # Получаем родителя и студента
+    parent = get_object_or_404(Parent, user=request.user)
+    student = get_object_or_404(Student, id=student_id)
     
-    parent = user.parent
+    # Проверяем, что студент является ребенком этого родителя
+    if student.parent != parent:
+        return HttpResponseForbidden("Вы не являетесь родителем этого студента.")
     
-    try:
-        student = Student.objects.get(pk=student_id)
-    except Student.DoesNotExist:
-        return redirect('core:home')
+    # Получаем все активные записи студента на классы
+    enrollments = Enrollment.objects.filter(student=student, active=True)
+    class_ids = [enrollment.class_obj.id for enrollment in enrollments]
     
-    # Проверяем, что родитель имеет доступ к этому студенту
-    if student not in parent.students.all():
-        return redirect('core:home')
+    # Получаем все расписания для этих классов
+    schedules = ClassSchedule.objects.filter(class_obj_id__in=class_ids)
     
-    enrollments = Enrollment.objects.filter(student=student).select_related('class_obj')
-    classes_data = []
+    # Получаем параметры для навигации по неделям
+    week_offset = int(request.GET.get('week_offset', 0))
     
-    for enrollment in enrollments:
-        class_obj = enrollment.class_obj
+    # Получаем текущую дату
+    today = timezone.now().date()
+    
+    # Находим начало текущей недели (понедельник)
+    start_of_week = today - timedelta(days=today.weekday())
+    
+    # Применяем смещение недели
+    start_of_week = start_of_week + timedelta(weeks=week_offset)
+    
+    # Создаем список дней недели
+    weekdays = []
+    for i in range(7):
+        date = start_of_week + timedelta(days=i)
         
-        # Получаем данные о посещаемости
-        attendances = Attendance.objects.filter(
-            student=student,
-            class_obj=class_obj
-        ).order_by('-date')
+        # Получаем уроки на этот день
+        day_schedules = schedules.filter(day_of_week=i)
+        lessons = []
         
-        attendance_data = []
-        
-        for attendance in attendances:
-            # Получаем оценки для этого посещения
-            try:
-                mark = Mark.objects.get(
-                    student=student,
-                    class_obj=class_obj,
-                    date=attendance.date
-                )
-            except Mark.DoesNotExist:
-                mark = None
+        for schedule in day_schedules:
+            # Проверяем, не отменен ли урок
+            is_cancelled = False
+            from attendance.models import CancellationRequest
+            cancellation = CancellationRequest.objects.filter(
+                class_obj=schedule.class_obj,
+                date=date,
+                status='approved'
+            ).exists()
             
-            # Получаем домашнее задание для этого урока
-            try:
-                homework = Homework.objects.get(
-                    class_obj=class_obj,
-                    date=attendance.date
-                )
-            except Homework.DoesNotExist:
-                homework = None
+            if cancellation:
+                is_cancelled = True
             
-            # Получаем загруженные студентом файлы
-            student_files = []
-            if homework:
-                student_files = HomeworkSubmission.objects.filter(
-                    homework=homework,
-                    student=student
-                )
-            
-            attendance_data.append({
-                'attendance': attendance,
-                'mark': mark,
-                'homework': homework,
-                'student_files': student_files
+            lessons.append({
+                'schedule_id': schedule.id,
+                'class_name': schedule.class_obj.name,
+                'teacher': schedule.class_obj.teacher.full_name,
+                'room': schedule.room,
+                'start_time': schedule.start_time,
+                'end_time': schedule.end_time,
+                'is_cancelled': is_cancelled
             })
         
-        classes_data.append({
-            'class': class_obj,
-            'attendance_data': attendance_data
+        # Сортируем уроки по времени начала
+        lessons.sort(key=lambda x: x['start_time'])
+        
+        weekdays.append({
+            'date': date,
+            'lessons': lessons
         })
     
     context = {
         'student': student,
-        'classes_data': classes_data
+        'weekdays': weekdays,
+        'today': today,
+        'week_offset': week_offset,
+        'prev_week': week_offset - 1,
+        'next_week': week_offset + 1
+    }
+    
+    return render(request, 'classes/parent_child_schedule.html', context)
+
+@login_required
+def parent_child_lessons(request, student_id):
+    """
+    Отображает список классов и предстоящих уроков ребенка для родителя.
+    """
+    # Проверяем, что пользователь является родителем
+    if not request.user.is_parent:
+        return HttpResponseForbidden("Эта страница доступна только родителям.")
+    
+    # Получаем родителя и студента
+    parent = get_object_or_404(Parent, user=request.user)
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Проверяем, что студент является ребенком этого родителя
+    if student.parent != parent:
+        return HttpResponseForbidden("Вы не являетесь родителем этого студента.")
+    
+    # Получаем все активные записи студента на классы
+    enrollments = Enrollment.objects.filter(student=student, active=True)
+    
+    # Создаем список данных о классах
+    classes_data = []
+    today = timezone.now().date()
+    
+    for enrollment in enrollments:
+        class_obj = enrollment.class_obj
+        
+        # Получаем все расписания для этого класса
+        schedules = ClassSchedule.objects.filter(class_obj=class_obj)
+        
+        # Находим ближайший урок
+        next_lesson = None
+        min_days_until = float('inf')
+        
+        for schedule in schedules:
+            # Находим ближайшую дату для этого расписания
+            next_date = today
+            days_to_add = (schedule.day_of_week - today.weekday()) % 7
+            
+            if days_to_add == 0 and timezone.now().time() > schedule.start_time:
+                days_to_add = 7  # Если сегодняшний урок уже прошел, берем следующую неделю
+                
+            next_date = today + timedelta(days=days_to_add)
+            
+            # Проверяем, не отменен ли урок
+            from attendance.models import CancellationRequest
+            is_cancelled = CancellationRequest.objects.filter(
+                class_obj=class_obj,
+                date=next_date,
+                status='approved'
+            ).exists()
+            
+            if not is_cancelled and days_to_add < min_days_until:
+                min_days_until = days_to_add
+                next_lesson = {
+                    'schedule': schedule,
+                    'date': next_date,
+                    'days_until': days_to_add
+                }
+        
+        # Получаем невыполненные домашние задания для этого класса
+        pending_homeworks = Homework.objects.filter(
+            class_obj=class_obj,
+            due_date__gte=today
+        ).exclude(
+            homeworksubmission__student=student
+        ).order_by('due_date')
+        
+        # Добавляем данные о классе в список
+        classes_data.append({
+            'class': class_obj,
+            'next_lesson': next_lesson,
+            'pending_homeworks': pending_homeworks[:3]  # Показываем только 3 ближайших домашних задания
+        })
+    
+    # Сортируем классы по ближайшему уроку
+    classes_data.sort(key=lambda x: x['next_lesson']['days_until'] if x['next_lesson'] else float('inf'))
+    
+    context = {
+        'student': student,
+        'classes_data': classes_data,
+        'today': today
     }
     
     return render(request, 'classes/parent_child_lessons.html', context)
 
 @login_required
 def parent_child_homework(request, student_id):
-    # Implement this view
-    pass
+    """
+    Отображает домашние задания ребенка для родителя.
+    """
+    # Проверяем, что пользователь является родителем
+    if not request.user.is_parent:
+        return HttpResponseForbidden("Эта страница доступна только родителям.")
+    
+    # Получаем родителя и студента
+    parent = get_object_or_404(Parent, user=request.user)
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Проверяем, что студент является ребенком этого родителя
+    if student.parent != parent:
+        return HttpResponseForbidden("Вы не являетесь родителем этого студента.")
+    
+    # Получаем все активные записи студента на классы
+    enrollments = Enrollment.objects.filter(student=student, active=True)
+    
+    # Текущая дата
+    current_date = timezone.now().date()
+    
+    # Создаем список данных о классах и домашних заданиях
+    classes_data = []
+    
+    for enrollment in enrollments:
+        class_obj = enrollment.class_obj
+        
+        # Получаем все домашние задания для этого класса
+        homeworks = Homework.objects.filter(class_obj=class_obj).order_by('-due_date')
+        
+        # Создаем список элементов домашних заданий
+        homework_items = []
+        
+        for homework in homeworks:
+            # Проверяем, есть ли отправленное домашнее задание
+            try:
+                submission = HomeworkSubmission.objects.get(homework=homework, student=student)
+            except HomeworkSubmission.DoesNotExist:
+                submission = None
+            
+            homework_items.append({
+                'homework': homework,
+                'submission': submission
+            })
+        
+        # Добавляем данные о классе в список
+        if homework_items:  # Добавляем только классы с домашними заданиями
+            classes_data.append({
+                'class': class_obj,
+                'homework_items': homework_items
+            })
+    
+    context = {
+        'student': student,
+        'classes_data': classes_data,
+        'current_date': current_date
+    }
+    
+    return render(request, 'classes/parent_child_homework.html', context)
 
 @login_required
 def class_lesson_calendar(request, class_id):
@@ -1625,6 +1776,10 @@ def upload_classwork_file(request, class_id, schedule_id=None, date=None):
             classwork_file = form.save(commit=False)
             classwork_file.class_obj = class_obj
             classwork_file.date = form.cleaned_data.get('date', lesson_date)
+            
+            # Если указаны schedule_id и date, то это материал для конкретного урока
+            if schedule_id and date:
+                classwork_file.material_type = 'lesson_specific'
             
             try:
                 classwork_file.save()
@@ -1889,11 +2044,37 @@ def student_schedule(request):
     Синим цветом отмечаются уроки, на которые хватает баланса студента.
     Красным цветом отмечаются уроки, на которые не хватает баланса.
     Учитывается, что у студента может быть несколько классов.
+    Также доступно родителям для просмотра расписания своих детей.
     """
-    if not request.user.is_student:
-        return HttpResponseForbidden("Эта страница доступна только студентам.")
+    # Переменная для хранения списка детей родителя
+    children = None
     
-    student = get_object_or_404(Student, user=request.user)
+    # Определяем, кто просматривает расписание - студент или родитель
+    if request.user.is_student:
+        # Если пользователь - студент, показываем его расписание
+        student = get_object_or_404(Student, user=request.user)
+    elif request.user.is_parent:
+        # Если пользователь - родитель
+        parent = request.user.get_parent_profile()
+        if not parent:
+            return HttpResponseForbidden("Не удалось получить профиль родителя.")
+        
+        # Получаем всех детей родителя
+        children = parent.children.all()
+        if not children.exists():
+            return HttpResponseForbidden("У вас нет зарегистрированных детей в системе.")
+            
+        # Проверяем, указан ли ID студента в параметрах запроса
+        student_id = request.GET.get('student_id')
+        
+        if student_id:
+            # Если указан ID студента, проверяем, что он является ребенком этого родителя
+            student = get_object_or_404(Student, id=student_id, parent=parent)
+        else:
+            # Если ID не указан, берем первого ребенка родителя
+            student = children.first()
+    else:
+        return HttpResponseForbidden("Эта страница доступна только студентам и родителям.")
     
     # Получаем все записи ученика на классы
     enrollments = Enrollment.objects.filter(student=student, is_active=True)
@@ -2149,7 +2330,8 @@ def student_schedule(request):
         'prev_week_offset': week_offset - 1,
         'next_week_offset': week_offset + 1,
         'start_of_week': start_of_week,
-        'end_of_week': start_of_week + timedelta(days=6)  # Конец недельного периода
+        'end_of_week': start_of_week + timedelta(days=6),  # Конец недельного периода
+        'children': children  # Добавляем список детей родителя в контекст
     }
     
     return render(request, 'classes/student_schedule.html', context)
@@ -2313,6 +2495,104 @@ def parent_child_homework(request, student_id):
     }
     
     return render(request, 'classes/parent_child_homework.html', context)
+
+
+@login_required
+def student_lesson_detail(request, class_id, schedule_id, date):
+    """Отображает детальную информацию о конкретном уроке для студента."""
+    # Проверяем, что пользователь является студентом
+    if not request.user.is_student:
+        return HttpResponseForbidden("Эта страница доступна только студентам.")
+    
+    # Получаем объекты класса, расписания и студента
+    class_obj = get_object_or_404(Class, id=class_id)
+    schedule = get_object_or_404(ClassSchedule, id=schedule_id, class_obj=class_obj)
+    student = get_object_or_404(Student, user=request.user)
+    
+    # Проверяем, что студент записан на этот класс
+    enrollment = get_object_or_404(Enrollment, student=student, class_obj=class_obj)
+    
+    # Преобразуем строковую дату в объект datetime
+    try:
+        lesson_date = datetime.strptime(date, '%Y-%m-%d').date()
+    except ValueError:
+        return HttpResponseForbidden("Неверный формат даты.")
+    
+    # Проверяем, что дата урока не раньше даты зачисления студента
+    if enrollment.enrollment_date.date() > lesson_date:
+        return HttpResponseForbidden("Вы не были зачислены на этот класс в указанную дату.")
+    
+    # Получаем посещаемость для этого урока
+    try:
+        attendance = Attendance.objects.get(
+            student=student,
+            class_obj=class_obj,
+            date=lesson_date
+        )
+    except Attendance.DoesNotExist:
+        attendance = None
+    
+    # Получаем оценку для этого урока
+    try:
+        mark = Mark.objects.get(
+            student=student,
+            class_obj=class_obj,
+            date=lesson_date
+        )
+    except Mark.DoesNotExist:
+        mark = None
+    
+    # Получаем материалы для этого урока
+    lesson_materials = ClassworkFile.objects.filter(
+        class_obj=class_obj,
+        date=lesson_date
+    )
+    
+    # Получаем домашнее задание для этого урока
+    try:
+        homework = Homework.objects.get(
+            class_obj=class_obj,
+            date=lesson_date
+        )
+        # Проверяем, отправил ли студент домашнее задание
+        try:
+            homework_submission = HomeworkSubmission.objects.get(
+                homework=homework,
+                student=student
+            )
+        except HomeworkSubmission.DoesNotExist:
+            homework_submission = None
+    except Homework.DoesNotExist:
+        homework = None
+        homework_submission = None
+    
+    # Проверяем, есть ли запрос на отмену для этого урока
+    from attendance.models import StudentCancellationRequest
+    try:
+        cancellation_request = StudentCancellationRequest.objects.get(
+            student=student,
+            class_obj=class_obj,
+            date=lesson_date,
+            class_schedule=schedule
+        )
+    except StudentCancellationRequest.DoesNotExist:
+        cancellation_request = None
+    
+    context = {
+        'class': class_obj,
+        'schedule': schedule,
+        'date': lesson_date,
+        'student': student,
+        'attendance': attendance,
+        'mark': mark,
+        'lesson_materials': lesson_materials,
+        'homework': homework,
+        'homework_submission': homework_submission,
+        'cancellation_request': cancellation_request,
+        'is_self_managed': student.is_self_managed
+    }
+    
+    return render(request, 'classes/student_lesson_detail.html', context)
 
 
 @login_required

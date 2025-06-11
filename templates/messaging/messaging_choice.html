@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}Выбор типа рассылки{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Тарату түрін таңдау{% else %}Выбор типа рассылки{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <h1 class="mb-4">Выбор типа рассылки</h1>
-            <p class="lead">Выберите платформу для создания новой рассылки</p>
+            <h1 class="mb-4">{% if user_language == 'kk' %}Тарату түрін таңдау{% else %}Выбор типа рассылки{% endif %}</h1>
+            <p class="lead">{% if user_language == 'kk' %}Жаңа тарату жасау үшін платформаны таңдаңыз{% else %}Выберите платформу для создания новой рассылки{% endif %}</p>
         </div>
     </div>
 
@@ -20,31 +20,31 @@
                         <div class="bg-success text-white rounded-circle p-3 me-3">
                             <i class="fas fa-whatsapp fa-2x"></i>
                         </div>
-                        <h3 class="card-title mb-0">WhatsApp рассылка</h3>
+                        <h3 class="card-title mb-0">{% if user_language == 'kk' %}WhatsApp тарату{% else %}WhatsApp рассылка{% endif %}</h3>
                     </div>
-                    <p class="card-text">Отправляйте сообщения через WhatsApp вашим студентам и их родителям. Поддерживает текст и медиа-файлы.</p>
+                    <p class="card-text">{% if user_language == 'kk' %}WhatsApp арқылы студенттеріңізге және олардың ата-аналарына хабарламалар жіберіңіз. Мәтін және медиа-файлдарды қолдайды.{% else %}Отправляйте сообщения через WhatsApp вашим студентам и их родителям. Поддерживает текст и медиа-файлы.{% endif %}</p>
                     
                     <div class="mt-3">
                         <h5>Статистика</h5>
                         <div class="row">
                             <div class="col-6">
-                                <p><i class="fas fa-paper-plane me-2"></i> Всего рассылок: {{ whatsapp_stats.total_broadcasts }}</p>
+                                <p><i class="fas fa-paper-plane me-2"></i> {% if user_language == 'kk' %}Барлық таратулар: {{ whatsapp_stats.total_broadcasts }}{% else %}Всего рассылок: {{ whatsapp_stats.total_broadcasts }}{% endif %}</p>
                             </div>
                             <div class="col-6">
-                                <p><i class="fas fa-comment me-2"></i> Всего сообщений: {{ whatsapp_stats.total_messages }}</p>
+                                <p><i class="fas fa-comment me-2"></i> {% if user_language == 'kk' %}Барлық хабарламалар: {{ whatsapp_stats.total_messages }}{% else %}Всего сообщений: {{ whatsapp_stats.total_messages }}{% endif %}</p>
                             </div>
                             <div class="col-12">
                                 <div class="progress mb-2">
                                     <div class="progress-bar bg-success" role="progressbar" style="width: {{ whatsapp_stats.success_rate }}%;" aria-valuenow="{{ whatsapp_stats.success_rate }}" aria-valuemin="0" aria-valuemax="100">{{ whatsapp_stats.success_rate }}%</div>
                                 </div>
-                                <p class="small text-muted">Успешно доставлено: {{ whatsapp_stats.success_rate }}%</p>
+                                <p class="small text-muted">{% if user_language == 'kk' %}Сәтті жеткізілді: {{ whatsapp_stats.success_rate }}%{% else %}Успешно доставлено: {{ whatsapp_stats.success_rate }}%{% endif %}</p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-white border-0">
                     <a href="{% url 'messaging:whatsapp_dashboard' %}" class="btn btn-success w-100">
-                        <i class="fas fa-whatsapp me-2"></i> Перейти к WhatsApp рассылкам
+                        <i class="fas fa-whatsapp me-2"></i> {% if user_language == 'kk' %}WhatsApp таратуларына өту{% else %}Перейти к WhatsApp рассылкам{% endif %}
                     </a>
                 </div>
             </div>
@@ -58,34 +58,34 @@
                         <div class="bg-primary text-white rounded-circle p-3 me-3">
                             <i class="fab fa-telegram-plane fa-2x"></i>
                         </div>
-                        <h3 class="card-title mb-0">Telegram рассылка</h3>
+                        <h3 class="card-title mb-0">{% if user_language == 'kk' %}Telegram тарату{% else %}Telegram рассылка{% endif %}</h3>
                     </div>
-                    <p class="card-text">Отправляйте сообщения через Telegram вашим студентам и их родителям. Поддерживает текст, медиа-файлы и интерактивные кнопки.</p>
+                    <p class="card-text">{% if user_language == 'kk' %}Telegram арқылы студенттеріңізге және олардың ата-аналарына хабарламалар жіберіңіз. Мәтін, медиа-файлдар және интерактивті түймелерді қолдайды.{% else %}Отправляйте сообщения через Telegram вашим студентам и их родителям. Поддерживает текст, медиа-файлы и интерактивные кнопки.{% endif %}</p>
                     
                     <div class="mt-3">
                         <h5>Статистика</h5>
                         <div class="row">
                             <div class="col-6">
-                                <p><i class="fas fa-paper-plane me-2"></i> Всего рассылок: {{ telegram_stats.total_broadcasts }}</p>
+                                <p><i class="fas fa-paper-plane me-2"></i> {% if user_language == 'kk' %}Барлық таратулар: {{ telegram_stats.total_broadcasts }}{% else %}Всего рассылок: {{ telegram_stats.total_broadcasts }}{% endif %}</p>
                             </div>
                             <div class="col-6">
-                                <p><i class="fas fa-users me-2"></i> Пользователей: {{ telegram_stats.total_users }}</p>
+                                <p><i class="fas fa-users me-2"></i> {% if user_language == 'kk' %}Пайдаланушылар: {{ telegram_stats.total_users }}{% else %}Пользователей: {{ telegram_stats.total_users }}{% endif %}</p>
                             </div>
                             <div class="col-6">
-                                <p><i class="fas fa-comment me-2"></i> Всего сообщений: {{ telegram_stats.total_messages }}</p>
+                                <p><i class="fas fa-comment me-2"></i> {% if user_language == 'kk' %}Барлық хабарламалар: {{ telegram_stats.total_messages }}{% else %}Всего сообщений: {{ telegram_stats.total_messages }}{% endif %}</p>
                             </div>
                             <div class="col-6">
                                 <div class="progress mb-2">
                                     <div class="progress-bar bg-primary" role="progressbar" style="width: {{ telegram_stats.success_rate }}%;" aria-valuenow="{{ telegram_stats.success_rate }}" aria-valuemin="0" aria-valuemax="100">{{ telegram_stats.success_rate }}%</div>
                                 </div>
-                                <p class="small text-muted">Успешно доставлено: {{ telegram_stats.success_rate }}%</p>
+                                <p class="small text-muted">{% if user_language == 'kk' %}Сәтті жеткізілді: {{ telegram_stats.success_rate }}%{% else %}Успешно доставлено: {{ telegram_stats.success_rate }}%{% endif %}</p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-white border-0">
                     <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-primary w-100">
-                        <i class="fab fa-telegram-plane me-2"></i> Перейти к Telegram рассылкам
+                        <i class="fab fa-telegram-plane me-2"></i> {% if user_language == 'kk' %}Telegram таратуларына өту{% else %}Перейти к Telegram рассылкам{% endif %}
                     </a>
                 </div>
             </div>

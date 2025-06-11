@@ -1,0 +1,49 @@
+{% comment %}
+    Шаблон для отображения карточки дня в мобильном расписании
+    Ожидает переменную day, содержащую информацию о дне
+{% endcomment %}
+
+<div class="mobile-day {% if day.date == today %}today{% endif %}">
+    <div class="mobile-day-header">
+        <div class="text-center">
+            {% if day.date.weekday == 0 %}
+                <div class="day-name">Пн</div>
+            {% elif day.date.weekday == 1 %}
+                <div class="day-name">Вт</div>
+            {% elif day.date.weekday == 2 %}
+                <div class="day-name">Ср</div>
+            {% elif day.date.weekday == 3 %}
+                <div class="day-name">Чт</div>
+            {% elif day.date.weekday == 4 %}
+                <div class="day-name">Пт</div>
+            {% elif day.date.weekday == 5 %}
+                <div class="day-name">Сб</div>
+            {% elif day.date.weekday == 6 %}
+                <div class="day-name">Вс</div>
+            {% endif %}
+            <div>
+                <span class="mobile-day-number {% if day.date == today %}today{% endif %}">{{ day.date.day }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="mobile-day-content">
+        {% for schedule_info in day.schedules %}
+            <a href="{% url 'core:schedule_detail' schedule_info.schedule.id %}?date={{ day.date|date:'Y-m-d' }}" class="text-decoration-none">
+                <div class="mobile-class-item">
+                    <div class="lesson-time">{{ schedule_info.schedule.start_time|time:"H:i" }}{% if schedule_info.schedule.end_time %} - {{ schedule_info.schedule.end_time|time:"H:i" }}{% endif %}</div>
+                    <div class="lesson-name">{{ schedule_info.schedule.class_obj.name }}</div>
+                    <div class="lesson-teacher">
+                        <i class="bi bi-person"></i> {{ schedule_info.schedule.class_obj.teacher.user.first_name }} {{ schedule_info.schedule.class_obj.teacher.user.last_name }}
+                    </div>
+                </div>
+            </a>
+        {% empty %}
+            <div class="empty-day-message">
+                <div class="text-center py-2">
+                    <i class="bi bi-dash-circle" style="font-size: 1rem; color: #6c757d;"></i>
+                    <span class="small ms-1">Нет занятий</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

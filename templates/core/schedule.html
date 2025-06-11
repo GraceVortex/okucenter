@@ -212,7 +212,7 @@
                                                     {% with class_id=schedule.class_obj.id %}
                                                         {% if user.is_admin or user.is_reception or user.is_teacher or not enrollment_dates or class_id not in enrollment_dates %}
                                                             <!-- Администраторы, ресепшн и учителя видят все классы -->
-                                                            <a href="{% url 'core:schedule_detail' schedule.id %}" class="text-decoration-none">
+                                                            <a href="{% url 'classes:class_detail' schedule.class_obj.id %}" class="text-decoration-none">
                                                                 <div class="class-item {% if schedule.class_obj.subject == 'math' %}math{% elif schedule.class_obj.subject == 'science' %}science{% elif schedule.class_obj.subject == 'language' %}language{% elif schedule.class_obj.subject == 'art' %}art{% else %}other{% endif %}">
                                                                     <div class="class-name">{{ schedule.class_obj.name }}</div>
                                                                     <div class="class-teacher">{{ schedule.class_obj.teacher.full_name }}</div>
@@ -225,7 +225,7 @@
                                                             <!-- Студенты и родители видят только классы после даты зачисления -->
                                                             {% with enrollment_date=enrollment_dates|get_item:class_id %}
                                                                 {% if enrollment_date %}
-                                                                    <a href="{% url 'core:schedule_detail' schedule.id %}" class="text-decoration-none">
+                                                                    <a href="{% url 'classes:class_detail' schedule.class_obj.id %}" class="text-decoration-none">
                                                                         <div class="class-item {% if schedule.class_obj.subject == 'math' %}math{% elif schedule.class_obj.subject == 'science' %}science{% elif schedule.class_obj.subject == 'language' %}language{% elif schedule.class_obj.subject == 'art' %}art{% else %}other{% endif %}">
                                                                             <div class="class-name">{{ schedule.class_obj.name }}</div>
                                                                             <div class="class-teacher">{{ schedule.class_obj.teacher.full_name }}</div>

@@ -1,24 +1,30 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Мои классы - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Менің сыныптарым - Білім беру орталығы{% else %}Мои классы - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="{% url 'core:home' %}" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Басты бетке оралу{% else %}Вернуться на главную{% endif %}
+        </a>
+    </div>
+    
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="display-5 fw-bold">Мои классы</h1>
+                <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Менің сыныптарым{% else %}Мои классы{% endif %}</h1>
                 <div>
                     <a href="{% url 'classes:student_past_lessons' %}" class="btn btn-primary me-2">
-                        <i class="bi bi-clock-history me-1"></i> Прошедшие уроки
+                        <i class="bi bi-clock-history me-1"></i> {% if user_language == 'kk' %}Өткен сабақтар{% else %}Прошедшие уроки{% endif %}
                     </a>
                     <a href="{% url 'classes:unchecked_student_homework' %}" class="btn btn-warning">
-                        <i class="bi bi-exclamation-circle me-1"></i> Непроверенные задания
+                        <i class="bi bi-exclamation-circle me-1"></i> {% if user_language == 'kk' %}Тексерілмеген тапсырмалар{% else %}Непроверенные задания{% endif %}
                     </a>
                 </div>
             </div>
-            <p class="text-muted fs-5">Просмотр ваших классов и расписания</p>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Сіздің сыныптарыңыз бен кестеңізді көру{% else %}Просмотр ваших классов и расписания{% endif %}</p>
         </div>
     </div>
 
@@ -31,67 +37,6 @@
         {% endfor %}
     {% endif %}
     
-    <!-- Предстоящие занятия -->
-    {% if upcoming_lessons %}
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white p-4">
-                    <h4 class="fw-bold mb-0">Предстоящие занятия</h4>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col">Класс</th>
-                                    <th scope="col">Дата</th>
-                                    <th scope="col">Время</th>
-                                    <th scope="col">Кабинет</th>
-                                    <th scope="col">Учитель</th>
-                                    <th scope="col">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for lesson in upcoming_lessons %}
-                                    <tr>
-                                        <td>{{ lesson.class.name }}</td>
-                                        <td>{{ lesson.date|date:"d.m.Y" }}</td>
-                                        <td>{{ lesson.schedule.start_time|time:"H:i" }} - {{ lesson.schedule.end_time|time:"H:i" }}</td>
-                                        <td>{{ lesson.schedule.room }}</td>
-                                        <td>{{ lesson.class.teacher.full_name }}</td>
-                                        <td>
-                                            {% if is_self_managed and lesson.can_cancel %}
-                                                <a href="{% url 'attendance:student_cancel_lesson' lesson.class.id lesson.schedule.id lesson.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-calendar-x me-1"></i> Отменить
-                                                </a>
-                                            {% elif is_self_managed and not lesson.can_cancel %}
-                                                <span class="badge bg-secondary">Нельзя отменить</span>
-                                                <small class="text-muted d-block">Менее 24 часов до начала</small>
-                                            {% elif not is_self_managed %}
-                                                <span class="badge bg-info">Отмена через родителя</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card-footer bg-white p-3">
-                    <div class="alert alert-info mb-0">
-                        <i class="bi bi-info-circle-fill me-2"></i>
-                        {% if is_self_managed %}
-                            <strong>Важно!</strong> Запрос на отмену занятия должен быть создан не менее чем за 24 часа до начала занятия. Вы можете просмотреть свои запросы на отмену в разделе <a href="{% url 'attendance:student_cancellation_requests' %}">Запросы на отмену</a>.
-                        {% else %}
-                            <strong>Важно!</strong> Для отмены занятия обратитесь к своему родителю. Запрос на отмену занятия должен быть создан не менее чем за 24 часа до начала занятия.
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     {% if classes_with_info %}
         <div class="row">
@@ -106,12 +51,12 @@
                         </div>
                         <div class="card-body p-4">
                             <div class="mb-3">
-                                <h6 class="fw-bold mb-2">Описание:</h6>
-                                <p>{{ class_info.class.description|default:"Описание отсутствует" }}</p>
+                                <h6 class="fw-bold mb-2">{% if user_language == 'kk' %}Сипаттама:{% else %}Описание:{% endif %}</h6>
+                                <p>{{ class_info.class.description|default:"{% if user_language == 'kk' %}Сипаттама жоқ{% else %}Описание отсутствует{% endif %}" }}</p>
                             </div>
                             
                             <div class="mb-3">
-                                <h6 class="fw-bold mb-2">Расписание занятий:</h6>
+                                <h6 class="fw-bold mb-2">{% if user_language == 'kk' %}Сабақ кестесі:{% else %}Расписание занятий:{% endif %}</h6>
                                 {% if class_info.schedules %}
                                     <ul class="list-group">
                                     {% for schedule in class_info.schedules %}
@@ -120,12 +65,12 @@
                                                 <strong>{{ schedule.get_day_of_week_display }}</strong>
                                                 {{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}
                                             </div>
-                                            <span class="badge bg-primary rounded-pill">Кабинет {{ schedule.room }}</span>
+                                            <span class="badge bg-primary rounded-pill">{% if user_language == 'kk' %}Кабинет {{ schedule.room }}{% else %}Кабинет {{ schedule.room }}{% endif %}</span>
                                         </li>
                                     {% endfor %}
                                     </ul>
                                 {% else %}
-                                    <p class="text-muted">Расписание не установлено</p>
+                                    <p class="text-muted">{% if user_language == 'kk' %}Кесте орнатылмаған{% else %}Расписание не установлено{% endif %}</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -137,8 +82,8 @@
         <div class="card">
             <div class="card-body text-center py-5">
                 <i class="bi bi-book display-1 text-muted mb-3"></i>
-                <h3>Вы не записаны ни на один класс</h3>
-                <p class="text-muted">Свяжитесь с администратором для записи на занятия</p>
+                <h3>{% if user_language == 'kk' %}Сіз ешқандай сыныпқа жазылмағансыз{% else %}Вы не записаны ни на один класс{% endif %}</h3>
+                <p class="text-muted">{% if user_language == 'kk' %}Сабақтарға жазылу үшін әкімшімен хабарласыңыз{% else %}Свяжитесь с администратором для записи на занятия{% endif %}</p>
             </div>
         </div>
     {% endif %}
@@ -157,7 +102,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="homeworkModalLabel">Отправка домашнего задания</h5>
+                <h5 class="modal-title" id="homeworkModalLabel">{% if user_language == 'kk' %}Үй тапсырмасын жіберу{% else %}Отправка домашнего задания{% endif %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -165,19 +110,19 @@
                     {% csrf_token %}
                     <input type="hidden" id="homeworkId" name="homework_id">
                     <div class="mb-3">
-                        <label for="homeworkFile" class="form-label">Файл с выполненным заданием</label>
+                        <label for="homeworkFile" class="form-label">{% if user_language == 'kk' %}Орындалған тапсырма файлы{% else %}Файл с выполненным заданием{% endif %}</label>
                         <input type="file" class="form-control" id="homeworkFile" name="file" required>
                     </div>
                     <div class="mb-3">
-                        <label for="homeworkComment" class="form-label">Комментарий (необязательно)</label>
+                        <label for="homeworkComment" class="form-label">{% if user_language == 'kk' %}Пікір (міндетті емес){% else %}Комментарий (необязательно){% endif %}</label>
                         <textarea class="form-control" id="homeworkComment" name="comment" rows="3"></textarea>
                     </div>
                 </form>
                 <div id="submissionResult" class="alert d-none"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="submitHomeworkBtn">Отправить</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% if user_language == 'kk' %}Бас тарту{% else %}Отмена{% endif %}</button>
+                <button type="button" class="btn btn-primary" id="submitHomeworkBtn">{% if user_language == 'kk' %}Жіберу{% else %}Отправить{% endif %}</button>
             </div>
         </div>
     </div>
@@ -192,7 +137,8 @@
                 const homeworkId = this.getAttribute('data-homework-id');
                 const homeworkTitle = this.getAttribute('data-homework-title');
                 document.getElementById('homeworkId').value = homeworkId;
-                document.getElementById('homeworkModalLabel').textContent = 'Отправка задания: ' + homeworkTitle;
+                const userLanguage = document.documentElement.getAttribute('data-user-language');
+document.getElementById('homeworkModalLabel').textContent = (userLanguage === 'kk' ? 'Тапсырманы жіберу: ' : 'Отправка задания: ') + homeworkTitle;
                 
                 // Сбрасываем форму и скрываем сообщение о результате
                 document.getElementById('homeworkSubmissionForm').reset();
@@ -235,7 +181,7 @@
                     const buttons = document.querySelectorAll(`.submit-homework-btn[data-homework-id="${homeworkId}"]`);
                     buttons.forEach(btn => {
                         btn.disabled = true;
-                        btn.textContent = 'Работа сдана';
+                        btn.textContent = userLanguage === 'kk' ? 'Жұмыс тапсырылды' : 'Работа сдана';
                         btn.classList.remove('btn-outline-primary');
                         btn.classList.add('btn-success');
                     });
@@ -247,13 +193,13 @@
                     }, 2000);
                 } else {
                     resultDiv.classList.add('alert-danger');
-                    resultDiv.textContent = data.message || 'Произошла ошибка при отправке задания';
+                    resultDiv.textContent = data.message || (userLanguage === 'kk' ? 'Тапсырманы жіберу кезінде қате орын алды' : 'Произошла ошибка при отправке задания');
                 }
             })
             .catch(error => {
                 resultDiv.classList.remove('d-none');
                 resultDiv.classList.add('alert-danger');
-                resultDiv.textContent = 'Произошла ошибка при отправке запроса';
+                resultDiv.textContent = userLanguage === 'kk' ? 'Сұрауды жіберу кезінде қате орын алды' : 'Произошла ошибка при отправке запроса';
                 console.error('Error:', error);
             });
         });

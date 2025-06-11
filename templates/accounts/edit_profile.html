@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}Редактирование профиля - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Профильді өңдеу - Білім беру орталығы{% else %}Редактирование профиля - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Редактирование профиля</h1>
-            <p class="text-muted fs-5">Обновите свою личную информацию и настройки безопасности</p>
+            <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Профильді өңдеу{% else %}Редактирование профиля{% endif %}</h1>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Жеке ақпаратыңыз бен қауіпсіздік параметрлерін жаңартыңыз{% else %}Обновите свою личную информацию и настройки безопасности{% endif %}</p>
         </div>
     </div>
 
@@ -28,52 +28,52 @@
                             {% endfor %}
                         {% endif %}
                         
-                        <h4 class="fw-bold mb-4">Основная информация</h4>
+                        <h4 class="fw-bold mb-4">{% if user_language == 'kk' %}Негізгі ақпарат{% else %}Основная информация{% endif %}</h4>
                         
                         <div class="mb-3">
-                            <label for="username" class="form-label">Имя пользователя</label>
+                            <label for="username" class="form-label">{% if user_language == 'kk' %}Пайдаланушы аты{% else %}Имя пользователя{% endif %}</label>
                             <input type="text" class="form-control" id="username" value="{{ user.username }}" disabled>
-                            <div class="form-text text-muted">Имя пользователя не может быть изменено</div>
+                            <div class="form-text text-muted">{% if user_language == 'kk' %}Пайдаланушы атын өзгерту мүмкін емес{% else %}Имя пользователя не может быть изменено{% endif %}</div>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
+                            <label for="email" class="form-label">{% if user_language == 'kk' %}Email{% else %}Email{% endif %}</label>
                             <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
                         </div>
                         
                         {% if profile and profile.phone_number %}
                         <div class="mb-3">
-                            <label for="phone_number" class="form-label">Номер телефона</label>
+                            <label for="phone_number" class="form-label">{% if user_language == 'kk' %}Телефон нөмірі{% else %}Номер телефона{% endif %}</label>
                             <input type="tel" class="form-control" id="phone_number" name="phone_number" value="{{ profile.phone_number }}">
                         </div>
                         {% endif %}
                         
                         <hr class="my-4">
                         
-                        <h4 class="fw-bold mb-4">Изменение пароля</h4>
-                        <p class="text-muted mb-3">Оставьте поля пустыми, если не хотите менять пароль</p>
+                        <h4 class="fw-bold mb-4">{% if user_language == 'kk' %}Құпия сөзді өзгерту{% else %}Изменение пароля{% endif %}</h4>
+                        <p class="text-muted mb-3">{% if user_language == 'kk' %}Құпия сөзді өзгерткіңіз келмесе, өрістерді бос қалдырыңыз{% else %}Оставьте поля пустыми, если не хотите менять пароль{% endif %}</p>
                         
                         <div class="mb-3">
-                            <label for="current_password" class="form-label">Текущий пароль</label>
+                            <label for="current_password" class="form-label">{% if user_language == 'kk' %}Ағымдағы құпия сөз{% else %}Текущий пароль{% endif %}</label>
                             <input type="password" class="form-control" id="current_password" name="current_password">
                         </div>
                         
                         <div class="mb-3">
-                            <label for="new_password" class="form-label">Новый пароль</label>
+                            <label for="new_password" class="form-label">{% if user_language == 'kk' %}Жаңа құпия сөз{% else %}Новый пароль{% endif %}</label>
                             <input type="password" class="form-control" id="new_password" name="new_password">
                         </div>
                         
                         <div class="mb-3">
-                            <label for="confirm_password" class="form-label">Подтверждение нового пароля</label>
+                            <label for="confirm_password" class="form-label">{% if user_language == 'kk' %}Жаңа құпия сөзді растау{% else %}Подтверждение нового пароля{% endif %}</label>
                             <input type="password" class="form-control" id="confirm_password" name="confirm_password">
                         </div>
                         
                         <div class="d-flex justify-content-between mt-4">
                             <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left me-2"></i> Вернуться к профилю
+                                <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Профильге оралу{% else %}Вернуться к профилю{% endif %}
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-lg me-2"></i> Сохранить изменения
+                                <i class="bi bi-check-lg me-2"></i> {% if user_language == 'kk' %}Өзгерістерді сақтау{% else %}Сохранить изменения{% endif %}
                             </button>
                         </div>
                     </form>

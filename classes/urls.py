@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from . import parent_views
+from . import non_scheduled_lesson_views
 
 app_name = 'classes'
 
@@ -36,16 +38,38 @@ urlpatterns = [
     path('teacher/schedule/', views.teacher_schedule, name='teacher_schedule'),
     path('teacher/schedule/week_offset=<int:week_offset>/', views.teacher_schedule, name='teacher_schedule_with_offset'),
     path('lesson/<int:class_id>/<int:schedule_id>/<str:date>/', views.lesson_detail, name='lesson_detail'),
-    path('parent-child-lessons/<int:student_id>/', views.parent_child_lessons, name='parent_child_lessons'),
-    path('parent-child-past-lessons/<int:student_id>/', views.parent_child_past_lessons, name='parent_child_past_lessons'),
-    path('parent-child-homework/<int:student_id>/', views.parent_child_homework, name='parent_child_homework'),
-    path('parent-child-schedule/<int:student_id>/', views.parent_child_schedule, name='parent_child_schedule'),
+    # Родительские представления
+    path('parent/child/<int:student_id>/lessons/', parent_views.parent_child_lessons, name='parent_child_lessons'),
+    path('parent/child/<int:student_id>/past-lessons/', parent_views.parent_child_past_lessons, name='parent_child_past_lessons'),
+    path('parent/child/<int:student_id>/schedule/', parent_views.parent_child_schedule, name='parent_child_schedule'),
+    path('parent/child/<int:student_id>/homework/', parent_views.parent_child_homework, name='parent_child_homework'),
+    path('parent/child/<int:student_id>/lesson/<int:schedule_id>/', parent_views.parent_child_lesson_detail, name='parent_child_lesson_detail'),
+    path('parent/child/<int:student_id>/class/<int:class_id>/', parent_views.parent_class_detail, name='parent_class_detail'),
+    
+    # Старые URL-маршруты для обратной совместимости
+    path('parent-child-lessons/<int:student_id>/', parent_views.parent_child_lessons, name='parent_child_lessons_old'),
+    path('parent-child-past-lessons/<int:student_id>/', parent_views.parent_child_past_lessons, name='parent_child_past_lessons_old'),
+    path('parent-child-homework/<int:student_id>/', parent_views.parent_child_homework, name='parent_child_homework_old'),
+    path('parent-child-schedule/<int:student_id>/', parent_views.parent_child_schedule, name='parent_child_schedule_old'),
     path('student/', views.student_classes, name='student_classes'),
+    
+    # URL-маршруты для студентов
     path('student/schedule/', views.student_schedule, name='student_schedule'),
     path('student/past-lessons/', views.student_past_lessons, name='student_past_lessons'),
+    path('student/lesson/<int:class_id>/<int:schedule_id>/<str:date>/', views.student_lesson_detail, name='student_lesson_detail'),
     path('all-student-homework/', views.all_student_homework, name='all_student_homework'),
     path('unchecked-student-homework/', views.unchecked_student_homework, name='unchecked_student_homework'),
     path('unchecked-teacher-homework/', views.unchecked_teacher_homework, name='unchecked_teacher_homework'),
     path('class/<int:class_id>/unchecked-homework/', views.unchecked_class_homework, name='unchecked_class_homework'),
+    
+    # URL-маршруты для родителей
+    path('parent/child/<int:student_id>/schedule/', parent_views.parent_child_schedule, name='parent_child_schedule'),
+    
+    # URL-маршруты для уроков не по расписанию
+    path('non-scheduled-lessons/', non_scheduled_lesson_views.non_scheduled_lesson_list, name='non_scheduled_lesson_list'),
+    path('non-scheduled-lessons/create/', non_scheduled_lesson_views.create_non_scheduled_lesson, name='create_non_scheduled_lesson'),
+    path('non-scheduled-lessons/<int:lesson_id>/', non_scheduled_lesson_views.non_scheduled_lesson_detail, name='non_scheduled_lesson_detail'),
+    path('non-scheduled-lessons/<int:lesson_id>/update-trial-status/', non_scheduled_lesson_views.update_trial_lesson_status, name='update_trial_lesson_status'),
+    path('non-scheduled-lessons/<int:lesson_id>/mark-attendance/', non_scheduled_lesson_views.mark_attendance, name='mark_non_scheduled_attendance'),
 
 ]

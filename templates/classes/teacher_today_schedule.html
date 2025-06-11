@@ -149,6 +149,9 @@
                                     <a href="{% url 'attendance:mark_attendance' item.class.id %}?date={{ today|date:'Y-m-d' }}&schedule_id={{ item.schedule.id }}&from_teacher_today=true" class="btn btn-sm btn-success fw-bold" style="background-color: #28a745; border-color: #28a745;">
                                         <i class="bi bi-check-circle me-1"></i> Отметить посещаемость
                                     </a>
+                                    <a href="{% url 'classes:upload_classwork_file_with_schedule' item.class.id item.schedule.id today|date:'Y-m-d' %}" class="btn btn-sm btn-outline-primary mt-2">
+                                        <i class="bi bi-upload me-1"></i> Загрузить материал
+                                    </a>
                                 </div>
                             </div>
                             

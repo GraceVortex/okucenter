@@ -1,26 +1,26 @@
 {% extends 'base.html' %}
 
-{% block title %}Рассылка WhatsApp{% endblock %}
+{% block title %}{% if user_language == 'kk' %}WhatsApp тарату{% else %}Рассылка WhatsApp{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Рассылка WhatsApp</h1>
+                <h1>{% if user_language == 'kk' %}WhatsApp тарату{% else %}Рассылка WhatsApp{% endif %}</h1>
                 <a href="{% url 'messaging:create_broadcast' %}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Создать рассылку
+                    <i class="fas fa-plus"></i> {% if user_language == 'kk' %}Тарату жасау{% else %}Создать рассылку{% endif %}
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Статистика -->
+    <!-- {% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %} -->
     <div class="row mb-4">
         <div class="col-md-2">
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Всего</h5>
+                    <h5 class="card-title">{% if user_language == 'kk' %}Барлығы{% else %}Всего{% endif %}</h5>
                     <h2>{{ stats.total }}</h2>
                 </div>
             </div>
@@ -28,7 +28,7 @@
         <div class="col-md-2">
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Завершено</h5>
+                    <h5 class="card-title">{% if user_language == 'kk' %}Аяқталды{% else %}Завершено{% endif %}</h5>
                     <h2>{{ stats.completed }}</h2>
                 </div>
             </div>
@@ -36,7 +36,7 @@
         <div class="col-md-2">
             <div class="card bg-info text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">В процессе</h5>
+                    <h5 class="card-title">{% if user_language == 'kk' %}Жүріп жатыр{% else %}В процессе{% endif %}</h5>
                     <h2>{{ stats.in_progress }}</h2>
                 </div>
             </div>
@@ -44,7 +44,7 @@
         <div class="col-md-2">
             <div class="card bg-warning text-dark">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Запланировано</h5>
+                    <h5 class="card-title">{% if user_language == 'kk' %}Жоспарланған{% else %}Запланировано{% endif %}</h5>
                     <h2>{{ stats.scheduled }}</h2>
                 </div>
             </div>
@@ -52,7 +52,7 @@
         <div class="col-md-2">
             <div class="card bg-secondary text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Черновики</h5>
+                    <h5 class="card-title">{% if user_language == 'kk' %}Қаралама{% else %}Черновики{% endif %}</h5>
                     <h2>{{ stats.draft }}</h2>
                 </div>
             </div>
@@ -60,19 +60,19 @@
         <div class="col-md-2">
             <div class="card bg-danger text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Ошибки</h5>
+                    <h5 class="card-title">{% if user_language == 'kk' %}Қателер{% else %}Ошибки{% endif %}</h5>
                     <h2>{{ stats.failed }}</h2>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Список рассылок -->
+    <!-- {% if user_language == 'kk' %}Таратулар тізімі{% else %}Список рассылок{% endif %} -->
     <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5>Последние рассылки</h5>
+                    <h5>{% if user_language == 'kk' %}Соңғы таратулар{% else %}Последние рассылки{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     {% if broadcasts %}
@@ -80,12 +80,12 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Название</th>
-                                    <th>Дата создания</th>
-                                    <th>Статус</th>
-                                    <th>Получатели</th>
-                                    <th>Отправлено</th>
-                                    <th>Действия</th>
+                                    <th>{% if user_language == 'kk' %}Атауы{% else %}Название{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Жасалған күні{% else %}Дата создания{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Алушылар{% else %}Получатели{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Жіберілді{% else %}Отправлено{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -95,15 +95,15 @@
                                     <td>{{ broadcast.created_at|date:"d.m.Y H:i" }}</td>
                                     <td>
                                         {% if broadcast.status == 'draft' %}
-                                        <span class="badge bg-secondary">Черновик</span>
+                                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Қаралама{% else %}Черновик{% endif %}</span>
                                         {% elif broadcast.status == 'scheduled' %}
-                                        <span class="badge bg-warning text-dark">Запланировано на {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</span>
+                                        <span class="badge bg-warning text-dark">{% if user_language == 'kk' %}{{ broadcast.scheduled_at|date:"d.m.Y H:i" }} жоспарланған{% else %}Запланировано на {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}{% endif %}</span>
                                         {% elif broadcast.status == 'in_progress' %}
-                                        <span class="badge bg-info">В процессе</span>
+                                        <span class="badge bg-info">{% if user_language == 'kk' %}Жүріп жатыр{% else %}В процессе{% endif %}</span>
                                         {% elif broadcast.status == 'completed' %}
-                                        <span class="badge bg-success">Завершено</span>
+                                        <span class="badge bg-success">{% if user_language == 'kk' %}Аяқталды{% else %}Завершено{% endif %}</span>
                                         {% elif broadcast.status == 'failed' %}
-                                        <span class="badge bg-danger">Ошибка</span>
+                                        <span class="badge bg-danger">{% if user_language == 'kk' %}Қате{% else %}Ошибка{% endif %}</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ broadcast.total_recipients }}</td>
@@ -121,7 +121,7 @@
                                             <i class="fas fa-ban"></i>
                                         </a>
                                         {% endif %}
-                                        <a href="{% url 'messaging:delete_broadcast' broadcast.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить эту рассылку?')">
+                                        <a href="{% url 'messaging:delete_broadcast' broadcast.id %}" class="btn btn-sm btn-danger" onclick="var confirmMsg = '{% if user_language == 'kk' %}Бұл таратуды жойғыңыз келетініне сенімдісіз бе?{% else %}Вы уверены, что хотите удалить эту рассылку?{% endif %}'; return confirm(confirmMsg);">
                                             <i class="fas fa-trash"></i>
                                         </a>
                                     </td>
@@ -132,7 +132,7 @@
                     </div>
                     {% else %}
                     <div class="alert alert-info">
-                        У вас пока нет рассылок. Нажмите кнопку "Создать рассылку", чтобы начать.
+                        {% if user_language == 'kk' %}Сізде әлі таратулар жоқ. Бастау үшін "Тарату жасау" түймесін басыңыз.{% else %}У вас пока нет рассылок. Нажмите кнопку "Создать рассылку", чтобы начать.{% endif %}
                     </div>
                     {% endif %}
                 </div>

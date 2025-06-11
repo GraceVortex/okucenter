@@ -2,7 +2,7 @@
 {% load static %}
 {% load finance_extras %}
 
-{% block title %}{{ class.name }} - Образовательный центр{% endblock %}
+{% block title %}{{ class.name }} - {% if user_language == 'kk' %}Білім беру орталығы{% else %}Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -18,16 +18,16 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <h1 class="display-5 fw-bold">{{ class.name }}</h1>
-            <p class="text-muted fs-5">Преподаватель: {{ class.teacher.full_name }}</p>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Мұғалім{% else %}Преподаватель{% endif %}: {{ class.teacher.full_name }}</p>
         </div>
         <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
             {% if user.is_admin or user.is_reception or user.is_teacher and class.teacher.user == user %}
                 <a href="{% url 'classes:update_class' class_id=class.id %}" class="btn btn-outline-primary me-2">
-                    <i class="bi bi-pencil me-1"></i> Редактировать
+                    <i class="bi bi-pencil me-1"></i> {% if user_language == 'kk' %}Өңдеу{% else %}Редактировать{% endif %}
                 </a>
                 {% if user.is_admin or user.is_reception %}
                     <a href="{% url 'classes:delete_class' class_id=class.id %}" class="btn btn-outline-danger">
-                        <i class="bi bi-trash me-1"></i> Удалить
+                        <i class="bi bi-trash me-1"></i> {% if user_language == 'kk' %}Жою{% else %}Удалить{% endif %}
                     </a>
                 {% endif %}
             {% endif %}
@@ -40,11 +40,11 @@
             <div class="card mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="card-title fw-bold mb-0">Информация о классе</h4>
+                        <h4 class="card-title fw-bold mb-0">{% if user_language == 'kk' %}Сынып туралы ақпарат{% else %}Информация о классе{% endif %}</h4>
                         <div>
-                            <span class="badge bg-primary fs-5">{{ class.price_per_lesson }} ₸ за урок</span>
+                            <span class="badge bg-primary fs-5">{{ class.price_per_lesson }} ₸ {% if user_language == 'kk' %}сабаққа{% else %}за урок{% endif %}</span>
                             {% if user.is_admin or user.is_reception %}
-                            <span class="badge bg-success fs-5 ms-2">{{ class.teacher_percentage }}% преподавателю</span>
+                            <span class="badge bg-success fs-5 ms-2">{{ class.teacher_percentage }}% {% if user_language == 'kk' %}мұғалімге{% else %}преподавателю{% endif %}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -54,7 +54,7 @@
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-person-badge fs-4 text-primary me-3"></i>
                                 <div>
-                                    <h6 class="mb-1 text-muted">Преподаватель</h6>
+                                    <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Мұғалім{% else %}Преподаватель{% endif %}</h6>
                                     <p class="mb-0 fs-5">{{ class.teacher.full_name }}</p>
                                 </div>
                             </div>
@@ -63,7 +63,7 @@
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-people fs-4 text-primary me-3"></i>
                                 <div>
-                                    <h6 class="mb-1 text-muted">Количество студентов</h6>
+                                    <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Оқушылар саны{% else %}Количество студентов{% endif %}</h6>
                                     <p class="mb-0 fs-5">{{ enrollments|length }}</p>
                                 </div>
                             </div>
@@ -73,7 +73,7 @@
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-percent fs-4 text-success me-3"></i>
                                 <div>
-                                    <h6 class="mb-1 text-muted">Оплата преподавателя</h6>
+                                    <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Мұғалімге төлем{% else %}Оплата преподавателя{% endif %}</h6>
                                     {% if class.teacher_payment_type == 'percentage' %}
                                         <p class="mb-0 fs-5">{{ class.teacher_percentage }}% ({{ class.price_per_lesson|multiply:class.teacher_percentage|divide:100 }} ₸ за урок)</p>
                                     {% else %}
@@ -87,7 +87,7 @@
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-cash-coin fs-4 text-primary me-3"></i>
                                 <div>
-                                    <h6 class="mb-1 text-muted">Стоимость урока</h6>
+                                    <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Сабақ құны{% else %}Стоимость занятия{% endif %}</h6>
                                     <p class="mb-0 fs-5">{{ class.price_per_lesson }} ₸</p>
                                 </div>
                             </div>
@@ -96,7 +96,7 @@
                     
                     {% if class.description %}
                         <div class="mt-4">
-                            <h5 class="fw-bold mb-3">Описание</h5>
+                            <h5 class="fw-bold mb-3">{% if user_language == 'kk' %}Сипаттама{% else %}Описание{% endif %}</h5>
                             <p class="mb-0">{{ class.description }}</p>
                         </div>
                     {% endif %}
@@ -107,10 +107,10 @@
             <div class="card mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="card-title fw-bold mb-0">Материалы класса</h4>
+                        <h4 class="card-title fw-bold mb-0">{% if user_language == 'kk' %}Сынып материалдары{% else %}Материалы класса{% endif %}</h4>
                         <div>
                             <a href="{% url 'classes:class_materials' class_id=class.id %}" class="btn btn-primary">
-                                <i class="bi bi-folder me-1"></i> Просмотреть материалы
+                                <i class="bi bi-folder me-1"></i> {% if user_language == 'kk' %}Материалдарды көру{% else %}Просмотреть материалы{% endif %}
                             </a>
                             {% if user.is_admin or user.is_teacher and class.teacher.user == user %}
                                 <div class="dropdown d-inline-block ms-2">
@@ -420,14 +420,14 @@
             <!-- Статистика класса -->
             <div class="card mb-4">
                 <div class="card-body p-4">
-                    <h4 class="card-title fw-bold mb-4">Статистика класса</h4>
+                    <h4 class="card-title fw-bold mb-4">{% if user_language == 'kk' %}Сынып статистикасы{% else %}Статистика класса{% endif %}</h4>
                     
                     <div class="d-flex align-items-center mb-3">
                         <div class="me-3">
                             <i class="bi bi-calendar-check fs-3 text-primary"></i>
                         </div>
                         <div>
-                            <h6 class="mb-1 text-muted">Проведено занятий</h6>
+                            <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Өткізілген сабақтар{% else %}Проведено занятий{% endif %}</h6>
                             <p class="mb-0 fs-5 fw-bold">{{ class_stats.total_lessons|default:"0" }}</p>
                         </div>
                     </div>
@@ -437,7 +437,7 @@
                             <i class="bi bi-person-check fs-3 text-success"></i>
                         </div>
                         <div>
-                            <h6 class="mb-1 text-muted">Средняя посещаемость</h6>
+                            <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Орташа қатысу{% else %}Средняя посещаемость{% endif %}</h6>
                             <p class="mb-0 fs-5 fw-bold">{{ class_stats.avg_attendance|default:"0" }}%</p>
                         </div>
                     </div>
@@ -447,7 +447,7 @@
                             <i class="bi bi-journal-check fs-3 text-info"></i>
                         </div>
                         <div>
-                            <h6 class="mb-1 text-muted">Выполнено заданий</h6>
+                            <h6 class="mb-1 text-muted">{% if user_language == 'kk' %}Орындалған тапсырмалар{% else %}Выполнено заданий{% endif %}</h6>
                             <p class="mb-0 fs-5 fw-bold">{{ class_stats.completed_homeworks|default:"0" }}</p>
                         </div>
                     </div>

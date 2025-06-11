@@ -1,33 +1,39 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Мои домашние задания - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Менің үй тапсырмаларым - Білім беру орталығы{% else %}Мои домашние задания - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
+    <div class="mb-3">
+        <a href="{% url 'core:home' %}" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Басты бетке оралу{% else %}Вернуться на главную{% endif %}
+        </a>
+    </div>
+
     <div class="row">
         <div class="col-lg-10 mx-auto">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'classes:student_classes' %}">Мои классы</a></li>
-                    <li class="breadcrumb-item active">Мои домашние задания</li>
+                    <li class="breadcrumb-item"><a href="{% url 'classes:student_classes' %}">{% if user_language == 'kk' %}Менің сыныптарым{% else %}Мои классы{% endif %}</a></li>
+                    <li class="breadcrumb-item active">{% if user_language == 'kk' %}Менің үй тапсырмаларым{% else %}Мои домашние задания{% endif %}</li>
                 </ol>
             </nav>
             
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Мои домашние задания</h2>
+                <h2>{% if user_language == 'kk' %}Менің үй тапсырмаларым{% else %}Мои домашние задания{% endif %}</h2>
             </div>
             
             <!-- Вкладки для переключения между всеми заданиями и заданиями по классам -->
             <ul class="nav nav-tabs mb-4" id="homeworkTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link {% if not selected_class_id %}active{% endif %}" id="all-homework-tab" data-bs-toggle="tab" data-bs-target="#all-homework" type="button" role="tab" aria-controls="all-homework" aria-selected="{% if not selected_class_id %}true{% else %}false{% endif %}">
-                        <i class="bi bi-list-task me-2"></i> Все задания
+                        <i class="bi bi-list-task me-2"></i> {% if user_language == 'kk' %}Барлық тапсырмалар{% else %}Все задания{% endif %}
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link {% if selected_class_id %}active{% endif %}" id="by-class-tab" data-bs-toggle="tab" data-bs-target="#by-class" type="button" role="tab" aria-controls="by-class" aria-selected="{% if selected_class_id %}true{% else %}false{% endif %}">
-                        <i class="bi bi-grid-3x3-gap me-2"></i> По классам
+                        <i class="bi bi-grid-3x3-gap me-2"></i> {% if user_language == 'kk' %}Сыныптар бойынша{% else %}По классам{% endif %}
                     </button>
                 </li>
             </ul>
@@ -39,7 +45,7 @@
                     <div class="card">
                         <div class="card-header bg-light">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Все домашние задания</h5>
+                                <h5 class="mb-0">{% if user_language == 'kk' %}Барлық үй тапсырмалары{% else %}Все домашние задания{% endif %}</h5>
                             </div>
                         </div>
                         <div class="card-body">
@@ -48,12 +54,12 @@
                             <table class="table table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Класс</th>
-                                        <th>Задание</th>
-                                        <th>Срок сдачи</th>
-                                        <th>Статус</th>
-                                        <th>Оценка</th>
-                                        <th>Действия</th>
+                                        <th>{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Тапсырма{% else %}Задание{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Тапсыру мерзімі{% else %}Срок сдачи{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Мәртебесі{% else %}Статус{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Баға{% else %}Оценка{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -65,7 +71,7 @@
                                                 <p class="small text-muted mb-0">{{ item.homework.description|truncatechars:50 }}</p>
                                                 {% if item.homework.file %}
                                                     <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-secondary mt-1" target="_blank">
-                                                        <i class="bi bi-file-earmark-text"></i> Условие задания
+                                                        <i class="bi bi-file-earmark-text"></i> {% if user_language == 'kk' %}Тапсырма шарты{% else %}Условие задания{% endif %}
                                                     </a>
                                                 {% endif %}
                                             </td>

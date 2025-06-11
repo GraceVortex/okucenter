@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Telegram рассылки{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Telegram таратулар{% else %}Telegram рассылки{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -8,29 +8,29 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="mb-0">Telegram рассылки</h1>
-                    <p class="text-muted">Управление рассылками сообщений через Telegram</p>
+                    <h1 class="mb-0">{% if user_language == 'kk' %}Telegram таратулар{% else %}Telegram рассылки{% endif %}</h1>
+                    <p class="text-muted">{% if user_language == 'kk' %}Telegram арқылы хабарламалар таратуды басқару{% else %}Управление рассылками сообщений через Telegram{% endif %}</p>
                 </div>
                 <div>
                     <a href="{% url 'messaging:messaging_choice' %}" class="btn btn-outline-secondary me-2">
-                        <i class="fas fa-exchange-alt me-1"></i> Сменить тип рассылки
+                        <i class="fas fa-exchange-alt me-1"></i> {% if user_language == 'kk' %}Тарату түрін өзгерту{% else %}Сменить тип рассылки{% endif %}
                     </a>
                     <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i> Новая рассылка
+                        <i class="fas fa-plus me-1"></i> {% if user_language == 'kk' %}Жаңа тарату{% else %}Новая рассылка{% endif %}
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Статистика -->
+    <!-- {% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %} -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
             <div class="card bg-primary text-white h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Всего рассылок</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Барлық таратулар{% else %}Всего рассылок{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.total }}</h2>
                         </div>
                         <div>
@@ -45,7 +45,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Завершено</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Аяқталды{% else %}Завершено{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.completed }}</h2>
                         </div>
                         <div>
@@ -60,7 +60,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">В процессе</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Жүріп жатыр{% else %}В процессе{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.in_progress }}</h2>
                         </div>
                         <div>
@@ -75,7 +75,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Пользователей</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Пайдаланушылар{% else %}Пользователей{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ telegram_stats.total_users }}</h2>
                         </div>
                         <div>
@@ -87,12 +87,12 @@
         </div>
     </div>
 
-    <!-- Дополнительная статистика -->
+    <!-- {% if user_language == 'kk' %}Қосымша статистика{% else %}Дополнительная статистика{% endif %} -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Статистика по пользователям</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Пайдаланушылар бойынша статистика{% else %}Статистика по пользователям{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -102,7 +102,7 @@
                                     <i class="fas fa-user-graduate"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Студенты</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Студенттер{% else %}Студенты{% endif %}</p>
                                     <h4 class="mb-0">{{ telegram_stats.students }}</h4>
                                 </div>
                             </div>
@@ -113,7 +113,7 @@
                                     <i class="fas fa-user-friends"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Родители</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Ата-аналар{% else %}Родители{% endif %}</p>
                                     <h4 class="mb-0">{{ telegram_stats.parents }}</h4>
                                 </div>
                             </div>
@@ -124,7 +124,7 @@
                                     <i class="fas fa-chalkboard-teacher"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Преподаватели</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Оқытушылар{% else %}Преподаватели{% endif %}</p>
                                     <h4 class="mb-0">{{ telegram_stats.teachers }}</h4>
                                 </div>
                             </div>
@@ -135,7 +135,7 @@
                                     <i class="fas fa-user"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Всего активных</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Барлық белсенділер{% else %}Всего активных{% endif %}</p>
                                     <h4 class="mb-0">{{ telegram_stats.total_users }}</h4>
                                 </div>
                             </div>
@@ -143,7 +143,7 @@
                     </div>
                     <div class="mt-3">
                         <a href="{% url 'messaging:telegram_users' %}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-users me-1"></i> Управление пользователями
+                            <i class="fas fa-users me-1"></i> {% if user_language == 'kk' %}Пайдаланушыларды басқару{% else %}Управление пользователями{% endif %}
                         </a>
                     </div>
                 </div>
@@ -152,7 +152,7 @@
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Статистика по рассылкам</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Таратулар бойынша статистика{% else %}Статистика по рассылкам{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -162,7 +162,7 @@
                                     <i class="fas fa-check-circle"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Завершено</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Аяқталды{% else %}Завершено{% endif %}</p>
                                     <h4 class="mb-0">{{ stats.completed }}</h4>
                                 </div>
                             </div>
@@ -173,7 +173,7 @@
                                     <i class="fas fa-spinner"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">В процессе</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Жүріп жатыр{% else %}В процессе{% endif %}</p>
                                     <h4 class="mb-0">{{ stats.in_progress }}</h4>
                                 </div>
                             </div>
@@ -184,7 +184,7 @@
                                     <i class="fas fa-clock"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Запланировано</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Жоспарланған{% else %}Запланировано{% endif %}</p>
                                     <h4 class="mb-0">{{ stats.scheduled }}</h4>
                                 </div>
                             </div>
@@ -195,7 +195,7 @@
                                     <i class="fas fa-times-circle"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Ошибки</h6>
+                                    <p class="text-muted mb-0">{% if user_language == 'kk' %}Қателер{% else %}Ошибки{% endif %}</p>
                                     <h4 class="mb-0">{{ stats.failed }}</h4>
                                 </div>
                             </div>
@@ -206,15 +206,15 @@
         </div>
     </div>
 
-    <!-- Список рассылок -->
+    <!-- {% if user_language == 'kk' %}Таратулар тізімі{% else %}Список рассылок{% endif %} -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Последние рассылки</h5>
+                        <h5 class="mb-0">{% if user_language == 'kk' %}Соңғы таратулар{% else %}Последние рассылки{% endif %}</h5>
                         <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i> Новая рассылка
+                            <i class="fas fa-plus me-1"></i> {% if user_language == 'kk' %}Жаңа тарату{% else %}Новая рассылка{% endif %}
                         </a>
                     </div>
                 </div>
@@ -223,11 +223,11 @@
                         <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th>Название</th>
-                                    <th>Статус</th>
-                                    <th>Получатели</th>
-                                    <th>Создано</th>
-                                    <th>Действия</th>
+                                    <th>{% if user_language == 'kk' %}Атауы{% else %}Название{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Алушылар{% else %}Получатели{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Жасалған күні{% else %}Создано{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -253,30 +253,30 @@
                                     </td>
                                     <td>
                                         {% if broadcast.status == 'draft' %}
-                                        <span class="badge bg-secondary">Черновик</span>
+                                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Қолжазба{% else %}Черновик{% endif %}</span>
                                         {% elif broadcast.status == 'scheduled' %}
-                                        <span class="badge bg-info">Запланировано</span>
+                                        <span class="badge bg-primary">{% if user_language == 'kk' %}Жоспарланған{% else %}Запланировано{% endif %}</span>
                                         {% elif broadcast.status == 'in_progress' %}
-                                        <span class="badge bg-warning">В процессе</span>
+                                        <span class="badge bg-warning">{% if user_language == 'kk' %}Жүріп жатыр{% else %}В процессе{% endif %}</span>
                                         {% elif broadcast.status == 'completed' %}
-                                        <span class="badge bg-success">Завершено</span>
+                                        <span class="badge bg-success">{% if user_language == 'kk' %}Аяқталды{% else %}Завершено{% endif %}</span>
                                         {% elif broadcast.status == 'failed' %}
-                                        <span class="badge bg-danger">Ошибка</span>
+                                        <span class="badge bg-danger">{% if user_language == 'kk' %}Қате{% else %}Ошибка{% endif %}</span>
                                         {% elif broadcast.status == 'cancelled' %}
-                                        <span class="badge bg-secondary">Отменено</span>
+                                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Тоқтатылды{% else %}Отменено{% endif %}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="me-2">
                                                 {% if broadcast.recipient_type == 'students' %}
-                                                <i class="fas fa-user-graduate text-primary" title="Студенты"></i>
+                                                <i class="fas fa-user-graduate text-primary" title="{% if user_language == 'kk' %}Студенттер{% else %}Студенты{% endif %}"></i>
                                                 {% elif broadcast.recipient_type == 'parents' %}
-                                                <i class="fas fa-user-friends text-success" title="Родители"></i>
+                                                <i class="fas fa-user-friends text-success" title="{% if user_language == 'kk' %}Ата-аналар{% else %}Родители{% endif %}"></i>
                                                 {% elif broadcast.recipient_type == 'teachers' %}
-                                                <i class="fas fa-chalkboard-teacher text-info" title="Преподаватели"></i>
+                                                <i class="fas fa-chalkboard-teacher text-info" title="{% if user_language == 'kk' %}Оқытушылар{% else %}Преподаватели{% endif %}"></i>
                                                 {% else %}
-                                                <i class="fas fa-users text-secondary" title="Все"></i>
+                                                <i class="fas fa-users text-secondary" title="{% if user_language == 'kk' %}Барлығы{% else %}Все{% endif %}"></i>
                                                 {% endif %}
                                             </div>
                                             <span>{{ broadcast.total_recipients }}</span>
@@ -298,7 +298,7 @@
                                                 <i class="fas fa-ban"></i>
                                             </a>
                                             {% endif %}
-                                            <a href="{% url 'messaging:delete_telegram_broadcast' broadcast.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Вы уверены, что хотите удалить эту рассылку?')">
+                                            <a href="{% url 'messaging:delete_telegram_broadcast' broadcast.id %}" class="btn btn-sm btn-outline-danger" onclick="var confirmMsg = '{% if user_language == \'kk\' %}Бұл таратуды жойғыңыз келетініне сенімдісіз бе?{% else %}Вы уверены, что хотите удалить эту рассылку?{% endif %}'; return confirm(confirmMsg);">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                         </div>
@@ -309,9 +309,9 @@
                                     <td colspan="5" class="text-center py-4">
                                         <div class="text-muted">
                                             <i class="fas fa-inbox fa-3x mb-3"></i>
-                                            <p>У вас пока нет рассылок</p>
+                                            <p>{% if user_language == 'kk' %}Сізде әлі таратулар жоқ{% else %}У вас пока нет рассылок{% endif %}</p>
                                             <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-primary">
-                                                <i class="fas fa-plus me-1"></i> Создать рассылку
+                                                <i class="fas fa-plus me-1"></i> {% if user_language == 'kk' %}Тарату жасау{% else %}Создать рассылку{% endif %}
                                             </a>
                                         </div>
                                     </td>
@@ -324,7 +324,7 @@
                 {% if broadcasts %}
                 <div class="card-footer bg-white">
                     <a href="{% url 'messaging:create_telegram_broadcast' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i> Новая рассылка
+                        <i class="fas fa-plus me-1"></i> {% if user_language == 'kk' %}Жаңа тарату{% else %}Новая рассылка{% endif %}
                     </a>
                 </div>
                 {% endif %}

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Непроверенные задания - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Тексерілмеген тапсырмалар - Білім беру орталығы{% else %}Непроверенные задания - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -9,19 +9,19 @@
         <div class="col-lg-10 mx-auto">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'classes:student_classes' %}">Мои классы</a></li>
-                    <li class="breadcrumb-item active">Непроверенные задания</li>
+                    <li class="breadcrumb-item"><a href="{% url 'classes:student_classes' %}">{% if user_language == 'kk' %}Менің сыныптарым{% else %}Мои классы{% endif %}</a></li>
+                    <li class="breadcrumb-item active">{% if user_language == 'kk' %}Тексерілмеген тапсырмалар{% else %}Непроверенные задания{% endif %}</li>
                 </ol>
             </nav>
             
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Непроверенные домашние задания</h2>
+                <h2>{% if user_language == 'kk' %}Тексерілмеген үй тапсырмалары{% else %}Непроверенные домашние задания{% endif %}</h2>
             </div>
             
             <div class="card">
                 <div class="card-header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Задания, ожидающие проверки</h5>
+                        <h5 class="mb-0">{% if user_language == 'kk' %}Тексеруді күтіп тұрған тапсырмалар{% else %}Задания, ожидающие проверки{% endif %}</h5>
                     </div>
                 </div>
                 <div class="card-body">
@@ -30,11 +30,11 @@
                             <table class="table table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Класс</th>
-                                        <th>Задание</th>
-                                        <th>Отправлено</th>
-                                        <th>Статус</th>
-                                        <th>Действия</th>
+                                        <th>{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Тапсырма{% else %}Задание{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Жіберілді{% else %}Отправлено{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Мәртебесі{% else %}Статус{% endif %}</th>
+                                        <th>{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -46,7 +46,7 @@
                                                 <p class="small text-muted mb-0">{{ item.homework.description|truncatechars:50 }}</p>
                                                 {% if item.homework.file %}
                                                     <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-secondary mt-1" target="_blank">
-                                                        <i class="bi bi-file-earmark-text"></i> Условие задания
+                                                        <i class="bi bi-file-earmark-text"></i> {% if user_language == 'kk' %}Тапсырма шарты{% else %}Условие задания{% endif %}
                                                     </a>
                                                 {% endif %}
                                             </td>
@@ -56,31 +56,31 @@
                                                     {% if item.homework.due_date %}
                                                         {% if item.submitted_at.date <= item.homework.due_date %}
                                                             <span class="text-success">
-                                                                <i class="bi bi-check-circle"></i> Вовремя
+                                                                <i class="bi bi-check-circle"></i> {% if user_language == 'kk' %}Уақытылы{% else %}Вовремя{% endif %}
                                                             </span>
                                                         {% else %}
                                                             <span class="text-danger">
-                                                                <i class="bi bi-exclamation-circle"></i> Просрочено
+                                                                <i class="bi bi-exclamation-circle"></i> {% if user_language == 'kk' %}Мерзімі өткен{% else %}Просрочено{% endif %}
                                                             </span>
                                                         {% endif %}
                                                     {% endif %}
                                                 </p>
                                             </td>
                                             <td>
-                                                <span class="badge bg-warning">Ожидает проверки</span>
+                                                <span class="badge bg-warning">{% if user_language == 'kk' %}Тексеруді күтуде{% else %}Ожидает проверки{% endif %}</span>
                                             </td>
                                             <td>
                                                 <div class="btn-group">
                                                     {% if item.submission.file %}
                                                         <a href="{{ item.submission.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                            <i class="bi bi-file-earmark-text"></i> Просмотреть
+                                                            <i class="bi bi-file-earmark-text"></i> {% if user_language == 'kk' %}Қарау{% else %}Просмотреть{% endif %}
                                                         </a>
                                                     {% endif %}
                                                     <button type="button" class="btn btn-sm btn-danger cancel-submission-btn" 
                                                         data-bs-toggle="modal" data-bs-target="#cancelSubmissionModal" 
                                                         data-submission-id="{{ item.submission.id }}"
                                                         data-homework-title="{{ item.homework.title }}">
-                                                        Отменить отправку
+                                                        {% if user_language == 'kk' %}Жіберуді болдырмау{% else %}Отменить отправку{% endif %}
                                                     </button>
                                                 </div>
                                             </td>
@@ -91,7 +91,7 @@
                         </div>
                     {% else %}
                         <div class="alert alert-info">
-                            <i class="bi bi-info-circle me-2"></i> У вас нет непроверенных домашних заданий.
+                            <i class="bi bi-info-circle me-2"></i> {% if user_language == 'kk' %}Сізде тексерілмеген үй тапсырмалары жоқ.{% else %}У вас нет непроверенных домашних заданий.{% endif %}
                         </div>
                     {% endif %}
                 </div>
@@ -105,17 +105,17 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="cancelSubmissionModalLabel">Отмена отправки задания</h5>
+                <h5 class="modal-title" id="cancelSubmissionModalLabel">{% if user_language == 'kk' %}Тапсырманы жіберуді болдырмау{% else %}Отмена отправки задания{% endif %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Вы уверены, что хотите отменить отправку этого задания? После отмены вы сможете отправить его заново.</p>
+                <p>{% if user_language == 'kk' %}Сіз бұл тапсырманы жіберуді болдырмағыңыз келетініне сенімдісіз бе? Болдырмаудан кейін сіз оны қайтадан жібере аласыз.{% else %}Вы уверены, что хотите отменить отправку этого задания? После отмены вы сможете отправить его заново.{% endif %}</p>
                 <input type="hidden" id="submissionId">
                 <div id="cancelResult" class="alert d-none"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет, оставить</button>
-                <button type="button" class="btn btn-danger" id="cancelSubmissionBtn">Да, отменить</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% if user_language == 'kk' %}Жоқ, қалдыру{% else %}Нет, оставить{% endif %}</button>
+                <button type="button" class="btn btn-danger" id="cancelSubmissionBtn">{% if user_language == 'kk' %}Иә, болдырмау{% else %}Да, отменить{% endif %}</button>
             </div>
         </div>
     </div>
@@ -132,7 +132,8 @@
                 const submissionId = this.getAttribute('data-submission-id');
                 const homeworkTitle = this.getAttribute('data-homework-title');
                 document.getElementById('submissionId').value = submissionId;
-                document.getElementById('cancelSubmissionModalLabel').textContent = 'Отмена отправки: ' + homeworkTitle;
+                const userLanguage = document.documentElement.getAttribute('data-user-language');
+document.getElementById('cancelSubmissionModalLabel').textContent = (userLanguage === 'kk' ? 'Жіберуді болдырмау: ' : 'Отмена отправки: ') + homeworkTitle;
                 
                 // Скрываем сообщение о результате
                 const resultDiv = document.getElementById('cancelResult');
@@ -170,13 +171,13 @@
                     }, 2000);
                 } else {
                     resultDiv.classList.add('alert-danger');
-                    resultDiv.textContent = data.message || 'Произошла ошибка при отмене отправки';
+                    resultDiv.textContent = data.message || (userLanguage === 'kk' ? 'Жіберуді болдырмау кезінде қате орын алды' : 'Произошла ошибка при отмене отправки');
                 }
             })
             .catch(error => {
                 resultDiv.classList.remove('d-none');
                 resultDiv.classList.add('alert-danger');
-                resultDiv.textContent = 'Произошла ошибка при отправке запроса';
+                resultDiv.textContent = userLanguage === 'kk' ? 'Сұрауды жіберу кезінде қате орын алды' : 'Произошла ошибка при отправке запроса';
                 console.error('Error:', error);
             });
         });

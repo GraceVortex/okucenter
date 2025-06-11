@@ -5,23 +5,49 @@
 
 {% block extra_css %}
 <style>
+    :root {
+        --primary: #4361ee;
+        --secondary: #3f37c9;
+        --success: #4cc9f0;
+        --warning: #f72585;
+        --danger: #ff4d6d;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --gray: #6c757d;
+    }
+    
+    /* Общие стили для календаря */
     .calendar-container {
-        border-radius: 10px;
+        border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        background-color: white;
     }
     
     .calendar-header {
-        background-color: #f8f9fa;
+        background-color: var(--primary);
         padding: 15px;
-        border-bottom: 1px solid #eaeaea;
+        color: white;
+        font-weight: 600;
+        text-align: center;
+        font-size: 1rem;
     }
     
     .calendar-day {
         border-right: 1px solid #eaeaea;
         border-bottom: 1px solid #eaeaea;
-        min-height: 150px;
-        padding: 10px;
+        min-height: 180px;
+        padding: 12px;
+        transition: all 0.3s ease;
+        background-color: white;
+    }
+    
+    .calendar-day:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        z-index: 1;
+        position: relative;
     }
     
     .calendar-day:nth-child(7n) {
@@ -29,107 +55,503 @@
     }
     
     .day-header {
-        padding: 5px;
+        padding: 8px 5px;
         text-align: center;
         font-weight: 600;
         border-bottom: 1px solid #eaeaea;
+        margin-bottom: 8px;
     }
     
     .day-number {
         display: inline-block;
-        width: 30px;
-        height: 30px;
-        line-height: 30px;
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
         text-align: center;
         border-radius: 50%;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
     }
     
     .today .day-number {
-        background-color: #007bff;
+        background-color: var(--primary);
         color: white;
+        box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
     }
     
+    /* Стили для элементов занятий */
     .class-item {
-        background-color: #fff;
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        border-left: 4px solid #007bff;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background-color: white;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid var(--primary);
+        transition: all 0.3s ease;
     }
     
     .class-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .class-item.not-enough-balance {
+        border-left: 4px solid var(--danger);
+    }
+    
+    .class-item.has-enough-balance {
+        border-left: 4px solid var(--success);
     }
     
     .class-time {
         font-size: 0.85rem;
-        color: #6c757d;
-        margin-bottom: 5px;
+        color: var(--primary);
+        margin-bottom: 6px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+    
+    .class-time i {
+        margin-right: 5px;
     }
     
     .class-name {
-        font-weight: 600;
-        margin-bottom: 5px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: var(--dark);
+        font-size: 1rem;
     }
     
     .class-room {
         font-size: 0.85rem;
-        color: #6c757d;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+    
+    .class-room i {
+        margin-right: 5px;
+        color: var(--primary);
+        font-size: 0.9rem;
     }
     
     .class-teacher {
         font-size: 0.85rem;
-        color: #6c757d;
-        font-style: italic;
+        color: var(--gray);
         margin-top: 5px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .class-teacher i {
+        margin-right: 5px;
+        color: var(--primary);
+        font-size: 0.9rem;
     }
     
     .enrollment-info {
+        font-size: 0.75rem;
+        color: var(--success);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .enrollment-info i {
+        margin-right: 5px;
+    }
+    
+    .balance-warning {
+        background-color: #fff5f7;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        color: var(--danger);
+        display: flex;
+        align-items: center;
+    }
+    
+    .balance-warning i {
+        margin-right: 5px;
+        font-size: 0.9rem;
+    }
+    
+    .balance-details {
+        margin-top: 8px;
+        font-size: 0.8rem;
+        color: var(--gray);
+        padding: 8px 0;
+    }
+    
+    /* Улучшенные стили для мобильной версии */
+    .mobile-calendar {
+        margin-top: 20px;
+    }
+    
+    .mobile-day {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #eaeaea;
+        transition: all 0.3s ease;
+        height: 100%;
+        background-color: white;
+    }
+    
+    .mobile-day:hover {
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        transform: translateY(-5px);
+    }
+    
+    .mobile-day.today {
+        border: 2px solid var(--primary);
+    }
+    
+    .mobile-day-header {
+        background-color: var(--primary);
+        padding: 12px 15px;
+        text-align: center;
+        color: white;
+    }
+    
+    .day-name {
+        font-weight: 700;
+        color: white;
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+    }
+    
+    .mobile-day-number {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+        border-radius: 50%;
+        font-weight: 600;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+    
+    .mobile-day-number.today {
+        background-color: white;
+        color: var(--primary);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+    
+    .mobile-day-content {
+        padding: 15px;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    
+    .mobile-class-item {
+        background-color: white;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        border-left: 3px solid var(--primary);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .lesson-card-content {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .lesson-time {
+        font-size: 0.85rem;
+        color: #007bff;
+        font-weight: 600;
+        margin-bottom: 3px;
+        display: block;
+    }
+    
+    .lesson-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #212529;
+        margin-bottom: 3px;
+        display: block;
+    }
+    
+    .lesson-teacher {
+        font-size: 0.8rem;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+    }
+    
+    .lesson-teacher i {
+        margin-right: 5px;
+        font-size: 0.8rem;
+    }
+    
+    .mobile-class-item {
+        display: block;
+        padding: 10px;
+    }
+    
+    .mobile-class-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .mobile-class-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    
+    .mobile-class-time {
+        font-size: 0.8rem;
+        color: #007bff;
+        font-weight: 600;
+        min-width: 40px;
+    }
+    
+    .mobile-class-name {
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: #212529;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        padding-right: 5px;
+        max-width: 90px;
+    }
+    
+    .mobile-class-room {
+        font-size: 0.75rem;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        margin-right: 5px;
+    }
+    
+    .mobile-class-teacher {
+        font-size: 0.75rem;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        text-align: right;
+    }
+    
+    .mobile-class-room i, .mobile-class-teacher i {
+        margin-right: 3px;
+    }
+    
+    /* Новые стили для навигации по неделям */
+    .week-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #fff;
+        border-radius: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .week-nav-btn {
+        padding: 12px 20px;
+        text-decoration: none;
+        color: #007bff;
+        font-weight: 600;
+        flex: 1;
+        text-align: center;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .week-nav-btn:hover {
+        background-color: #f0f7ff;
+    }
+    
+    .week-nav-btn.today {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .week-nav-btn:not(:last-child) {
+        border-right: 1px solid #eaeaea;
+    }
+    
+    /* Стили для пустых дней */
+    .empty-day-message {
+        padding: 30px 20px;
+        text-align: center;
+        color: var(--gray);
+    }
+    
+    .empty-day-message i {
+        font-size: 2rem;
+        color: #dee2e6;
+        margin-bottom: 10px;
+    }
+    
+    /* Стили для индикаторов статуса */
+    .status-badge {
         font-size: 0.7rem;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+        display: inline-block;
+        margin-left: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .status-confirmed {
+        background-color: #d4edda;
         color: #28a745;
-        margin-top: 5px;
+    }
+    
+    .status-pending {
+        background-color: #fff3cd;
+        color: #ffc107;
+    }
+    
+    .status-canceled {
+        background-color: #f8d7da;
+        color: #dc3545;
+    }
+    
+    /* Стили для карточки расписания */
+    .schedule-card {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: none;
+    }
+    
+    .schedule-card .card-body {
+        padding: 25px;
+    }
+    
+    .schedule-title {
+        font-weight: 700;
+        margin-bottom: 5px;
+        font-size: 1.5rem;
+        color: var(--dark);
+    }
+    
+    .schedule-subtitle {
+        color: var(--gray);
+        margin-bottom: 20px;
+    }
+    
+    .week-navigation {
+        margin-bottom: 25px;
+    }
+    
+    .date-range-container {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px 20px;
+        margin-bottom: 15px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .date-range {
+        font-weight: 600;
+        font-size: 1.2rem;
+        color: var(--dark);
+    }
+    
+    .week-nav-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .week-nav-btn {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: white;
+        border: 1px solid #dee2e6;
+        color: var(--dark);
+        transition: all 0.2s;
+        font-size: 1.1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .week-nav-btn:hover {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .current-week-btn {
+        height: 45px;
+        border-radius: 22px;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 0 25px;
+        font-weight: 500;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .current-week-btn:hover {
+        background-color: var(--secondary);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(67, 97, 238, 0.4);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold">Моё расписание</h4>
-            </div>
-            <p class="text-muted fs-5">Управление расписанием и запросы на отмену уроков</p>
-        </div>
+<div class="container mt-4 mt-md-5">
+    <div class="mb-4">
+        <a href="{% url 'core:home' %}" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-house-door me-2"></i> Вернуться на главную
+        </a>
     </div>
 
-    <div class="card mb-4 shadow-sm">
+    <div class="card mb-4 shadow-sm schedule-card">
         <div class="card-body p-4">
             <div class="mb-4">
-                <h4 class="fw-bold mb-2">Календарь занятий</h4>
-                <p class="text-muted mb-3">Период: {{ start_of_week|date:"d.m.Y" }} - {{ end_of_week|date:"d.m.Y" }}</p>
-                
-                <!-- Простая и надежная верстка для кнопок навигации -->
-                <div class="text-center mb-4">
-                    <div style="display: inline-block; border-radius: 30px; overflow: hidden; border: 1px solid #dee2e6;">
-                        <a href="{% url 'core:schedule' %}?week_offset={{ prev_week_offset }}{% if request.GET.student_id %}&student_id={{ request.GET.student_id }}{% endif %}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd; border-right: 1px solid #dee2e6;">
-                            <i class="bi bi-chevron-left"></i> Предыдущая неделя
-                        </a>
-                        <a href="{% url 'core:schedule' %}{% if request.GET.student_id %}?student_id={{ request.GET.student_id }}{% endif %}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #6c757d; border-right: 1px solid #dee2e6;">
-                            Сегодня
-                        </a>
-                        <a href="{% url 'core:schedule' %}?week_offset={{ next_week_offset }}{% if request.GET.student_id %}&student_id={{ request.GET.student_id }}{% endif %}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd;">
-                            Следующая неделя <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </div>
+                <h4 class="schedule-title">Календарь занятий</h4>
+                <p class="schedule-subtitle">Ваше расписание занятий на текущую неделю</p>
+            </div>
+            
+            <div class="week-navigation">
+                <div class="date-range-container">
+                    <div class="date-range">{{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}</div>
+                </div>
+                <div class="week-nav-controls">
+                    <a href="?date={{ prev_week|date:'Y-m-d' }}" class="week-nav-btn">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <a href="?date={{ today|date:'Y-m-d' }}" class="current-week-btn">Текущая неделя</a>
+                    <a href="?date={{ next_week|date:'Y-m-d' }}" class="week-nav-btn">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
                 </div>
             </div>
             
-            <div class="calendar-container">
+            <!-- Десктопная версия календаря -->
+            <div class="calendar-container d-none d-md-block">
                 <div class="row calendar-header">
                     <div class="col">Пн</div>
                     <div class="col">Вт</div>
@@ -156,12 +578,11 @@
                                 <a href="{% url 'core:schedule_detail' schedule_info.schedule.id %}?date={{ day.date|date:'Y-m-d' }}" class="text-decoration-none">
                                     <div class="class-item">
                                         <div class="class-time">
-                                            {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
+                                            <i class="bi bi-clock"></i> {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
                                         </div>
                                         <div class="class-name">{{ schedule_info.schedule.class_obj.name }}</div>
-                                        <div class="class-teacher">
-                                            <i class="bi bi-person"></i> {{ schedule_info.schedule.class_obj.teacher.full_name }}
-                                        </div>
+                                        <div class="class-room"><i class="bi bi-geo-alt"></i> {{ schedule_info.schedule.room|default:"Кабинет не указан" }}</div>
+                                        <div class="class-teacher"><i class="bi bi-person"></i> {{ schedule_info.schedule.class_obj.teacher.user.get_full_name }}</div>
                                         {% if schedule_info.grade %}
                                             {% if schedule_info.grade >= 90 %}
                                                 <div class="lesson-grade" style="color: #28a745; font-weight: bold; margin-top: 5px;">
@@ -188,19 +609,130 @@
                     {% endfor %}
                 </div>
             </div>
+            
+            <!-- Мобильная версия календаря -->
+            <div class="mobile-calendar d-md-none">
+                <!-- Первый ряд: Пн, Вт, Ср -->
+                <div class="row g-2 mb-2">
+                    {% for day in calendar_days %}
+                        {% if day.date.weekday == 0 or day.date.weekday == 1 or day.date.weekday == 2 %}
+                            <div class="col-4 px-1">
+                                {% include 'core/partials/mobile_day_card.html' with day=day %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+                <!-- Второй ряд: Чт, Пт, Сб -->
+                <div class="row g-2">
+                    {% for day in calendar_days %}
+                        {% if day.date.weekday == 3 or day.date.weekday == 4 or day.date.weekday == 5 %}
+                            <div class="col-4 px-1">
+                                {% include 'core/partials/mobile_day_card.html' with day=day %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+                <!-- Воскресенье убрано по запросу пользователя -->
+                
+                <!-- Скрываем оригинальный цикл -->
+                {% comment %}
+                {% for day in calendar_days %}
+                    <div class="mobile-day {% if day.date == today %}today{% endif %}">
+                        <div class="mobile-day-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if day.date.weekday == 0 %}
+                                        <span class="day-name">Понедельник</span>
+                                    {% elif day.date.weekday == 1 %}
+                                        <span class="day-name">Вторник</span>
+                                    {% elif day.date.weekday == 2 %}
+                                        <span class="day-name">Среда</span>
+                                    {% elif day.date.weekday == 3 %}
+                                        <span class="day-name">Четверг</span>
+                                    {% elif day.date.weekday == 4 %}
+                                        <span class="day-name">Пятница</span>
+                                    {% elif day.date.weekday == 5 %}
+                                        <span class="day-name">Суббота</span>
+                                    {% elif day.date.weekday == 6 %}
+                                        <span class="day-name">Воскресенье</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="mobile-day-number {% if day.date == today %}today{% endif %}">{{ day.date.day }}</span>
+                                    <small class="text-muted">{{ day.date|date:"m.Y" }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mobile-day-content">
+                            {% for schedule_info in day.schedules %}
+                                <a href="{% url 'core:schedule_detail' schedule_info.schedule.id %}?date={{ day.date|date:'Y-m-d' }}" class="text-decoration-none">
+                                    <div class="mobile-class-item">
+                                        <div class="mobile-class-time">
+                                            <i class="bi bi-clock me-1"></i> {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
+                                        </div>
+                                        <div class="mobile-class-name">
+                                            {{ schedule_info.schedule.class_obj.name }}
+                                            {% if schedule_info.status == 'confirmed' %}
+                                                <span class="status-badge status-confirmed">Подтверждено</span>
+                                            {% elif schedule_info.status == 'pending' %}
+                                                <span class="status-badge status-pending">Ожидается</span>
+                                            {% elif schedule_info.status == 'canceled' %}
+                                                <span class="status-badge status-canceled">Отменено</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="mobile-class-room">
+                                            <i class="bi bi-geo-alt me-1"></i> {{ schedule_info.schedule.room|default:"Кабинет не указан" }}
+                                        </div>
+                                        <div class="mobile-class-teacher">
+                                            <i class="bi bi-person me-1"></i> {{ schedule_info.schedule.class_obj.teacher.user.get_full_name }}
+                                        </div>
+                                        {% if schedule_info.enrollment %}
+                                            <div class="enrollment-info">
+                                                <i class="bi bi-check-circle me-1"></i> Записан
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            {% empty %}
+                                <div class="empty-day-message">
+                                    <div class="text-center">
+                                        <i class="bi bi-calendar-x d-block"></i>
+                                        <p class="mb-0">Нет занятий в этот день</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+                {% endcomment %}
+            </div>
         </div>
     </div>
     
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4 schedule-card">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3">Условные обозначения</h5>
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <div class="d-flex align-items-center">
-                                <div style="width: 20px; height: 20px; border-radius: 4px; background-color: #007bff; margin-right: 10px;"></div>
+                                <div style="width: 20px; height: 20px; border-radius: 4px; background-color: var(--primary); margin-right: 10px;"></div>
                                 <span>Обычное занятие</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div style="width: 20px; height: 20px; border-radius: 4px; background-color: var(--success); margin-right: 10px;"></div>
+                                <span>Достаточно средств</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div style="width: 20px; height: 20px; border-radius: 4px; background-color: var(--danger); margin-right: 10px;"></div>
+                                <span>Недостаточно средств</span>
                             </div>
                         </div>
                     </div>

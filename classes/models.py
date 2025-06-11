@@ -3,6 +3,9 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from accounts.models import Teacher, Student
 
+# Импортируем модели уроков не по расписанию после определения основных моделей
+# чтобы избежать циклических импортов
+
 class Class(models.Model):
     """
     Модель класса/курса.
@@ -395,6 +398,10 @@ class HomeworkSubmission(models.Model):
     
     def __str__(self):
         return f"Работа {self.student.full_name} по заданию {self.homework}"
+
+
+# Импортируем модели уроков не по расписанию
+from .non_scheduled_lesson_models import NonScheduledLesson, NonScheduledLessonAttendance
 
 
 # Импортируем модели для уроков и материалов

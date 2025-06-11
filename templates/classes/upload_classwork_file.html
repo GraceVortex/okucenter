@@ -105,7 +105,11 @@
                         </div>
                         
                         <!-- Скрытое поле для типа материала -->
-                        <input type="hidden" name="material_type" value="general" id="id_material_type">
+                        {% if from_calendar %}
+                            <input type="hidden" name="material_type" value="lesson_specific" id="id_material_type">
+                        {% else %}
+                            <input type="hidden" name="material_type" value="general" id="id_material_type">
+                        {% endif %}
 
                         
                         {% if from_calendar %}

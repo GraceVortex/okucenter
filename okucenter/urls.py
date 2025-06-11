@@ -28,6 +28,7 @@ urlpatterns = [
     path('messaging/', include('messaging.urls')),
     path('face-recognition/', include('face_recognition_app.urls')),
     path('crm/', include('crm.urls')),
+    path('rosetta/', include('rosetta.urls')),  # Интерфейс для управления переводами
     path('', include('core.urls')),
 ]
 

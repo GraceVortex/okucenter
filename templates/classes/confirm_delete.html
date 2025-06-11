@@ -19,7 +19,11 @@
                             {% csrf_token %}
                             <div class="d-flex">
                                 {% if cancel_url %}
-                                    {% if cancel_id %}
+                                    {% if cancel_url_args %}
+                                        <a href="{% url cancel_url cancel_url_args.0 %}" class="btn btn-outline-secondary me-3">
+                                            <i class="bi bi-x-circle me-2"></i> Отмена
+                                        </a>
+                                    {% elif cancel_id %}
                                         <a href="{% url cancel_url class_id=cancel_id %}" class="btn btn-outline-secondary me-3">
                                             <i class="bi bi-x-circle me-2"></i> Отмена
                                         </a>

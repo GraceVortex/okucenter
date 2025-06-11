@@ -1,28 +1,25 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Статистика успеваемости - {{ student.full_name }}{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Үлгерім статистикасы{% else %}Статистика успеваемости{% endif %} - {{ student.full_name }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/student_statistics.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Статистика успеваемости</h1>
-            <p class="text-muted fs-5">Подробная информация о вашей успеваемости</p>
-        </div>
-        <div class="col-md-4 text-md-end d-flex align-items-center justify-content-end">
-            <a href="{% url 'core:home' %}" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-left me-2"></i> Вернуться на главную
-            </a>
-        </div>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="m-0">{% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %}</h3>
+        <a href="{% url 'core:home' %}" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Басты бетке оралу{% else %}Вернуться на главную{% endif %}
+        </a>
     </div>
     
-    <!-- Общая информация -->
-    <h3 class="section-title mb-4">Ключевые показатели</h3>
+    <!-- Ключевые показатели -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title border-start border-4 border-primary ps-2 mb-4">{% if user_language == 'kk' %}Негізгі көрсеткіштер{% else %}Ключевые показатели{% endif %}</h5>
     <div class="row mb-5">
         <div class="col-md-4 mb-4">
             <div class="stat-card shadow-sm">
@@ -32,8 +29,8 @@
                             <i class="bi bi-journal-check"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold mb-0">Выполнение заданий</h5>
-                            <p class="text-muted mb-0 small">{{ completed_homework }} из {{ total_homework }} заданий</p>
+                            <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Тапсырмаларды орындау{% else %}Выполнение заданий{% endif %}</h5>
+                            <p class="text-muted mb-0 small">{{ completed_homework }} {% if user_language == 'kk' %}тапсырмадан{% else %}из{% endif %} {{ total_homework }} {% if user_language == 'kk' %}тапсырма{% else %}заданий{% endif %}</p>
                         </div>
                     </div>
                     <div class="stat-value">{{ homework_completion_rate }}%</div>
@@ -52,8 +49,8 @@
                             <i class="bi bi-calendar-check"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold mb-0">Посещаемость</h5>
-                            <p class="text-muted mb-0 small">{{ present_attendance }} из {{ total_attendance }} занятий</p>
+                            <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Сабаққа қатысу{% else %}Посещаемость{% endif %}</h5>
+                            <p class="text-muted mb-0 small">{{ present_attendance }} {% if user_language == 'kk' %}сабақтан{% else %}из{% endif %} {{ total_attendance }} {% if user_language == 'kk' %}сабақ{% else %}занятий{% endif %}</p>
                         </div>
                     </div>
                     <div class="stat-value">{{ attendance_rate }}%</div>
@@ -72,8 +69,8 @@
                             <i class="bi bi-clock-history"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold mb-0">Своевременность</h5>
-                            <p class="text-muted mb-0 small">{{ on_time_submissions }} вовремя, {{ late_submissions }} с опозданием</p>
+                            <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Уақтылық{% else %}Своевременность{% endif %}</h5>
+                            <p class="text-muted mb-0 small">{{ on_time_submissions }} {% if user_language == 'kk' %}уақтылы{% else %}вовремя{% endif %}, {{ late_submissions }} {% if user_language == 'kk' %}кешігіп{% else %}с опозданием{% endif %}</p>
                         </div>
                     </div>
                     <div class="stat-value">{{ on_time_rate }}%</div>
@@ -88,13 +85,13 @@
 
 <div class="container">
     <!-- Распределение оценок за уроки и домашние задания -->
-    <h3 class="section-title mb-4">Распределение оценок</h3>
+    <h3 class="section-title mb-4">{% if user_language == 'kk' %}Бағалар үлестірімі{% else %}Распределение оценок{% endif %}</h3>
     <div class="row mb-5">
         <div class="col-md-6 mb-4">
             <div class="stat-card shadow-sm">
                 <div class="stat-card-header">
-                    <h5 class="fw-bold mb-0">Оценки за уроки</h5>
-                    <p class="text-muted mb-0 small">Распределение оценок за {{ total_lesson_grades }} уроков</p>
+                    <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Сабақ бағалары{% else %}Оценки за уроки{% endif %}</h5>
+                    <p class="text-muted mb-0 small">{% if user_language == 'kk' %}{{ total_lesson_grades }} сабақ бағаларының үлестірімі{% else %}Распределение оценок за {{ total_lesson_grades }} уроков{% endif %}</p>
                 </div>
                 <div class="stat-card-body grade-distribution" style="min-height: 350px; overflow: visible;">
 
@@ -163,8 +160,8 @@
         <div class="col-md-6 mb-4">
             <div class="stat-card shadow-sm">
                 <div class="stat-card-header">
-                    <h5 class="fw-bold mb-0">Оценки за домашние задания</h5>
-                    <p class="text-muted mb-0 small">Распределение оценок за {{ total_homework_grades }} заданий</p>
+                    <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Үй тапсырмаларының бағалары{% else %}Оценки за домашние задания{% endif %}</h5>
+                    <p class="text-muted mb-0 small">{% if user_language == 'kk' %}{{ total_homework_grades }} тапсырма бағаларының үлестірімі{% else %}Распределение оценок за {{ total_homework_grades }} заданий{% endif %}</p>
                 </div>
                 <div class="stat-card-body" style="min-height: 350px; overflow: visible;">
                     {% if total_homework_grades > 0 %}

@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% load classes_extras %}
 
-{% block title %}Домашние задания {{ student.full_name }} - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}{{ student.full_name }} үй тапсырмалары - Білім беру орталығы{% else %}Домашние задания {{ student.full_name }} - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Домашние задания {{ student.full_name }}</h1>
+    <h1 class="mb-4">{% if user_language == 'kk' %}{{ student.full_name }} үй тапсырмалары{% else %}Домашние задания {{ student.full_name }}{% endif %}</h1>
     
     {% if classes_data %}
         <div class="accordion" id="classesAccordion">
@@ -56,13 +56,13 @@
                                 <table class="table table-hover shadow-sm hw-table">
                                     <thead>
                                         <tr class="bg-light">
-                                            <th class="hw-cell">Задание</th>
-                                            <th class="hw-cell">Описание</th>
-                                            <th class="hw-cell">Срок сдачи</th>
-                                            <th class="hw-cell">Статус</th>
-                                            <th class="hw-cell">Оценка учителя</th>
-                                            <th class="hw-cell">Комментарий учителя</th>
-                                            <th class="hw-cell">Файлы</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Тапсырма{% else %}Задание{% endif %}</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Сипаттама{% else %}Описание{% endif %}</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Тапсыру мерзімі{% else %}Срок сдачи{% endif %}</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Мұғалім бағасы{% else %}Оценка учителя{% endif %}</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Мұғалім пікірі{% else %}Комментарий учителя{% endif %}</th>
+                                            <th class="hw-cell">{% if user_language == 'kk' %}Файлдар{% else %}Файлы{% endif %}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -92,10 +92,10 @@
                                                 {% endwith %}
                                                 <td class="hw-cell">
                                                     {% if item.submission %}
-                                                        <span class="badge bg-success">Отправлено</span>
+                                                        <span class="badge bg-success">{% if user_language == 'kk' %}Жіберілді{% else %}Отправлено{% endif %}</span>
                                                         <p class="small text-muted mb-0">{{ item.submission.created_at|date:"d.m.Y H:i" }}</p>
                                                     {% else %}
-                                                        <span class="badge bg-danger">Не отправлено</span>
+                                                        <span class="badge bg-danger">{% if user_language == 'kk' %}Жіберілмеді{% else %}Не отправлено{% endif %}</span>
                                                     {% endif %}
                                                 </td>
                                                 <td class="hw-cell">
@@ -104,7 +104,7 @@
                                                             {% if item.submission.completion_status == 'completed' %}bg-success
                                                             {% elif item.submission.completion_status == 'partially_completed' %}bg-warning
                                                             {% else %}bg-danger{% endif %}">
-                                                            {{ item.submission.get_completion_status_display }}
+                                                            {% if user_language == 'kk' %}{% if item.submission.completion_status == 'completed' %}Толық орындалды{% elif item.submission.completion_status == 'partially_completed' %}Жартылай орындалды{% else %}Орындалмады{% endif %}{% else %}{{ item.submission.get_completion_status_display }}{% endif %}
                                                         </span>
                                                     {% else %}
                                                         <span class="text-muted">-</span>
@@ -120,16 +120,16 @@
                                                 <td class="hw-cell">
                                                     {% if item.homework.file %}
                                                         <a href="{{ item.homework.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                            <i class="bi bi-file-earmark-text me-1"></i> Скачать задание
+                                                            <i class="bi bi-file-earmark-text me-1"></i> {% if user_language == 'kk' %}Тапсырманы жүктеу{% else %}Скачать задание{% endif %}
                                                         </a>
                                                     {% else %}
-                                                        <span class="text-muted">Нет файлов</span>
+                                                        <span class="text-muted">{% if user_language == 'kk' %}Файлдар жоқ{% else %}Нет файлов{% endif %}</span>
                                                     {% endif %}
                                                     
                                                     {% if item.submission and item.submission.file %}
                                                         <div class="mt-2">
                                                             <a href="{{ item.submission.file.url }}" class="btn btn-sm btn-outline-success" target="_blank">
-                                                                <i class="bi bi-file-earmark-text me-1"></i> Просмотреть работу
+                                                                <i class="bi bi-file-earmark-text me-1"></i> {% if user_language == 'kk' %}Жұмысты көру{% else %}Просмотреть работу{% endif %}
                                                             </a>
                                                         </div>
                                                     {% endif %}
@@ -137,7 +137,7 @@
                                             </tr>
                                         {% empty %}
                                             <tr>
-                                                <td colspan="7" class="text-center">Нет домашних заданий</td>
+                                                <td colspan="7" class="text-center">{% if user_language == 'kk' %}Үй тапсырмалары жоқ{% else %}Нет домашних заданий{% endif %}</td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>
@@ -150,12 +150,12 @@
         </div>
     {% else %}
         <div class="alert alert-info">
-            У ученика нет активных классов.
+            {% if user_language == 'kk' %}Оқушының белсенді сыныптары жоқ.{% else %}У ученика нет активных классов.{% endif %}
         </div>
     {% endif %}
     
     <div class="mt-4">
-        <a href="{% url 'core:home' %}" class="btn btn-secondary">Назад</a>
+        <a href="{% url 'core:home' %}" class="btn btn-secondary">{% if user_language == 'kk' %}Артқа{% else %}Назад{% endif %}</a>
     </div>
 </div>
 {% endblock %}

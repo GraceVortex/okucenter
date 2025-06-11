@@ -249,6 +249,9 @@ class Student(models.Model):
                 'parent': "Ученик должен иметь родителя или быть отмечен как самоуправляемый",
                 'is_self_managed': "Ученик должен иметь родителя или быть отмечен как самоуправляемый"
             })
+    
+    def __str__(self):
+        return self.full_name
 
 class Parent(models.Model):
     """

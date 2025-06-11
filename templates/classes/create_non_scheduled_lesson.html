@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+
+{% block title %}Создание урока не по расписанию - Образовательный центр{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--multiple {
+        border-color: #ced4da;
+        border-radius: 0.375rem;
+        min-height: 38px;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #0d6efd;
+        border: none;
+        color: white;
+        border-radius: 0.25rem;
+        padding: 2px 8px;
+        margin-top: 4px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: white;
+        margin-right: 5px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-2 px-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Создание урока не по расписанию</h4>
+        <a href="{% url 'classes:non_scheduled_lesson_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Назад к списку
+        </a>
+    </div>
+    
+    <div class="card border-0 rounded-4 shadow-sm">
+        <div class="card-body p-4">
+            <form method="post" id="lessonForm">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Название урока <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ form_data.name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="teacher" class="form-label">Преподаватель <span class="text-danger">*</span></label>
+                        <select class="form-select" id="teacher" name="teacher" required>
+                            <option value="">Выберите преподавателя</option>
+                            {% for teacher in teachers %}
+                                <option value="{{ teacher.id }}" {% if form_data.teacher == teacher.id|stringformat:"s" %}selected{% endif %}>{{ teacher.user.get_full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label d-flex align-items-center">
+                            <span>Ученики <span class="text-danger">*</span></span>
+                        </label>
+                        
+                        <div class="card border-0 rounded-4 shadow-sm mb-2">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-people-fill text-primary me-2 fs-5"></i>
+                                    <span class="fw-bold">Выберите учеников</span>
+                                </div>
+                                
+                                <!-- Поле поиска учеников -->
+                                <div class="mb-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text" id="studentSearchInput" class="form-control" placeholder="Поиск ученика по имени...">
+                                    </div>
+                                </div>
+                                
+                                <!-- Список учеников с чекбоксами (показывается только при поиске) -->
+                                <div class="row" id="studentsContainer" style="max-height: 300px; overflow-y: auto;">
+                                    <div class="col-12 text-center py-3" id="searchPrompt">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            Введите имя ученика в поле поиска для отображения результатов
+                                        </div>
+                                    </div>
+                                    {% for student in students %}
+                                    <div class="col-md-4 mb-2 student-item" data-name="{{ student.full_name|lower }}" style="display: none;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="students" value="{{ student.id }}" id="student-{{ student.id }}">
+                                            <label class="form-check-label" for="student-{{ student.id }}">
+                                                {{ student.full_name }} 
+                                                <span class="badge {% if student.balance >= 0 %}bg-success{% else %}bg-danger{% endif %} rounded-pill ms-1">
+                                                    {{ student.balance }} тг
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Индикатор выбранных учеников -->
+                                <div class="mt-2">
+                                    <span class="badge bg-primary" id="selectedStudentsCount">0</span> учеников выбрано
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Выберите хотя бы одного ученика для создания урока
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="date" class="form-label">Дата урока <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ form_data.date }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="time" class="form-label">Время урока <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="time" name="time" value="{{ form_data.time }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="duration" class="form-label">Продолжительность (мин) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="duration" name="duration" value="{{ form_data.duration|default:'60' }}" min="15" step="5" required>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="lesson_type" class="form-label">Тип урока <span class="text-danger">*</span></label>
+                        <select class="form-select" id="lesson_type" name="lesson_type" required>
+                            <option value="regular" {% if form_data.lesson_type == 'regular' %}selected{% endif %}>Обычный</option>
+                            <option value="trial" {% if form_data.lesson_type == 'trial' %}selected{% endif %}>Пробный</option>
+                        </select>
+                        <div class="form-text" id="typeHelp">
+                            Для обычных уроков оплата снимается сразу, для пробных - только если ученик продолжит обучение
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="price_per_student" class="form-label">Стоимость для ученика <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="price_per_student" name="price_per_student" min="0" step="100" value="{{ form_data.price_per_student }}" required>
+                            <span class="input-group-text">тг</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="teacher_payment" class="form-label">Оплата преподавателю <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="teacher_payment" name="teacher_payment" min="0" step="100" value="{{ form_data.teacher_payment }}" required>
+                            <span class="input-group-text">тг</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Примечания</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ form_data.notes }}</textarea>
+                </div>
+                
+                <div class="alert alert-warning" id="paymentAlert" style="display: none;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="alertMessage"></span>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Создать урок
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Код для работы с поиском и выбором учеников
+        const searchInput = document.getElementById('studentSearchInput');
+        const studentsContainer = document.getElementById('studentsContainer');
+        const studentItems = document.querySelectorAll('.student-item');
+        const selectedStudentsCount = document.getElementById('selectedStudentsCount');
+        const checkboxes = document.querySelectorAll('input[name="students"]');
+        
+        // Функция поиска учеников
+        function searchStudents() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            let visibleCount = 0;
+            const searchPrompt = document.getElementById('searchPrompt');
+            
+            // Скрываем подсказку при вводе текста
+            if (searchTerm !== '') {
+                if (searchPrompt) {
+                    searchPrompt.style.display = 'none';
+                }
+            } else {
+                if (searchPrompt) {
+                    searchPrompt.style.display = '';
+                }
+                // Если поле поиска пустое, скрываем всех учеников
+                studentItems.forEach(item => {
+                    item.style.display = 'none';
+                });
+                
+                // Удаляем сообщение о ненайденных результатах
+                const noResults = document.getElementById('noResultsMessage');
+                if (noResults) {
+                    noResults.remove();
+                }
+                return;
+            }
+            
+            // Фильтруем учеников по поисковому запросу
+            studentItems.forEach(item => {
+                const studentName = item.dataset.name;
+                if (studentName.includes(searchTerm)) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Показываем сообщение, если ничего не найдено
+            if (visibleCount === 0) {
+                if (!document.getElementById('noResultsMessage')) {
+                    const noResults = document.createElement('div');
+                    noResults.id = 'noResultsMessage';
+                    noResults.className = 'col-12 text-center py-3';
+                    noResults.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Ученики не найдены</div>';
+                    studentsContainer.appendChild(noResults);
+                }
+            } else {
+                const noResults = document.getElementById('noResultsMessage');
+                if (noResults) {
+                    noResults.remove();
+                }
+            }
+            
+            console.log('Найдено учеников:', visibleCount);
+        }
+        
+        // Обновление счетчика выбранных учеников
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('input[name="students"]:checked').length;
+            selectedStudentsCount.textContent = count;
+            console.log('Выбрано учеников:', count);
+        }
+        
+        // Добавляем обработчики событий
+        searchInput.addEventListener('input', searchStudents);
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+        
+        // Инициализация счетчика при загрузке страницы
+        updateSelectedCount();
+        
+        // Обработчик отправки формы
+        document.getElementById('lessonForm').addEventListener('submit', function(e) {
+            // Проверяем, что выбран хотя бы один ученик
+            const selectedStudents = document.querySelectorAll('input[name="students"]:checked');
+            if (selectedStudents.length === 0) {
+                e.preventDefault();
+                alert('Выберите хотя бы одного ученика');
+                return false;
+            }
+            
+            // Отладочный вывод перед отправкой
+            console.log('Отправка формы - выбрано учеников:', selectedStudents.length);
+            selectedStudents.forEach(function(checkbox) {
+                console.log('Выбран ученик с ID:', checkbox.value);
+            });
+        });
+        
+        // Установка текущей даты по умолчанию
+        const today = new Date();
+        const formattedDate = today.toISOString().substr(0, 10);
+        document.getElementById('date').value = formattedDate;
+        
+        // Обработчик изменения типа урока
+        const lessonTypeSelect = document.getElementById('lesson_type');
+        const paymentAlert = document.getElementById('paymentAlert');
+        const alertMessage = document.getElementById('alertMessage');
+        
+        lessonTypeSelect.addEventListener('change', function() {
+            if (this.value === 'regular') {
+                paymentAlert.style.display = 'block';
+                alertMessage.textContent = 'Для обычного урока оплата будет снята с баланса учеников сразу после создания урока.';
+            } else if (this.value === 'trial') {
+                paymentAlert.style.display = 'block';
+                alertMessage.textContent = 'Для пробного урока оплата будет снята только если ученик продолжит обучение.';
+            } else {
+                paymentAlert.style.display = 'none';
+            }
+        });
+        
+        // Вызываем событие изменения при загрузке страницы
+        lessonTypeSelect.dispatchEvent(new Event('change'));
+        
+        // Удаляем дублирующую валидацию, так как она уже реализована выше
+        // и использует неправильный селектор $('#students'), которого нет в форме
+    });
+</script>
+{% endblock %}
+{% endblock %}

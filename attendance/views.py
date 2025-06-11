@@ -80,7 +80,7 @@ def attendance_list(request):
     
     # Начальные значения для фильтров
     start_date = today - timedelta(days=7)
-    end_date = today
+    end_date = today + timedelta(days=30)  # Добавляем 30 дней вперед, чтобы показывать будущие записи
     selected_class = None
     
     if form.is_valid():
@@ -437,7 +437,7 @@ def add_mark(request, attendance_id):
 
 @login_required
 def cancel_attendance(request, attendance_id):
-    """Отменяет подтвержденное посещение и возвращает деньги на счет студента."""
+    """Отменяет подтвержденное посещение с выбором нового статуса и управлением финансами."""
     
     # Проверка прав доступа
     if not (request.user.is_reception or request.user.is_admin):
@@ -455,6 +455,8 @@ def cancel_attendance(request, attendance_id):
         form = CancelAttendanceForm(request.POST)
         if form.is_valid():
             reason = form.cleaned_data['reason']
+            new_status = form.cleaned_data['new_status']
+            refund_payment = form.cleaned_data['refund_payment']
             
             try:
                 with transaction.atomic():
@@ -466,29 +468,28 @@ def cancel_attendance(request, attendance_id):
                         transaction_type='payment'
                     ).first()
                     
-                    if payment_transaction:
+                    # Возвращаем деньги только если это запрошено и есть платеж
+                    if refund_payment and payment_transaction:
                         # Получаем сумму, которую нужно вернуть
                         refund_amount = payment_transaction.amount
                         
                         # Создаем запись о возврате средств
-                        # Для возврата используем тип 'refund' и отрицательную сумму
                         Transaction.objects.create(
                             student=attendance.student,
                             class_obj=attendance.class_obj,
-                            amount=-refund_amount,  # Отрицательная сумма для возврата
+                            amount=refund_amount,  # Положительная сумма для возврата
                             date=timezone.now().date(),
-                            transaction_type='refund',  # Правильный тип для возврата
+                            transaction_type='refund',  # Тип для возврата
                             description=f'Возврат средств за отмененное занятие {attendance.class_obj.name} от {attendance.date.strftime("%d.%m.%Y")}',
                             created_by=request.user
                         )
                         
                         # Обновляем баланс студента
-                        # Баланс обновится автоматически при создании транзакции типа 'refund'
                         attendance.student.refresh_from_db()
                     
-                    # Отменяем подтверждение посещения и меняем статус на "отсутствует"
+                    # Отменяем подтверждение посещения и устанавливаем новый статус
                     attendance.reception_confirmed = False
-                    attendance.status = 'absent'  # Меняем статус на "отсутствует"
+                    attendance.status = new_status  # Устанавливаем выбранный статус
                     attendance.save()
                     
                     # Создаем запись в журнале отмененных посещений
@@ -498,15 +499,13 @@ def cancel_attendance(request, attendance_id):
                         reason=reason
                     )
                     
-                    if payment_transaction:
-                        messages.success(
-                            request, 
-                            f"Посещение отменено. На счет студента {attendance.student.full_name} "
-                            f"возвращено {refund_amount} тг за занятие {attendance.class_obj.name}."
-                        )
-                    else:
-                        messages.success(request, "Посещение отменено. Финансовые операции не требовались.")
+                    # Формируем сообщение об успешной операции
+                    success_message = f"Посещение отменено. Новый статус: {attendance.get_status_display()}."
                     
+                    if refund_payment and payment_transaction:
+                        success_message += f" На счет студента {attendance.student.full_name} возвращено {refund_amount} тг за занятие {attendance.class_obj.name}."
+                    
+                    messages.success(request, success_message)
                     return redirect('attendance:attendance_list')
                     
             except Exception as e:
@@ -516,7 +515,7 @@ def cancel_attendance(request, attendance_id):
                     f"Пожалуйста, попробуйте еще раз или обратитесь к администратору."
                 )
     else:
-        form = CancelAttendanceForm()
+        form = CancelAttendanceForm(initial={'new_status': 'absent'})
     
     context = {
         'form': form,
@@ -1035,6 +1034,86 @@ def student_cancel_lesson(request, class_id, schedule_id, date):
 
 
 @login_required
+def student_cancel_lessons(request):
+    """
+    Представление для страницы отмены занятий студентом.
+    """
+    # Проверяем, что пользователь - студент
+    if not request.user.is_student:
+        return HttpResponseForbidden("Только студенты могут отменять занятия.")
+    
+    # Получаем профиль студента
+    student = request.user.student_profile
+    
+    # Получаем список классов, на которые записан студент
+    enrollments = Enrollment.objects.filter(student=student, is_active=True)
+    class_ids = [e.class_obj.id for e in enrollments]
+    
+    # Получаем предстоящие занятия для этих классов
+    today = timezone.now().date()
+    upcoming_lessons = []
+    
+    for enrollment in enrollments:
+        class_obj = enrollment.class_obj
+        schedules = ClassSchedule.objects.filter(class_obj=class_obj)
+        
+        for schedule in schedules:
+            # Вычисляем ближайшие даты для этого расписания
+            next_dates = []
+            days_ahead = 0
+            
+            # Получаем следующие 30 дней
+            while len(next_dates) < 5 and days_ahead < 30:
+                next_day = today + timedelta(days=days_ahead)
+                if next_day.weekday() == schedule.day_of_week:
+                    next_dates.append(next_day)
+                days_ahead += 1
+            
+            for date in next_dates:
+                # Проверяем, есть ли уже посещаемость на эту дату
+                attendance_exists = Attendance.objects.filter(
+                    student=student,
+                    class_obj=class_obj,
+                    date=date
+                ).exists()
+                
+                # Проверяем, есть ли уже запрос на отмену
+                cancellation_request_exists = StudentCancellationRequest.objects.filter(
+                    student=student,
+                    class_obj=class_obj,
+                    date=date
+                ).exists()
+                
+                # Проверяем, можно ли отменить занятие (не менее чем за 24 часа)
+                # Создаем aware datetime с учетом часового пояса
+                lesson_datetime = timezone.make_aware(datetime.combine(date, schedule.start_time))
+                can_cancel = (lesson_datetime - timezone.now()) > timedelta(hours=24)
+                
+                if not attendance_exists and not cancellation_request_exists:
+                    upcoming_lessons.append({
+                        'class': class_obj,
+                        'schedule': schedule,
+                        'date': date,
+                        'can_cancel': can_cancel
+                    })
+    
+    # Сортируем по дате
+    upcoming_lessons.sort(key=lambda x: (x['date'], x['schedule'].start_time))
+    
+    # Проверяем, может ли студент сам управлять отменой занятий
+    # Вычисляем возраст на основе даты рождения
+    today = date.today()
+    age = today.year - student.birth_date.year - ((today.month, today.day) < (student.birth_date.month, student.birth_date.day))
+    is_self_managed = student.is_self_managed or age >= 18
+    
+    context = {
+        'upcoming_lessons': upcoming_lessons,
+        'is_self_managed': is_self_managed
+    }
+    
+    return render(request, 'attendance/student_cancel_lessons.html', context)
+
+@login_required
 def student_cancellation_requests(request):
     """
     Представление для просмотра списка запросов на отмену занятий студентом.
@@ -1075,6 +1154,10 @@ def parent_cancel_lesson(request, student_id, class_id, schedule_id, date):
     # Проверяем, что студент - ребенок этого родителя
     if student.parent != parent:
         return HttpResponseForbidden("Вы можете отменять занятия только своих детей.")
+    
+    # Проверяем, что студент не является самоуправляемым (то есть имеет тип PM - parent managed)
+    if student.is_self_managed:
+        return HttpResponseForbidden("Вы не можете отменять занятия для самоуправляемых студентов. Студент должен сделать это самостоятельно.")
     
     # Получаем класс и расписание
     class_obj = get_object_or_404(Class, id=class_id)

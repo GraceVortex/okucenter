@@ -1,0 +1,502 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OkuCenter\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-30 20:30+0500\n"
+"PO-Revision-Date: 2025-05-30 22:10+0500\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: kk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: templates/base.html:422
+msgid "Образовательный центр"
+msgstr "Оқу орталығы"
+
+#: templates/core/home.html:3
+msgid "Главная - Образовательный центр"
+msgstr "Басты бет - Оқу орталығы"
+
+#: templates/core/home.html:10
+msgid "Быстрый доступ"
+msgstr "Жылдам кіру"
+
+#: templates/core/home.html:18
+msgid "Распознавание лиц"
+msgstr "Бет-әлпетті тану"
+
+#: templates/core/home.html:28
+msgid "Финансы"
+msgstr "Қаржы"
+
+#: templates/core/home.html:38
+msgid "Классы"
+msgstr "Сыныптар"
+
+#: templates/core/home.html:48
+msgid "Студенты"
+msgstr "Студенттер"
+
+#: templates/core/parent_home.html:47
+msgid "Мои дети"
+msgstr "Менің балаларым"
+
+#: templates/core/parent_home.html:49
+msgid "Запросы на отмену"
+msgstr "Болдырмау сұраныстары"
+
+#: templates/base.html
+msgid "Все права защищены"
+msgstr "Барлық құқықтар қорғалған"
+
+#: templates/base.html
+msgid "Пользователи"
+msgstr "Пайдаланушылар"
+
+#: templates/base.html
+msgid "Преподаватели"
+msgstr "Мұғалімдер"
+
+#: templates/base.html
+msgid "Ресепшенисты"
+msgstr "Ресепшн қызметкерлері"
+
+#: templates/base.html
+msgid "Маркетологи"
+msgstr "Маркетологтар"
+
+#: templates/base.html
+msgid "Родители"
+msgstr "Ата-аналар"
+
+#: templates/base.html
+msgid "Расписание"
+msgstr "Кесте"
+
+#: templates/base.html
+msgid "Посещаемость"
+msgstr "Қатысу"
+
+#: templates/base.html
+msgid "Зарплаты"
+msgstr "Жалақы"
+
+#: templates/base.html
+msgid "Сообщения"
+msgstr "Хабарламалар"
+
+#: templates/base.html
+msgid "Мои классы"
+msgstr "Менің сыныптарым"
+
+#: templates/base.html
+msgid "Уроки замены"
+msgstr "Алмасу сабақтары"
+
+#: templates/base.html
+msgid "Моя зарплата"
+msgstr "Менің жалақым"
+
+#: templates/base.html
+msgid "Статистика"
+msgstr "Статистика"
+
+#: templates/base.html
+msgid "Мои домашние задания"
+msgstr "Менің үй тапсырмаларым"
+
+#: templates/base.html
+msgid "Вход"
+msgstr "Кіру"
+
+#: templates/base.html
+msgid "Выйти"
+msgstr "Шығу"
+
+#: templates/base.html
+msgid "Профиль"
+msgstr "Профиль"
+
+#: templates/base.html:1
+msgid "Русский текст"
+msgstr "Казахский перевод (заполните правую колонку)"
+
+#: templates/base.html:1
+msgid "Главная"
+msgstr "Басты бет"
+
+#: templates/base.html:1
+msgid "Ученики"
+msgstr "Оқушылар"
+
+#: templates/base.html:1
+msgid "Администраторы"
+msgstr "Әкімшілер"
+
+#: templates/base.html:1
+msgid "Расписание занятий"
+msgstr "Сабақ кестесі"
+
+#: templates/base.html:1
+msgid "Домашние задания"
+msgstr "Үй тапсырмалары"
+
+#: templates/base.html:1
+msgid "Уроки"
+msgstr "Сабақтар"
+
+#: templates/base.html:1
+msgid "Оценки"
+msgstr "Бағалар"
+
+#: templates/base.html:1
+msgid "Материалы урока"
+msgstr "Сабақ материалдары"
+
+#: templates/base.html:1
+msgid "Добавить класс"
+msgstr "Сынып қосу"
+
+#: templates/base.html:1
+msgid "Редактировать класс"
+msgstr "Сыныпты өңдеу"
+
+#: templates/base.html:1
+msgid "Удалить класс"
+msgstr "Сыныпты жою"
+
+#: templates/base.html:1
+msgid "Отметить посещаемость"
+msgstr "Қатысуды белгілеу"
+
+#: templates/base.html:1
+msgid "Присутствует"
+msgstr "Қатысты"
+
+#: templates/base.html:1
+msgid "Отсутствует"
+msgstr "Қатыспады"
+
+#: templates/base.html:1
+msgid "Подтвердить посещаемость"
+msgstr "Қатысуды растау"
+
+#: templates/base.html:1
+msgid "Отменить посещаемость"
+msgstr "Қатысуды болдырмау"
+
+#: templates/base.html:1
+msgid "Отменить урок"
+msgstr "Сабақты болдырмау"
+
+#: templates/base.html:1
+msgid "Подтвердить"
+msgstr "Растау"
+
+#: templates/base.html:1
+msgid "Отклонить"
+msgstr "Қабылдамау"
+
+#: templates/base.html:1
+msgid "Баланс"
+msgstr "Баланс"
+
+#: templates/base.html:1
+msgid "Транзакции"
+msgstr "Транзакциялар"
+
+#: templates/base.html:1
+msgid "Пополнить баланс"
+msgstr "Балансты толықтыру"
+
+#: templates/base.html:1
+msgid "Списать средства"
+msgstr "Қаражатты шегеру"
+
+#: templates/base.html:1
+msgid "Возврат средств"
+msgstr "Қаражатты қайтару"
+
+#: templates/base.html:1
+msgid "Выплаты"
+msgstr "Төлемдер"
+
+#: templates/base.html:1
+msgid "Доход"
+msgstr "Табыс"
+
+#: templates/base.html:1
+msgid "Расход"
+msgstr "Шығын"
+
+#: templates/base.html:1
+msgid "Зарегистрировать лицо"
+msgstr "Бет-әлпетті тіркеу"
+
+#: templates/base.html:1
+msgid "Отметить посещаемость по лицу"
+msgstr "Бет арқылы қатысуды белгілеу"
+
+#: templates/base.html:1
+msgid "Сравнить лица"
+msgstr "Беттерді салыстыру"
+
+#: templates/base.html:1
+msgid "Результат распознавания"
+msgstr "Танудың нәтижесі"
+
+#: templates/base.html:1
+msgid "Лиды"
+msgstr "Лидтер"
+
+#: templates/base.html:1
+msgid "Кампании"
+msgstr "Кампаниялар"
+
+#: templates/base.html:1
+msgid "Воронка продаж"
+msgstr "Сату воронкасы"
+
+#: templates/base.html:1
+msgid "Взаимодействия"
+msgstr "Өзара әрекеттесу"
+
+#: templates/base.html:1
+msgid "Аналитика"
+msgstr "Талдау"
+
+#: templates/base.html:1
+msgid "Стоимость привлечения"
+msgstr "Тарту құны"
+
+#: templates/base.html:1
+msgid "Добавить лид"
+msgstr "Лид қосу"
+
+#: templates/base.html:1
+msgid "Редактировать лид"
+msgstr "Лидті өңдеу"
+
+#: templates/base.html:1
+msgid "Удалить лид"
+msgstr "Лидті жою"
+
+#: templates/base.html:1
+msgid "Входящие"
+msgstr "Кіріс хаттар"
+
+#: templates/base.html:1
+msgid "Отправить сообщение"
+msgstr "Хабарлама жіберу"
+
+#: templates/base.html:1
+msgid "Создать рассылку"
+msgstr "Хабарлама тарату"
+
+#: templates/base.html:1
+msgid "WhatsApp"
+msgstr "WhatsApp"
+
+#: templates/base.html:1
+msgid "Telegram"
+msgstr "Telegram"
+
+#: templates/base.html:1
+msgid "Получатели"
+msgstr "Алушылар"
+
+#: templates/base.html:1
+msgid "Текст сообщения"
+msgstr "Хабарлама мәтіні"
+
+#: templates/base.html:1
+msgid "Отправить"
+msgstr "Жіберу"
+
+#: templates/base.html:1
+msgid "Добавить ребенка"
+msgstr "Бала қосу"
+
+#: templates/base.html:1
+msgid "Успеваемость ребенка"
+msgstr "Баланың үлгерімі"
+
+#: templates/base.html:1
+msgid "Расписание ребенка"
+msgstr "Баланың кестесі"
+
+#: templates/base.html:1
+msgid "Баланс ребенка"
+msgstr "Баланың балансы"
+
+#: templates/base.html:1
+msgid "Добавить"
+msgstr "Қосу"
+
+#: templates/base.html:1
+msgid "Редактировать"
+msgstr "Өңдеу"
+
+#: templates/base.html:1
+msgid "Удалить"
+msgstr "Жою"
+
+#: templates/base.html:1
+msgid "Сохранить"
+msgstr "Сақтау"
+
+#: templates/base.html:1
+msgid "Отмена"
+msgstr "Бас тарту"
+
+#: templates/base.html:1
+msgid "Загрузить"
+msgstr "Жүктеу"
+
+#: templates/base.html:1
+msgid "Скачать"
+msgstr "Жүктеп алу"
+
+#: templates/base.html:1
+msgid "Поиск"
+msgstr "Іздеу"
+
+#: templates/base.html:1
+msgid "Фильтр"
+msgstr "Сүзгі"
+
+#: templates/base.html:1
+msgid "Применить"
+msgstr "Қолдану"
+
+#: templates/base.html:1
+msgid "Сбросить"
+msgstr "Тастау"
+
+#: templates/base.html:1
+msgid "Назад"
+msgstr "Артқа"
+
+#: templates/base.html:1
+msgid "Далее"
+msgstr "Келесі"
+
+#: templates/base.html:1
+msgid "Сегодня"
+msgstr "Бүгін"
+
+#: templates/base.html:1
+msgid "Завтра"
+msgstr "Ертең"
+
+#: templates/base.html:1
+msgid "Вчера"
+msgstr "Кеше"
+
+#: templates/base.html:1
+msgid "Неделя"
+msgstr "Апта"
+
+#: templates/base.html:1
+msgid "Месяц"
+msgstr "Ай"
+
+#: templates/base.html:1
+msgid "Год"
+msgstr "Жыл"
+
+#: templates/base.html:1
+msgid "Понедельник"
+msgstr "Дүйсенбі"
+
+#: templates/base.html:1
+msgid "Вторник"
+msgstr "Сейсенбі"
+
+#: templates/base.html:1
+msgid "Среда"
+msgstr "Сәрсенбі"
+
+#: templates/base.html:1
+msgid "Четверг"
+msgstr "Бейсенбі"
+
+#: templates/base.html:1
+msgid "Пятница"
+msgstr "Жұма"
+
+#: templates/base.html:1
+msgid "Суббота"
+msgstr "Сенбі"
+
+#: templates/base.html:1
+msgid "Воскресенье"
+msgstr "Жексенбі"
+
+#: templates/base.html:1
+msgid "Активный"
+msgstr "Белсенді"
+
+#: templates/base.html:1
+msgid "Неактивный"
+msgstr "Белсенді емес"
+
+#: templates/base.html:1
+msgid "В процессе"
+msgstr "Үрдісте"
+
+#: templates/base.html:1
+msgid "Завершен"
+msgstr "Аяқталған"
+
+#: templates/base.html:1
+msgid "Отменен"
+msgstr "Болдырылған"
+
+#: templates/base.html:1
+msgid "Ожидает подтверждения"
+msgstr "Растау күтілуде"
+
+#: templates/base.html:1
+msgid "Подтвержден"
+msgstr "Расталған"
+
+#: templates/base.html:1
+msgid "Отклонен"
+msgstr "Қабылданбаған"
+
+#: templates/base.html:1
+msgid "Ошибка"
+msgstr "Қате"
+
+#: templates/base.html:1
+msgid "Успешно"
+msgstr "Сәтті"
+
+#: templates/base.html:1
+msgid "Внимание"
+msgstr "Назар аударыңыз"
+
+#: templates/base.html:1
+msgid "Информация"
+msgstr "Ақпарат"
+
+#: templates/base.html:1
+msgid "Подтвердите действие"
+msgstr "Әрекетті растаңыз"
+
+#: templates/base.html:1
+msgid "Действие не может быть выполнено"
+msgstr "Әрекетті орындау мүмкін емес"
+
+#: templates/base.html:1
+msgid "Недостаточно прав"
+msgstr "Құқық жеткіліксіз"
+
+#: templates/base.html:1
+msgid "Недостаточно средств"
+msgstr "Қаражат жеткіліксіз"

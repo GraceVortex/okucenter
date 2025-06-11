@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load form_tags %}
 
-{% block title %}Профиль - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Профиль - Білім беру орталығы{% else %}Профиль - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Личный кабинет</h1>
-            <p class="text-muted fs-5">Управление вашим профилем и доступ к персональной информации</p>
+            <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Жеке кабинет{% else %}Личный кабинет{% endif %}</h1>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Профиліңізді басқару және жеке ақпаратқа қол жеткізу{% else %}Управление вашим профилем и доступ к персональной информации{% endif %}</p>
         </div>
     </div>
 
@@ -28,7 +28,7 @@
                         <div class="d-flex align-items-center mb-3">
                             <i class="bi bi-person text-primary me-3 fs-5"></i>
                             <div>
-                                <div class="text-muted small">Имя пользователя</div>
+                                <div class="text-muted small">{% if user_language == 'kk' %}Пайдаланушы аты{% else %}Имя пользователя{% endif %}</div>
                                 <div>{{ user.username }}</div>
                             </div>
                         </div>
@@ -44,7 +44,7 @@
                         <div class="d-flex align-items-center mb-3">
                             <i class="bi bi-telephone text-primary me-3 fs-5"></i>
                             <div>
-                                <div class="text-muted small">Телефон</div>
+                                <div class="text-muted small">{% if user_language == 'kk' %}Телефон{% else %}Телефон{% endif %}</div>
                                 <div>{{ user.phone_number }}</div>
                             </div>
                         </div>
@@ -53,7 +53,7 @@
                     <div class="mt-4">
                         {% if user.is_admin %}
                         <a href="{% url 'accounts:edit_profile' %}" class="btn btn-outline-primary w-100">
-                            <i class="bi bi-pencil-square me-2"></i> Редактировать профиль
+                            <i class="bi bi-pencil-square me-2"></i> {% if user_language == 'kk' %}Профильді өңдеу{% else %}Редактировать профиль{% endif %}
                         </a>
                         {% endif %}
                     </div>
@@ -65,15 +65,15 @@
             {% if user.is_admin %}
                 <div class="card shadow-sm mb-4">
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-4">Панель администратора</h4>
+                        <h4 class="fw-bold mb-4">{% if user_language == 'kk' %}Әкімші панелі{% else %}Панель администратора{% endif %}</h4>
                         
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <a href="{% url 'accounts:teacher_list' %}" class="card text-decoration-none h-100">
                                     <div class="card-body text-center p-4">
                                         <i class="bi bi-person-badge display-5 text-primary mb-3"></i>
-                                        <h5 class="fw-bold">Учителя</h5>
-                                        <p class="text-muted small mb-0">Управление учителями</p>
+                                        <h5 class="fw-bold">{% if user_language == 'kk' %}Мұғалімдер{% else %}Учителя{% endif %}</h5>
+                                        <p class="text-muted small mb-0">{% if user_language == 'kk' %}Мұғалімдерді басқару{% else %}Управление учителями{% endif %}</p>
                                     </div>
                                 </a>
                             </div>
@@ -92,8 +92,8 @@
                                 <a href="{% url 'accounts:parent_list' %}" class="card text-decoration-none h-100">
                                     <div class="card-body text-center p-4">
                                         <i class="bi bi-people display-5 text-info mb-3"></i>
-                                        <h5 class="fw-bold">Родители</h5>
-                                        <p class="text-muted small mb-0">Управление родителями</p>
+                                        <h5 class="fw-bold">{% if user_language == 'kk' %}Ата-аналар{% else %}Родители{% endif %}</h5>
+                                        <p class="text-muted small mb-0">{% if user_language == 'kk' %}Ата-аналарды басқару{% else %}Управление родителями{% endif %}</p>
                                     </div>
                                 </a>
                             </div>
@@ -103,7 +103,7 @@
                 
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-4">Быстрые действия</h4>
+                        <h4 class="fw-bold mb-4">{% if user_language == 'kk' %}Жылдам әрекеттер{% else %}Быстрые действия{% endif %}</h4>
                         
                         <div class="row">
                             <div class="col-md-4 mb-3">
@@ -125,7 +125,7 @@
                                     </div>
                                     <div>
                                         <h6 class="mb-1">Управление расписанием</h6>
-                                        <p class="text-muted mb-0 small">Настройка времени и места занятий</p>
+                                        <p class="text-muted mb-0 small">{% if user_language == 'kk' %}Сабақ уақыты мен орнын реттеу{% else %}Настройка времени и места занятий{% endif %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -216,7 +216,7 @@
                                         <i class="bi bi-pencil-square fs-3 text-primary"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">Выставить оценки</h6>
+                                        <h6 class="mb-1">{% if user_language == 'kk' %}Сабақ кестесі{% else %}Расписание занятий{% endif %}</h6>
                                         <p class="text-muted mb-0 small">Оценивание работы студентов</p>
                                     </div>
                                 </div>
@@ -360,7 +360,7 @@
                 
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-4">Учебные материалы</h4>
+                        <h4 class="fw-bold mb-4">{% if user_language == 'kk' %}Оқу материалдары{% else %}Учебные материалы{% endif %}</h4>
                         
                         <div class="row">
                             <div class="col-md-4 mb-3">
@@ -369,8 +369,8 @@
                                         <i class="bi bi-file-earmark-text fs-3 text-primary"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">Домашние задания</h6>
-                                        <p class="text-muted mb-0 small">Просмотр и выполнение заданий</p>
+                                        <h6 class="mb-1">{% if user_language == 'kk' %}Үй тапсырмалары{% else %}Домашние задания{% endif %}</h6>
+                                        <p class="text-muted mb-0 small">{% if user_language == 'kk' %}Тапсырмаларды көру және орындау{% else %}Просмотр и выполнение заданий{% endif %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -381,8 +381,8 @@
                                         <i class="bi bi-journal-check fs-3 text-success"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">Оценки и прогресс</h6>
-                                        <p class="text-muted mb-0 small">Отслеживание успеваемости</p>
+                                        <h6 class="mb-1">{% if user_language == 'kk' %}Бағалар мен үлгерім{% else %}Оценки и прогресс{% endif %}</h6>
+                                        <p class="text-muted mb-0 small">{% if user_language == 'kk' %}Үлгерімді қадағалау{% else %}Отслеживание успеваемости{% endif %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -393,8 +393,8 @@
                                         <i class="bi bi-cloud-arrow-up fs-3 text-info"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">Загрузка работ</h6>
-                                        <p class="text-muted mb-0 small">Отправка выполненных заданий</p>
+                                        <h6 class="mb-1">{% if user_language == 'kk' %}Жұмыстарды жүктеу{% else %}Загрузка работ{% endif %}</h6>
+                                        <p class="text-muted mb-0 small">{% if user_language == 'kk' %}Орындалған тапсырмаларды жіберу{% else %}Отправка выполненных заданий{% endif %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -405,8 +405,8 @@
                                         <i class="bi bi-chat-left-text fs-3 text-warning"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">Комментарии учителей</h6>
-                                        <p class="text-muted mb-0 small">Обратная связь по работам</p>
+                                        <h6 class="mb-1">{% if user_language == 'kk' %}Мұғалімдердің пікірлері{% else %}Комментарии учителей{% endif %}</h6>
+                                        <p class="text-muted mb-0 small">{% if user_language == 'kk' %}Жұмыстар бойынша кері байланыс{% else %}Обратная связь по работам{% endif %}</p>
                                     </div>
                                 </div>
                             </div>

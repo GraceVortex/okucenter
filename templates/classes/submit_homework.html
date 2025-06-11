@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Отправка домашнего задания - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Үй тапсырмасын жіберу - Білім беру орталығы{% else %}Отправка домашнего задания - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -8,17 +8,17 @@
         <div class="col-md-8 mx-auto">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Отправка домашнего задания</h5>
+                    <h5 class="card-title mb-0">{% if user_language == 'kk' %}Үй тапсырмасын жіберу{% else %}Отправка домашнего задания{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-4">
-                        <h6>Информация о задании:</h6>
-                        <p><strong>Дата:</strong> {{ homework.date|date:"d.m.Y" }}</p>
-                        <p><strong>Описание:</strong> {{ homework.description }}</p>
+                        <h6>{% if user_language == 'kk' %}Тапсырма туралы ақпарат:{% else %}Информация о задании:{% endif %}</h6>
+                        <p><strong>{% if user_language == 'kk' %}Күні:{% else %}Дата:{% endif %}</strong> {{ homework.date|date:"d.m.Y" }}</p>
+                        <p><strong>{% if user_language == 'kk' %}Сипаттама:{% else %}Описание:{% endif %}</strong> {{ homework.description }}</p>
                         {% if homework.file %}
                             <p>
                                 <a href="{{ homework.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                    <i class="bi bi-download"></i> Скачать файл задания
+                                    <i class="bi bi-download"></i> {% if user_language == 'kk' %}Тапсырма файлын жүктеу{% else %}Скачать файл задания{% endif %}
                                 </a>
                             </p>
                         {% endif %}
@@ -28,19 +28,19 @@
                         {% csrf_token %}
                         
                         <div class="mb-3">
-                            <label for="{{ form.file.id_for_label }}" class="form-label">Файл с выполненным заданием</label>
+                            <label for="{{ form.file.id_for_label }}" class="form-label">{% if user_language == 'kk' %}Орындалған тапсырма файлы{% else %}Файл с выполненным заданием{% endif %}</label>
                             {{ form.file }}
                             {% if form.file.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ form.file.errors }}
                                 </div>
                             {% endif %}
-                            <div class="form-text">Поддерживаемые форматы: PDF, JPEG, PNG, DOC, DOCX</div>
+                            <div class="form-text">{% if user_language == 'kk' %}Қолдау көрсетілетін форматтар: PDF, JPEG, PNG, DOC, DOCX{% else %}Поддерживаемые форматы: PDF, JPEG, PNG, DOC, DOCX{% endif %}</div>
                         </div>
                         
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-secondary">Отмена</a>
-                            <button type="submit" class="btn btn-primary">Отправить</button>
+                            <a href="{% url 'classes:class_detail' class_id=class.id %}" class="btn btn-secondary">{% if user_language == 'kk' %}Болдырмау{% else %}Отмена{% endif %}</a>
+                            <button type="submit" class="btn btn-primary">{% if user_language == 'kk' %}Жіберу{% else %}Отправить{% endif %}</button>
                         </div>
                     </form>
                 </div>
@@ -52,7 +52,7 @@
 
 {% block extra_js %}
 <script>
-    // Добавляем классы Bootstrap к полям формы
+    // {% if user_language == 'kk' %}Bootstrap кластарын форма өрістеріне қосамыз{% else %}Добавляем классы Bootstrap к полям формы{% endif %}
     document.addEventListener('DOMContentLoaded', function() {
         const formFields = document.querySelectorAll('input[type="file"]');
         formFields.forEach(field => {

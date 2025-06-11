@@ -16,8 +16,9 @@
                         <h6>Внимание!</h6>
                         <p>Вы собираетесь отменить подтвержденное посещение. Это действие:</p>
                         <ul>
-                            <li>Вернет деньги на счет студента, если они были списаны</li>
                             <li>Отменит подтверждение посещения</li>
+                            <li>Установит выбранный вами статус посещения</li>
+                            <li>При необходимости вернет деньги на счет студента</li>
                             <li>Запишет информацию в журнал отмененных посещений</li>
                         </ul>
                     </div>
@@ -54,6 +55,39 @@
                     
                     <form method="post">
                         {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Новый статус посещения:</label>
+                            <div class="form-check">
+                                {% for radio in form.new_status %}
+                                    <div class="mb-2">
+                                        {{ radio }}
+                                        <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                            {{ radio.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.new_status.errors %}
+                                <div class="text-danger">
+                                    {{ form.new_status.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.refund_payment }}
+                                <label class="form-check-label" for="{{ form.refund_payment.id_for_label }}">
+                                    {{ form.refund_payment.label }}
+                                </label>
+                            </div>
+                            {% if form.refund_payment.errors %}
+                                <div class="text-danger">
+                                    {{ form.refund_payment.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
                         
                         <div class="mb-3">
                             <label for="{{ form.reason.id_for_label }}" class="form-label">Причина отмены:</label>

@@ -1,0 +1,201 @@
+/* Мобильные стили для образовательного центра */
+
+/* Общие стили для мобильных устройств */
+@media (max-width: 767px) {
+    /* Заголовки */
+    .mobile-title {
+        font-size: 1.8rem !important;
+    }
+    
+    .mobile-subtitle {
+        font-size: 1rem !important;
+    }
+    
+    /* Карточки */
+    .card {
+        border-radius: 0.75rem !important;
+        margin-bottom: 1rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover, .card:active {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    .card-header {
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* Кнопки */
+    .btn-action {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    .btn-mobile {
+        width: 100%;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Таблицы */
+    .table {
+        font-size: 0.9rem !important;
+    }
+    
+    .table th, .table td {
+        padding: 0.5rem !important;
+    }
+    
+    /* Формы */
+    .form-control {
+        padding: 0.6rem 0.75rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .form-label {
+        font-size: 0.85rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+    
+    /* Значки */
+    .badge {
+        font-size: 0.75rem !important;
+        padding: 0.35em 0.65em !important;
+    }
+    
+    /* Отступы */
+    .mt-md-4 {
+        margin-top: 1rem !important;
+    }
+    
+    .mb-md-4 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .p-md-4 {
+        padding: 1rem !important;
+    }
+    
+    /* Календарь для мобильных устройств */
+    .mobile-calendar {
+        margin-top: 15px;
+    }
+    
+    .mobile-day {
+        margin-bottom: 15px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #eaeaea;
+    }
+    
+    .mobile-day.today {
+        border: 1px solid #007bff;
+    }
+    
+    .mobile-day-header {
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .day-name {
+        font-weight: 600;
+    }
+    
+    .mobile-day-number {
+        display: inline-block;
+        width: 25px;
+        height: 25px;
+        line-height: 25px;
+        text-align: center;
+        border-radius: 50%;
+        margin-left: 5px;
+    }
+    
+    .mobile-day-number.today {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .mobile-day-content {
+        padding: 10px;
+    }
+    
+    .mobile-class-item {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid #007bff;
+    }
+    
+    .mobile-class-time {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 600;
+    }
+    
+    .mobile-class-name {
+        font-weight: 600;
+    }
+    
+    .mobile-class-room {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .mobile-class-teacher {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+}
+
+/* Стили для очень маленьких экранов */
+@media (max-width: 576px) {
+    /* Стили для стендов на главной странице */
+    .row .col-md-6 {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    .mobile-title {
+        font-size: 1.5rem !important;
+    }
+    
+    .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .table th, .table td {
+        padding: 0.4rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* Улучшенное отображение на маленьких экранах */
+    .d-xs-none {
+        display: none !important;
+    }
+    
+    .fs-xs-smaller {
+        font-size: 0.85rem !important;
+    }
+}

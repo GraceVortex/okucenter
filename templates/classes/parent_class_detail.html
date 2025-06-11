@@ -1,0 +1,107 @@
+
+{% extends 'base.html' %}
+
+{% block title %}{{ class.name }} - {% if user_language == 'kk' %}Сынып туралы егжей-тегжейлі{% else %}Детали класса{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">{{ class.name }}</h1>
+        <a href="{% url 'classes:parent_child_lessons' student.id %}" class="btn btn-primary rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> {% if user_language == 'kk' %}Сыныптарға қайту{% else %}Назад к классам{% endif %}
+        </a>
+    </div>
+
+    <!-- Информация о классе -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">{% if user_language == 'kk' %}Негізгі ақпарат{% else %}Основная информация{% endif %}</h5>
+                    <p><strong>{% if user_language == 'kk' %}Мұғалім:{% else %}Преподаватель:{% endif %}</strong> {{ class.teacher.full_name }}</p>
+                    {% if class.description %}
+                        <p><strong>{% if user_language == 'kk' %}Сипаттама:{% else %}Описание:{% endif %}</strong> {{ class.description }}</p>
+                    {% endif %}
+                    {% if class.price %}
+                        <p><strong>{% if user_language == 'kk' %}Бағасы:{% else %}Стоимость:{% endif %}</strong> {{ class.price }} тенге</p>
+                    {% endif %}
+                    <p><strong>{% if user_language == 'kk' %}Тіркелген күні:{% else %}Дата зачисления:{% endif %}</strong> {{ enrollment.enrollment_date|date:"d.m.Y" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="card-title">{% if user_language == 'kk' %}Сабақ кестесі{% else %}Расписание занятий{% endif %}</h5>
+                    {% if schedules %}
+                        <ul class="list-group list-group-flush">
+                            {% for schedule in schedules %}
+                                <li class="list-group-item px-0 border-0">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{% if user_language == 'kk' %}{% if schedule.day_of_week == 1 %}Дүйсенбі{% elif schedule.day_of_week == 2 %}Сейсенбі{% elif schedule.day_of_week == 3 %}Сәрсенбі{% elif schedule.day_of_week == 4 %}Бейсенбі{% elif schedule.day_of_week == 5 %}Жұма{% elif schedule.day_of_week == 6 %}Сенбі{% elif schedule.day_of_week == 7 %}Жексенбі{% endif %}{% else %}{{ schedule.get_day_of_week_display }}{% endif %}</span>
+                                        <span>{{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</span>
+                                    </div>
+                                    {% if schedule.room %}
+                                        <small class="text-muted">{% if user_language == 'kk' %}Кабинет: {{ schedule.room }}{% else %}Кабинет: {{ schedule.room }}{% endif %}</small>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">{% if user_language == 'kk' %}Кесте орнатылмаған{% else %}Расписание не установлено{% endif %}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Материалы класса -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="card-title mb-0">{% if user_language == 'kk' %}Сынып материалдары{% else %}Материалы класса{% endif %}</h5>
+        </div>
+        <div class="card-body">
+            {% if class_files %}
+                <ul class="list-group list-group-flush">
+                    {% for file in class_files %}
+                        <li class="list-group-item px-0 py-2 border-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-file-earmark me-2"></i>
+                                    {% if file.file %}
+                                        <a href="{{ file.file.url }}" target="_blank">{{ file.title|default:"{% if user_language == 'kk' %}Файл{% else %}Файл{% endif %}" }}</a>
+                                    {% else %}
+                                        <span>{{ file.title|default:"{% if user_language == 'kk' %}Файл{% else %}Файл{% endif %}" }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if file.date %}
+                                    <span class="text-muted small">{{ file.date|date:"d.m.Y" }}</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">{% if user_language == 'kk' %}Қол жетімді материалдар жоқ{% else %}Нет доступных материалов{% endif %}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Информация о платежах -->
+    {% if payments %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="card-title mb-0">{% if user_language == 'kk' %}Төлемдер тарихы{% else %}История платежей{% endif %}</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                {% for payment in payments %}
+                    <li class="list-group-item px-0 py-2 border-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>{{ payment.amount }} {% if user_language == 'kk' %}теңге{% else %}тенге{% endif %}</span>
+                            <span class="text-muted">{{ payment.date|date:"d.m.Y" }}</span>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

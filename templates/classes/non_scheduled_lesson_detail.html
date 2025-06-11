@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+
+{% block title %}{{ lesson.name }} - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-2 px-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">{{ lesson.name }}</h4>
+        <a href="{% url 'classes:non_scheduled_lesson_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Назад к списку
+        </a>
+    </div>
+    
+    <!-- Информация об уроке -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="fw-bold mb-3">Основная информация</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 40%">Дата и время:</th>
+                            <td>{{ lesson.date|date:"d.m.Y" }} {{ lesson.time|time:"H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Продолжительность:</th>
+                            <td>{{ lesson.duration }} минут</td>
+                        </tr>
+                        <tr>
+                            <th>Преподаватель:</th>
+                            <td>{{ lesson.teacher.user.get_full_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Тип урока:</th>
+                            <td>
+                                {% if lesson.lesson_type == 'trial' %}
+                                    <span class="badge bg-info">Пробный</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Обычный</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if lesson.lesson_type == 'trial' %}
+                            <tr>
+                                <th>Статус пробного урока:</th>
+                                <td>
+                                    {% if lesson.trial_status == 'pending' %}
+                                        <span class="badge bg-secondary">Ожидает решения</span>
+                                    {% elif lesson.trial_status == 'continued' %}
+                                        <span class="badge bg-success">Продолжил обучение</span>
+                                    {% elif lesson.trial_status == 'discontinued' %}
+                                        <span class="badge bg-danger">Не продолжил обучение</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Статус урока:</th>
+                            <td>
+                                {% if lesson.is_completed %}
+                                    <span class="badge bg-success">Проведен</span>
+                                {% else %}
+                                    {% if lesson.is_in_future %}
+                                        <span class="badge bg-warning">Запланирован</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Не проведен</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="fw-bold mb-3">Финансовая информация</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 40%">Стоимость для ученика:</th>
+                            <td>{{ lesson.price_per_student }} тг</td>
+                        </tr>
+                        <tr>
+                            <th>Оплата преподавателю:</th>
+                            <td>{{ lesson.teacher_payment }} тг</td>
+                        </tr>
+                        <tr>
+                            <th>Общая сумма:</th>
+                            <td>{{ lesson.price_per_student|multiply:lesson.students.count }} тг</td>
+                        </tr>
+                        <tr>
+                            <th>Статус оплаты:</th>
+                            <td>
+                                {% if lesson.lesson_type == 'regular' %}
+                                    <span class="badge bg-success">Оплачено</span>
+                                {% elif lesson.lesson_type == 'trial' %}
+                                    {% if lesson.trial_status == 'pending' %}
+                                        <span class="badge bg-warning">Ожидает решения</span>
+                                    {% elif lesson.trial_status == 'continued' %}
+                                        <span class="badge bg-success">Оплачено</span>
+                                    {% elif lesson.trial_status == 'discontinued' %}
+                                        <span class="badge bg-secondary">Бесплатно</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Оплата преподавателю:</th>
+                            <td>
+                                {% if lesson.is_paid_to_teacher %}
+                                    <span class="badge bg-success">Выплачено</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Не выплачено</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            {% if lesson.notes %}
+                <div class="mt-3">
+                    <h5 class="fw-bold mb-2">Примечания</h5>
+                    <p class="mb-0">{{ lesson.notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Список учеников -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Ученики ({{ lesson.students.count }})</h5>
+            
+            {% if lesson.students.exists %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ФИО</th>
+                                <th>Баланс</th>
+                                <th>Посещаемость</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in lesson.students.all %}
+                                <tr>
+                                    <td>{{ student.full_name }}</td>
+                                    <td>
+                                        {% if student.balance >= 0 %}
+                                            <span class="text-success">{{ student.balance }} тг</span>
+                                        {% else %}
+                                            <span class="text-danger">{{ student.balance }} тг</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% for attendance in attendances %}
+                                            {% if attendance.student.id == student.id %}
+                                                {% if attendance.is_present %}
+                                                    <span class="badge bg-success">Присутствовал</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Отсутствовал</span>
+                                                {% endif %}
+                                                <small class="text-muted">({{ attendance.marked_by }}, {{ attendance.marked_at|date:"d.m.Y H:i" }})</small>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i> Нет учеников, записанных на этот урок.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Действия -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Действия</h5>
+            
+            <div class="row g-3">
+                {% if not lesson.is_completed %}
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 rounded-4 shadow-sm bg-light">
+                            <div class="card-body p-3">
+                                <h6 class="fw-bold mb-2">Отметить посещаемость</h6>
+                                <p class="small text-muted mb-3">Отметьте, кто из учеников присутствовал на уроке</p>
+                                
+                                <form method="post" action="{% url 'classes:mark_non_scheduled_attendance' lesson_id=lesson.id %}">
+                                    {% csrf_token %}
+                                    
+                                    {% for student in lesson.students.all %}
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="attendance_{{ student.id }}" value="present" id="attendance_{{ student.id }}" checked>
+                                            <label class="form-check-label" for="attendance_{{ student.id }}">
+                                                {{ student.full_name }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                    
+                                    <button type="submit" class="btn btn-primary w-100 mt-2">
+                                        <i class="bi bi-check-circle me-1"></i> Сохранить посещаемость
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {% if lesson.lesson_type == 'trial' and lesson.trial_status == 'pending' and lesson.is_completed and user.is_reception %}
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 rounded-4 shadow-sm bg-light">
+                            <div class="card-body p-3">
+                                <h6 class="fw-bold mb-2">Статус пробного урока</h6>
+                                <p class="small text-muted mb-3">Укажите решение ученика после пробного урока</p>
+                                
+                                <form method="post" action="{% url 'classes:update_trial_lesson_status' lesson_id=lesson.id %}" class="d-grid gap-2">
+                                    {% csrf_token %}
+                                    <button type="submit" name="trial_status" value="continued" class="btn btn-success">
+                                        <i class="bi bi-check-circle me-1"></i> Продолжил обучение
+                                    </button>
+                                    <button type="submit" name="trial_status" value="discontinued" class="btn btn-danger">
+                                        <i class="bi bi-x-circle me-1"></i> Не продолжил обучение
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

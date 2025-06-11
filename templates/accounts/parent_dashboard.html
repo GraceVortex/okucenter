@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load core_tags %}
 
-{% block title %}Общее - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Жалпы - Білім беру орталығы{% else %}Общее - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-3 mt-md-4">
     <div class="row">
-        <div class="col-lg-10 mx-auto">
+        <div class="col-lg-10 mx-auto px-3 px-md-4">
             {% if messages %}
                 {% for message in messages %}
                     <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -16,10 +17,10 @@
                 {% endfor %}
             {% endif %}
             
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="display-5 fw-bold">Общее</h1>
-                <a href="{% url 'accounts:parent_cancellation_requests' %}" class="btn btn-outline-primary">
-                    <i class="bi bi-calendar-x me-2"></i> Запросы на отмену
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4">
+                <h1 class="display-5 fw-bold mobile-title mb-3 mb-md-0">{% if user_language == 'kk' %}Жалпы{% else %}Общее{% endif %}</h1>
+                <a href="{% url 'accounts:parent_cancellation_requests' %}" class="btn btn-outline-primary btn-mobile">
+                    <i class="bi bi-calendar-x me-2"></i> <span class="d-none d-sm-inline">{% if user_language == 'kk' %}Болдырмау сұраныстары{% else %}Запросы на отмену{% endif %}</span>
                     {% if pending_cancellations %}
                     <span class="badge bg-danger ms-2">{{ pending_cancellations }}</span>
                     {% endif %}
@@ -28,23 +29,23 @@
             
             <div class="card mb-4 shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="card-header bg-primary text-white py-3">
-                    <h5 class="card-title mb-0 fw-bold">Информация о родителе</h5>
+                    <h5 class="card-title mb-0 fw-bold">{% if user_language == 'kk' %}Ата-ана туралы ақпарат{% else %}Информация о родителе{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <p><strong>ФИО:</strong> {{ parent.full_name }}</p>
-                            <p><strong>Телефон:</strong> {{ parent.phone_number|default:"Не указан" }}</p>
+                            <p><strong>{% if user_language == 'kk' %}Аты-жөні:{% else %}ФИО:{% endif %}</strong> {{ parent.full_name }}</p>
+                            <p><strong>{% if user_language == 'kk' %}Телефон:{% else %}Телефон:{% endif %}</strong> {{ parent.phone_number|default:"{% if user_language == 'kk' %}Көрсетілмеген{% else %}Не указан{% endif %}" }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Email:</strong> {{ parent.user.email|default:"Не указан" }}</p>
-                            <p><strong>Логин:</strong> {{ parent.user.username }}</p>
+                            <p><strong>Email:</strong> {{ parent.user.email|default:"{% if user_language == 'kk' %}Көрсетілмеген{% else %}Не указан{% endif %}" }}</p>
+                            <p><strong>{% if user_language == 'kk' %}Логин:{% else %}Логин:{% endif %}</strong> {{ parent.user.username }}</p>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <h2 class="mb-4">Ваши дети</h2>
+            <h2 class="mb-4">{% if user_language == 'kk' %}Сіздің балаларыңыз{% else %}Ваши дети{% endif %}</h2>
             
             {% if children_data %}
                 <div class="row">
@@ -54,19 +55,19 @@
                                 <div class="card-header bg-primary text-white py-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h4 class="card-title mb-0 fw-bold">{{ child_data.student.full_name }}</h4>
-                                        <span class="badge bg-light text-primary fs-6 px-3 py-2">Баланс: {{ child_data.balance }} ₸</span>
+                                        <span class="badge bg-light text-primary fs-6 px-3 py-2">{% if user_language == 'kk' %}Баланс:{% else %}Баланс:{% endif %} {{ child_data.balance }} ₸</span>
                                     </div>
                                 </div>
                                 <div class="card-body p-0">
-                                    <div class="row g-0">
+                                    <div class="row g-0 flex-column flex-md-row">
                                         <!-- Информация о ребенке -->
-                                        <div class="col-md-4 border-end">
+                                        <div class="col-md-4 border-end border-md-end border-bottom-md-0 border-bottom">
                                             <div class="p-4">
                                                 <div class="d-flex align-items-center mb-3">
                                                     <div class="rounded-circle p-2 me-3" style="background-color: rgba(13, 110, 253, 0.2); display: flex; align-items: center; justify-content: center;">
                                                         <i class="bi bi-person fs-4 text-primary"></i>
                                                     </div>
-                                                    <h5 class="fw-bold mb-0">Информация</h5>
+                                                    <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Ақпарат{% else %}Информация{% endif %}</h5>
                                                 </div>
                                                 
                                                 <div class="mb-3">
@@ -81,24 +82,24 @@
                                                 </div>
                                                 
                                                 <div class="mt-4">
-                                                    <h6 class="fw-bold mb-3">Статистика</h6>
+                                                    <h6 class="fw-bold mb-3">{% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %}</h6>
                                                     <div class="row g-2">
                                                         <div class="col-4">
                                                             <div class="bg-light rounded p-2 text-center">
                                                                 <h3 class="mb-0 text-primary">{{ child_data.attendances.count }}</h3>
-                                                                <small class="text-muted">Посещений</small>
+                                                                <h6 class="mb-1">{% if user_language == 'kk' %}Қатысу{% else %}Посещений{% endif %}</h6>
                                                             </div>
                                                         </div>
                                                         <div class="col-4">
                                                             <div class="bg-light rounded p-2 text-center">
                                                                 <h3 class="mb-0 text-success">{{ child_data.homework_submissions.count }}</h3>
-                                                                <small class="text-muted">Сданных ДЗ</small>
+                                                                <h6 class="mb-1">{% if user_language == 'kk' %}Тапсырылған ҮЖ{% else %}Сданных ДЗ{% endif %}</h6>
                                                             </div>
                                                         </div>
                                                         <div class="col-4">
                                                             <div class="{% if child_data.pending_cancellations > 0 %}bg-warning bg-opacity-25{% else %}bg-light{% endif %} rounded p-2 text-center">
                                                                 <h3 class="mb-0 {% if child_data.pending_cancellations > 0 %}text-warning{% else %}text-muted{% endif %}">{{ child_data.pending_cancellations }}</h3>
-                                                                <small class="text-muted">Запросов</small>
+                                                                <h6 class="mb-1">{% if user_language == 'kk' %}Сұраныстар{% else %}Запросов{% endif %}</h6>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -107,7 +108,7 @@
                                         </div>
                                         
                                         <!-- Классы ребенка -->
-                                        <div class="col-md-4 border-end">
+                                        <div class="col-md-4 border-end border-md-end border-bottom-md-0 border-bottom">
                                             <div class="p-4">
                                                 <div class="d-flex align-items-center mb-3">
                                                     <div class="rounded-circle p-2 me-3" style="background-color: rgba(25, 135, 84, 0.2); display: flex; align-items: center; justify-content: center;">
@@ -145,20 +146,20 @@
                                                     <div class="rounded-circle p-2 me-3" style="background-color: rgba(220, 53, 69, 0.2); display: flex; align-items: center; justify-content: center;">
                                                         <i class="bi bi-gear fs-4 text-danger"></i>
                                                     </div>
-                                                    <h5 class="fw-bold mb-0">Действия</h5>
+                                                    <h5 class="fw-bold mb-0">{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</h5>
                                                 </div>
                                                 
                                                 <div class="d-grid gap-2">
-                                                    <a href="{% url 'accounts:child_detail' student_id=child_data.student.id %}" class="btn btn-primary btn-lg">
-                                                        <i class="bi bi-eye me-2"></i> Подробная информация
+                                                    <a href="{% url 'accounts:child_detail' student_id=child_data.student.id %}" class="btn btn-primary btn-md btn-lg-md">
+                                                        <i class="bi bi-eye me-2"></i> {% if user_language == 'kk' %}Толық ақпарат{% else %}Подробная информация{% endif %}
                                                     </a>
                                                     
-                                                    <a href="{% url 'classes:parent_child_homework' student_id=child_data.student.id %}" class="btn btn-success btn-lg">
-                                                        <i class="bi bi-journal-check me-2"></i> Домашние задания
+                                                    <a href="{% url 'classes:parent_child_homework' student_id=child_data.student.id %}" class="btn btn-success btn-md btn-lg-md">
+                                                        <i class="bi bi-journal-check me-2"></i> {% if user_language == 'kk' %}Үй тапсырмалары{% else %}Домашние задания{% endif %}
                                                     </a>
                                                     
-                                                    <a href="{% url 'classes:parent_child_schedule' student_id=child_data.student.id %}" class="btn btn-info btn-lg text-white">
-                                                        <i class="bi bi-calendar-week me-2"></i> Расписание
+                                                    <a href="{% url 'classes:parent_child_schedule' student_id=child_data.student.id %}" class="btn btn-info btn-md btn-lg-md text-white">
+                                                        <i class="bi bi-calendar-week me-2"></i> {% if user_language == 'kk' %}Кесте{% else %}Расписание{% endif %}
                                                     </a>
                                                 </div>
                                             </div>
@@ -171,10 +172,77 @@
                 </div>
             {% else %}
                 <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i> У вас нет зарегистрированных детей в системе.
+                    <i class="bi bi-exclamation-triangle me-2"></i> {% if user_language == 'kk' %}Жүйеде тіркелген балаларыңыз жоқ.{% else %}У вас нет зарегистрированных детей в системе.{% endif %}
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+{% block extra_css %}
+<style>
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 767px) {
+        .mobile-title {
+            font-size: 1.8rem;
+        }
+        
+        .card-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .btn-mobile {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .p-4 {
+            padding: 1rem !important;
+        }
+        
+        .fs-6 {
+            font-size: 0.85rem !important;
+        }
+        
+        .rounded-4 {
+            border-radius: 0.75rem !important;
+        }
+        
+        .border-md-end {
+            border-right: none !important;
+        }
+        
+        .border-bottom-md-0 {
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+        
+        /* Улучшаем отображение статистики */
+        .bg-light.rounded.p-2 {
+            padding: 0.5rem !important;
+        }
+        
+        .h4 {
+            font-size: 1.25rem;
+        }
+        
+        /* Улучшаем отображение кнопок */
+        .btn-md {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (min-width: 768px) {
+        .btn-lg-md {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% endblock %}

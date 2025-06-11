@@ -14,12 +14,99 @@ from .forms import TransactionForm, TransactionFilterForm, DepositForm
 from accounts.models import Student, User, Teacher
 from classes.models import Class
 from attendance.models import Attendance
+from classes.non_scheduled_lesson_models import NonScheduledLesson, NonScheduledLessonAttendance
+from dateutil.relativedelta import relativedelta
 
 # Create your views here.
 
 @login_required
-def transaction_list(request):
-    """Отображает список транзакций для текущего пользователя."""
+def student_transactions(request):
+    """Отображает транзакции текущего студента."""
+    
+    # Проверяем, что пользователь является студентом
+    if not request.user.is_authenticated or not hasattr(request.user, 'student_profile'):
+        return HttpResponseForbidden("Доступ запрещен")
+    
+    # Получаем профиль студента
+    student = request.user.student_profile
+    
+    # Проверяем, что студент управляет своим аккаунтом самостоятельно
+    if not student.is_self_managed:
+        return HttpResponseForbidden("Доступ запрещен. Ваш аккаунт управляется родителем.")
+    
+    # Получаем период из GET-параметров
+    period = request.GET.get('period', 'current_month')
+    
+    # Определяем даты начала и конца периода
+    today = timezone.now().date()
+    
+    if period == 'current_month':
+        start_date = today.replace(day=1)
+        end_date = (start_date + relativedelta(months=1) - timedelta(days=1))
+    elif period == 'previous_month':
+        start_date = (today.replace(day=1) - relativedelta(months=1))
+        end_date = (today.replace(day=1) - timedelta(days=1))
+    else:
+        # По умолчанию - текущий месяц
+        period = 'current_month'
+        start_date = today.replace(day=1)
+        end_date = (start_date + relativedelta(months=1) - timedelta(days=1))
+    
+    # Получаем транзакции студента за выбранный период
+    transactions = Transaction.objects.filter(
+        student=student,
+        date__gte=start_date,
+        date__lte=end_date
+    ).order_by('-date')
+    
+    # Рассчитываем суммы по типам транзакций
+    deposits = transactions.filter(transaction_type='deposit').aggregate(Sum('amount'))['amount__sum'] or 0
+    payments = transactions.filter(transaction_type='payment').aggregate(Sum('amount'))['amount__sum'] or 0
+    refunds = transactions.filter(transaction_type='refund').aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Проверяем, соответствует ли текущий баланс формуле: пополнения - списания + возвраты
+    # Получаем все транзакции студента (без фильтрации по дате)
+    all_deposits = Transaction.objects.filter(student=student, transaction_type='deposit').aggregate(Sum('amount'))['amount__sum'] or 0
+    all_payments = Transaction.objects.filter(student=student, transaction_type='payment').aggregate(Sum('amount'))['amount__sum'] or 0
+    all_refunds = Transaction.objects.filter(student=student, transaction_type='refund').aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Рассчитываем ожидаемый баланс по формуле: Депозиты - Платежи + Возвраты
+    expected_balance = all_deposits - all_payments + all_refunds
+    
+    # Проверяем, совпадает ли расчетный баланс с фактическим
+    balance_matches = abs(student.balance - expected_balance) < 0.01  # Учитываем возможные ошибки округления
+    
+    # Локализация названий месяцев
+    month_names = {
+        1: 'Январь', 2: 'Февраль', 3: 'Март', 4: 'Апрель', 5: 'Май', 6: 'Июнь',
+        7: 'Июль', 8: 'Август', 9: 'Сентябрь', 10: 'Октябрь', 11: 'Ноябрь', 12: 'Декабрь'
+    }
+    
+    month_name = month_names.get(start_date.month, '')
+    month_year = f"{month_name} {start_date.year}"
+    
+    context = {
+        'transactions': transactions,
+        'balance': student.balance,
+        'deposits': deposits,
+        'payments': payments,
+        'refunds': refunds,
+        'current_period': period,
+        'start_date': start_date,
+        'end_date': end_date,
+        'month_year': month_year,
+        'expected_balance': expected_balance,
+        'balance_matches': balance_matches,
+        'all_deposits': all_deposits,
+        'all_payments': all_payments,
+        'all_refunds': all_refunds,
+    }
+    
+    return render(request, 'finance/student_transactions.html', context)
+
+@login_required
+def student_balance(request, student_id=None):
+    """Отображает баланс и транзакции студента."""
     
     # Получаем текущую дату
     today = timezone.now().date()
@@ -50,7 +137,7 @@ def transaction_list(request):
         end_date = today
     elif period == 'last_year':
         # Последний год
-        start_date = today.replace(year=today.year - 1)
+        start_date = today.replace(year=today.year - 1, day=1)
         end_date = today
     else:
         # По умолчанию - текущий месяц
@@ -59,6 +146,110 @@ def transaction_list(request):
             end_date = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
         else:
             end_date = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+    
+    # Определяем, какого студента показывать
+    if student_id:
+        # Если указан ID студента
+        if request.user.is_admin or request.user.is_reception:
+            # Администраторы и ресепшн могут видеть баланс любого студента
+            student = get_object_or_404(Student, id=student_id)
+        else:
+            # Другие пользователи не могут видеть баланс других студентов
+            return HttpResponseForbidden("У вас нет доступа к этой странице.")
+    else:
+        # Если ID не указан, используем профиль текущего пользователя
+        if hasattr(request.user, 'student_profile'):
+            student = request.user.student_profile
+        else:
+            # Если пользователь не является студентом
+            return HttpResponseForbidden("У вас нет доступа к этой странице.")
+    
+    # Получаем транзакции студента
+    transactions = Transaction.objects.filter(
+        student=student,
+        date__range=[start_date, end_date]
+    ).order_by('-date', '-created_at')
+    
+    # Вычисляем сумму депозитов и платежей
+    deposits = transactions.filter(transaction_type='deposit').aggregate(total=Sum('amount'))['total'] or 0
+    payments = transactions.filter(transaction_type='payment').aggregate(total=Sum('amount'))['total'] or 0
+    refunds = transactions.filter(transaction_type='refund').aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Периоды для фильтрации
+    periods = [
+        {'value': 'current_month', 'label': 'Текущий месяц'},
+        {'value': 'previous_month', 'label': 'Прошлый месяц'},
+        {'value': 'last_3_months', 'label': 'За 3 месяца'},
+        {'value': 'last_year', 'label': 'За год'}
+    ]
+    
+    context = {
+        'student': student,
+        'transactions': transactions,
+        'balance': student.balance,
+        'deposits': deposits,
+        'payments': payments,
+        'refunds': refunds,
+        'periods': periods,
+        'current_period': period,
+        'start_date': start_date,
+        'end_date': end_date
+    }
+    
+    return render(request, 'finance/student_balance.html', context)
+
+@login_required
+def transaction_list(request):
+    """Отображает список транзакций для текущего пользователя."""
+    
+    # Получаем текущую дату
+    today = timezone.now().date()
+    
+    # Получаем месяц и год из параметров URL или используем текущий месяц
+    year = int(request.GET.get('year', today.year))
+    month = int(request.GET.get('month', today.month))
+    
+    # Создаем дату для первого дня выбранного месяца
+    start_date = datetime(year, month, 1).date()
+    
+    # Вычисляем последний день месяца
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+    else:
+        end_date = datetime(year, month + 1, 1).date() - timedelta(days=1)
+    
+    # Вычисляем предыдущий месяц
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+    
+    # Вычисляем следующий месяц
+    if month == 12:
+        next_month = 1
+        next_year = year + 1
+    else:
+        next_month = month + 1
+        next_year = year
+        
+    # Получаем название месяца на русском
+    month_names = {
+        1: 'Январь',
+        2: 'Февраль',
+        3: 'Март',
+        4: 'Апрель',
+        5: 'Май',
+        6: 'Июнь',
+        7: 'Июль',
+        8: 'Август',
+        9: 'Сентябрь',
+        10: 'Октябрь',
+        11: 'Ноябрь',
+        12: 'Декабрь'
+    }
+    current_month_name = month_names[month]
     
     # Получаем фильтры из формы
     form = TransactionFilterForm(request.GET or None)
@@ -168,22 +359,272 @@ def transaction_list(request):
     total_student_balance = Student.objects.aggregate(total=Sum('balance'))['total'] or 0
     total_student_balance = round(total_student_balance, 2)
     
-    # 2. Доходы от уроков (сколько денег снялось на уроки)
-    lesson_income = Transaction.objects.filter(
+    # 2. Доходы от уроков (все списания от учеников минус все возвраты)
+    # Получаем все транзакции типа 'payment' за выбранный период
+    payment_transactions = Transaction.objects.filter(
         transaction_type='payment',
         date__range=[start_date, end_date]
+    )
+    
+    # Подсчитываем общую сумму платежей
+    payments = payment_transactions.aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Подсчитываем количество транзакций за уроки не по расписанию
+    non_scheduled_lesson_payments_count = payment_transactions.filter(
+        description__contains='урок не по расписанию'
+    ).count()
+    
+    # Подсчитываем сумму транзакций за уроки не по расписанию
+    non_scheduled_lesson_payments = payment_transactions.filter(
+        description__contains='урок не по расписанию'
     ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Получаем сумму всех возвратов (положительные значения)
+    refunds = Transaction.objects.filter(
+        transaction_type='refund',
+        date__range=[start_date, end_date]
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Доход от уроков = сумма платежей - возвраты
+    # В системе значение amount для транзакций типа 'payment' является положительным
+    lesson_income = payments - refunds
     lesson_income = round(lesson_income, 2)
     
+    # Добавляем отладочную информацию в контекст
+    debug_info = {
+        'total_payment_transactions': payment_transactions.count(),
+        'non_scheduled_lesson_payments_count': non_scheduled_lesson_payments_count,
+        'non_scheduled_lesson_payments_amount': abs(non_scheduled_lesson_payments),
+        'start_date': start_date,
+        'end_date': end_date
+    }
+    
     # 3. Выплаты учителям
-    # Используем тот же метод расчета, что и на странице зарплат учителей
+    # Используем метод calculate_teacher_salary для расчета зарплат учителей
+    # Этот метод учитывает как уроки по расписанию, так и уроки не по расписанию
     teacher_payments = Decimal('0.00')
     
     # Получаем всех учителей
     teachers = Teacher.objects.all()
     
-    # Для каждого учителя рассчитываем зарплату на основе фактических посещений
+    # Для каждого учителя рассчитываем зарплату
     for teacher in teachers:
+        # Создаем временные даты для расчета зарплаты за выбранный период
+        # Создаем временный объект месяца для начальной даты
+        temp_month = start_date.replace(day=1)
+        
+        # Если период охватывает несколько месяцев, рассчитываем зарплату для каждого месяца
+        current_month = temp_month
+        while current_month <= end_date:
+            # Рассчитываем зарплату за текущий месяц
+            salary_data = TeacherSalary.calculate_teacher_salary(teacher, current_month)
+            teacher_payments += salary_data['total']
+            
+            # Переходим к следующему месяцу
+            if current_month.month == 12:
+                current_month = current_month.replace(year=current_month.year + 1, month=1)
+            else:
+                current_month = current_month.replace(month=current_month.month + 1)
+    
+    # Округляем до двух знаков после запятой
+    teacher_payments = round(teacher_payments, 2)
+    
+    # 4. Предконечный доход (доходы от уроков - выплаты учителям)
+    pre_final_income = lesson_income - teacher_payments
+    pre_final_income = round(pre_final_income, 2)
+    
+    context = {
+        'transactions': transactions,
+        'form': form,
+        'total_amount': total_amount,
+        'start_date': start_date,
+        'end_date': end_date,
+        'students': students,
+        'classes': classes,
+        'selected_student': selected_student,
+        'selected_class': selected_class,
+        'transaction_type': transaction_type,
+        'total_student_balance': total_student_balance,
+        'lesson_income': lesson_income,
+        'teacher_payments': teacher_payments,
+        'pre_final_income': pre_final_income,
+        # Добавляем информацию о навигации по месяцам
+        'current_month': month,
+        'current_year': year,
+        'current_month_name': current_month_name,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'is_current_month': (month == today.month and year == today.year),
+        'teacher_salaries': teacher_salaries,
+        'debug_info': debug_info,
+    }
+    
+    return render(request, 'finance/transaction_list.html', context)
+
+@login_required
+def lesson_income_transactions(request):
+    """
+    Отображает транзакции по доходам от уроков (платежи типа 'payment').
+    """
+    # Проверяем права доступа
+    if not request.user.is_authenticated or not (request.user.is_admin or request.user.is_reception):
+        return HttpResponseForbidden("У вас нет прав для просмотра этой страницы")
+    
+    # Получаем месяц и год из GET-параметров
+    today = timezone.now().date()
+    
+    # Получаем месяц и год из параметров URL или используем текущий месяц
+    year = int(request.GET.get('year', today.year))
+    month = int(request.GET.get('month', today.month))
+    
+    # Создаем дату для первого дня выбранного месяца
+    start_date = datetime(year, month, 1).date()
+    
+    # Вычисляем последний день месяца
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+    else:
+        end_date = datetime(year, month + 1, 1).date() - timedelta(days=1)
+    
+    # Вычисляем предыдущий месяц
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+    
+    # Вычисляем следующий месяц
+    if month == 12:
+        next_month = 1
+        next_year = year + 1
+    else:
+        next_month = month + 1
+        next_year = year
+        
+    # Получаем название месяца на русском
+    month_names = {
+        1: 'Январь',
+        2: 'Февраль',
+        3: 'Март',
+        4: 'Апрель',
+        5: 'Май',
+        6: 'Июнь',
+        7: 'Июль',
+        8: 'Август',
+        9: 'Сентябрь',
+        10: 'Октябрь',
+        11: 'Ноябрь',
+        12: 'Декабрь'
+    }
+    current_month_name = month_names[month]
+    
+    # Получаем все транзакции типа 'payment' за выбранный период
+    transactions = Transaction.objects.filter(
+        transaction_type='payment',
+        date__range=[start_date, end_date]
+    ).select_related('student', 'class_obj')
+    
+    # Подсчитываем общую сумму платежей
+    total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
+    
+    context = {
+        'transactions': transactions,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_amount': total_amount,
+        'title': 'Доходы от уроков',
+        'description': 'Все платежи за уроки за выбранный период',
+        # Добавляем информацию о навигации по месяцам
+        'current_month': month,
+        'current_year': year,
+        'current_month_name': current_month_name,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'is_current_month': (month == today.month and year == today.year)
+    }
+    
+    return render(request, 'finance/filtered_transactions.html', context)
+
+@login_required
+def teacher_payments_transactions(request):
+    """
+    Отображает информацию о выплатах учителям.
+    """
+    # Проверяем права доступа
+    if not request.user.is_authenticated or not (request.user.is_admin or request.user.is_reception):
+        return HttpResponseForbidden("У вас нет прав для просмотра этой страницы")
+    
+    # Получаем месяц и год из GET-параметров
+    today = timezone.now().date()
+    
+    # Получаем месяц и год из параметров URL или используем текущий месяц
+    year = int(request.GET.get('year', today.year))
+    month = int(request.GET.get('month', today.month))
+    
+    # Создаем дату для первого дня выбранного месяца
+    start_date = datetime(year, month, 1).date()
+    
+    # Вычисляем последний день месяца
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+    else:
+        end_date = datetime(year, month + 1, 1).date() - timedelta(days=1)
+    
+    # Вычисляем предыдущий месяц
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+    
+    # Вычисляем следующий месяц
+    if month == 12:
+        next_month = 1
+        next_year = year + 1
+    else:
+        next_month = month + 1
+        next_year = year
+        
+    # Получаем название месяца на русском
+    month_names = {
+        1: 'Январь',
+        2: 'Февраль',
+        3: 'Март',
+        4: 'Апрель',
+        5: 'Май',
+        6: 'Июнь',
+        7: 'Июль',
+        8: 'Август',
+        9: 'Сентябрь',
+        10: 'Октябрь',
+        11: 'Ноябрь',
+        12: 'Декабрь'
+    }
+    current_month_name = month_names[month]
+    
+    # Получаем информацию о выплатах зарплат учителям
+    teacher_salaries = TeacherSalary.objects.filter(
+        payment_status='paid',
+        final_payment_date__range=[start_date, end_date]
+    ).select_related('teacher')
+    
+    # Получаем всех учителей
+    teachers = Teacher.objects.all()
+    
+    # Рассчитываем зарплату для каждого учителя
+    teacher_payments_data = []
+    total_payments = Decimal('0.00')
+    
+    for teacher in teachers:
+        teacher_salary_amount = Decimal('0.00')
+        
+        # 1. Учитываем уроки по расписанию
         # Получаем все посещения для подсчета уникальных занятий
         attendances = Attendance.objects.filter(
             class_schedule__class_obj__teacher=teacher,
@@ -203,8 +644,7 @@ def transaction_list(request):
                     'class_schedule': attendance.class_schedule
                 }
         
-        # Рассчитываем сумму зарплаты на основе уникальных занятий
-        teacher_salary_amount = Decimal('0.00')
+        # Рассчитываем сумму зарплаты на основе уникальных занятий по расписанию
         for key, data in unique_classes.items():
             class_obj = data['class_obj']
             
@@ -218,37 +658,67 @@ def transaction_list(request):
             
             teacher_salary_amount += amount
         
-        # Добавляем зарплату этого учителя к общей сумме
-        teacher_payments += teacher_salary_amount
-    
-    # Округляем до двух знаков после запятой
-    teacher_payments = round(teacher_payments, 2)
-    
-    # 4. Предконечный доход (доходы от уроков - выплаты учителям)
-    pre_final_income = lesson_income - teacher_payments
-    pre_final_income = round(pre_final_income, 2)
+        # 2. Учитываем уроки не по расписанию
+        # Получаем все проведенные уроки не по расписанию для этого учителя
+        non_scheduled_lessons = NonScheduledLesson.objects.filter(
+            teacher=teacher,
+            date__range=[start_date, end_date],
+            is_completed=True
+        )
+        
+        # Для каждого урока не по расписанию добавляем сумму оплаты учителю
+        for lesson in non_scheduled_lessons:
+            # Рассчитываем оплату учителю только за присутствующих учеников
+            if lesson.lesson_type == 'trial' and lesson.trial_status != 'continued':
+                # Если это пробный урок и ученик не продолжил обучение, не учитываем оплату
+                continue
+                
+            # Получаем количество присутствующих учеников
+            present_students_count = NonScheduledLessonAttendance.objects.filter(
+                lesson=lesson,
+                is_present=True
+            ).count()
+            
+            # Если нет присутствующих учеников, не учитываем оплату
+            if present_students_count == 0:
+                continue
+                
+            # Если это обычный урок, учитываем оплату только за присутствующих учеников
+            total_students_count = lesson.students.count()
+            if total_students_count > 0:
+                # Рассчитываем оплату учителю пропорционально количеству присутствующих учеников
+                teacher_payment_per_student = Decimal(str(lesson.teacher_payment)) / Decimal(str(total_students_count))
+                teacher_salary_amount += teacher_payment_per_student * Decimal(str(present_students_count))
+        
+        # Добавляем данные о зарплате учителя в список
+        if teacher_salary_amount > 0:
+            teacher_payments_data.append({
+                'teacher': teacher,
+                'amount': teacher_salary_amount,
+                'lessons_count': len(unique_classes) + non_scheduled_lessons.count()
+            })
+            total_payments += teacher_salary_amount
     
     context = {
-        'transactions': transactions,
+        'teacher_payments_data': teacher_payments_data,
         'teacher_salaries': teacher_salaries,
-        'form': form,
-        'students': students,
-        'classes': classes,
-        'total_amount': round(total_amount, 2),
-        'selected_student': selected_student,
-        'selected_class': selected_class,
-        'transaction_type': transaction_type,
         'start_date': start_date,
         'end_date': end_date,
-        'period': period,
-        # Сводная финансовая информация
-        'total_student_balance': total_student_balance,
-        'lesson_income': lesson_income,
-        'teacher_payments': teacher_payments,
-        'pre_final_income': pre_final_income
+        'total_payments': total_payments,
+        'title': 'Выплаты учителям',
+        'description': 'Информация о выплатах учителям за проведенные уроки',
+        # Добавляем информацию о навигации по месяцам
+        'current_month': month,
+        'current_year': year,
+        'current_month_name': current_month_name,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'is_current_month': (month == today.month and year == today.year)
     }
     
-    return render(request, 'finance/transaction_list.html', context)
+    return render(request, 'finance/teacher_payments.html', context)
 
 @login_required
 def add_transaction(request):
@@ -619,6 +1089,7 @@ def teacher_salary(request, month=None, year=None):
     salary_data = {
         'total': salary.amount,
         'is_paid': salary.payment_status == 'paid',
+        'payment_status': salary.payment_status,  # Добавляем поле payment_status
         'paid_date': salary.final_payment_date,
         'lessons_count': salary.lessons_count,
         'period_start': start_date,
@@ -790,52 +1261,24 @@ def admin_salary_summary(request):
         # Получаем или создаем запись о зарплате
         salary, created = TeacherSalary.get_or_create_salary(teacher, first_day)
         
-        # Пересчитываем зарплату на основе фактических посещений
-        # Метод calculate_teacher_salary возвращает сумму зарплаты
-        recalculated_salary_amount = Decimal('0.00')
+        # Используем метод calculate_teacher_salary для получения полной информации о зарплате
+        # Этот метод учитывает как уроки по расписанию, так и уроки не по расписанию
+        salary_data = TeacherSalary.calculate_teacher_salary(teacher, first_day)
+        recalculated_salary_amount = salary_data['total']
+        attendances_count = salary_data['lessons_count']
         
-        # Вместо использования метода calculate_teacher_salary рассчитаем сумму на основе уникальных занятий
-        
-        # Получаем все посещения для подсчета уникальных занятий
-        attendances = Attendance.objects.filter(
-            class_schedule__class_obj__teacher=teacher,
-            date__gte=first_day,
-            date__lt=last_day,
-            reception_confirmed=True
-        ).select_related('class_schedule')
-        
-        # Считаем уникальные занятия по дате и расписанию
-        unique_class_dates = set()
-        for attendance in attendances:
-            unique_class_dates.add((attendance.date, attendance.class_schedule.id))
-        
-        # Количество уникальных занятий
-        attendances_count = len(unique_class_dates)
-        
-        # Рассчитываем сумму зарплаты на основе уникальных занятий
-        for class_obj in teacher.classes.all():
-            # Считаем уникальные занятия по дате и расписанию для каждого класса
-            class_unique_dates = set()
-            for attendance in attendances.filter(class_schedule__class_obj=class_obj):
-                class_unique_dates.add((attendance.date, attendance.class_schedule.id))
-            
-            if class_unique_dates:
-                # Определяем сумму за занятие
-                if class_obj.teacher_payment_type == 'percentage':
-                    price = class_obj.price_per_lesson
-                    percentage = Decimal(str(class_obj.teacher_percentage)) / Decimal('100')
-                    amount_per_lesson = price * percentage
-                else:  # fixed payment
-                    amount_per_lesson = class_obj.teacher_fixed_payment
-                
-                # Добавляем сумму за все уникальные занятия в этом классе
-                recalculated_salary_amount += amount_per_lesson * len(class_unique_dates)
+        # Обновляем запись о зарплате, если рассчитанная сумма отличается от сохраненной
+        if abs(recalculated_salary_amount - salary.amount) > 0.01:  # Допускаем небольшую погрешность из-за округления
+            salary.amount = recalculated_salary_amount
+            salary.lessons_count = attendances_count
+            salary.save(update_fields=['amount', 'lessons_count'])
         
         # Добавляем данные учителя
         if attendances_count > 0 or recalculated_salary_amount > 0:
             # Используем пересчитанную сумму
             # Получаем выплаченную сумму (аванс или полная выплата)
-            paid_amount = getattr(salary, 'paid_amount', salary.advance_amount)
+            # Если paid_amount существует и больше 0, используем его, иначе используем advance_amount
+            paid_amount = salary.paid_amount if hasattr(salary, 'paid_amount') and salary.paid_amount and salary.paid_amount > 0 else salary.advance_amount
             
             # Рассчитываем реальный остаток к выплате
             real_balance = recalculated_salary_amount - paid_amount
@@ -887,8 +1330,7 @@ def admin_salary_summary(request):
     total_salary = sum(teacher_data['amount'] for teacher_data in teachers_data)
     
     # Фактически выплачено (авансы + полные выплаты)
-    total_paid = total_advances + sum(teacher_data['amount'] for teacher_data in teachers_data 
-                                    if teacher_data['payment_status'] == 'paid')
+    total_paid = sum(teacher_data['paid_amount'] for teacher_data in teachers_data)
     
     # Проверяем, является ли текущий месяц выбранным
     is_current_month = (first_day.month == current_date.month and first_day.year == current_date.year)
@@ -909,6 +1351,7 @@ def admin_salary_summary(request):
 def mark_salary_paid(request, teacher_id, year, month):
     """
     Отмечает зарплату учителя как выплаченную.
+    Учитывает как уроки по расписанию, так и уроки не по расписанию.
     """
     if not request.user.is_admin and not request.user.is_reception:
         messages.error(request, "У вас нет прав для выполнения этого действия")
@@ -920,12 +1363,8 @@ def mark_salary_paid(request, teacher_id, year, month):
         messages.error(request, "Преподаватель не найден")
         return redirect('finance:teacher_salary_overall')
     
-    # Получаем первый и последний день месяца
+    # Получаем первый день месяца
     first_day = datetime(year=int(year), month=int(month), day=1).date()
-    if int(month) == 12:
-        last_day = datetime(year=int(year) + 1, month=1, day=1).date()
-    else:
-        last_day = datetime(year=int(year), month=int(month) + 1, day=1).date()
     
     # Проверяем, есть ли уже запись о зарплате
     try:
@@ -935,66 +1374,21 @@ def mark_salary_paid(request, teacher_id, year, month):
         )
         if salary.payment_status == 'paid':
             messages.info(request, f"Зарплата {teacher.full_name} за {first_day.strftime('%B %Y')} уже отмечена как выплаченная")
-            return redirect('finance:teacher_salary', year=year, month=month, teacher_id=teacher_id)
+            return redirect('finance:teacher_salary', year=year, month=month)
     except TeacherSalary.DoesNotExist:
         # Если записи нет, создаем новую
         salary = TeacherSalary(teacher=teacher, month=first_day, amount=0, lessons_count=0)
     
-    # Считаем количество занятий
-    lessons_count = Attendance.objects.filter(
-        class_schedule__class_obj__teacher=teacher,
-        date__gte=first_day,
-        date__lt=last_day,
-        reception_confirmed=True
-    ).values('class_schedule', 'date').distinct().count()
+    # Используем обновленный метод расчета зарплаты, который учитывает уроки не по расписанию
+    salary_data = TeacherSalary.calculate_teacher_salary(teacher, first_day)
     
-    # Получаем все посещения для подсчета уникальных занятий
-    attendances = Attendance.objects.filter(
-        class_schedule__class_obj__teacher=teacher,
-        date__gte=first_day,
-        date__lt=last_day,
-        reception_confirmed=True
-    ).select_related('class_schedule', 'class_schedule__class_obj')
-    
-    # Группируем посещения по дате и расписанию
-    from django.db.models import Count
-    from collections import defaultdict
-    
-    # Считаем количество учеников на каждом занятии
-    lesson_stats = defaultdict(lambda: {'students': 0, 'class_obj': None})
-    for attendance in attendances:
-        key = (attendance.date, attendance.class_schedule.class_obj.id, attendance.class_schedule.id)
-        lesson_stats[key]['students'] += 1
-        if lesson_stats[key]['class_obj'] is None:
-            lesson_stats[key]['class_obj'] = attendance.class_schedule.class_obj
-    
-    # Рассчитываем сумму зарплаты
-    total_amount = Decimal('0.00')
-    for key, data in lesson_stats.items():
-        class_obj = data['class_obj']
-        students_count = data['students']
-        
-        # Определяем сумму за занятие
-        if class_obj.teacher_payment_type == 'percentage':
-            # Сумма со всех учеников
-            total_lesson_price = class_obj.price_per_lesson * Decimal(str(students_count))
-            percentage = Decimal(str(class_obj.teacher_percentage)) / Decimal('100')
-            amount = total_lesson_price * percentage
-        else:  # fixed payment
-            amount = class_obj.teacher_fixed_payment
-        
-        total_amount += amount
-    
-    # Рассчитываем оставшуюся сумму к выплате с учетом аванса
-    remaining_amount = total_amount - salary.advance_amount
-    
-    # Обновляем данные
-    salary.amount = total_amount
-    salary.lessons_count = len(lesson_stats)
+    # Обновляем данные о зарплате
+    salary.amount = salary_data['total']
+    salary.lessons_count = salary_data['lessons_count']
     salary.payment_status = 'paid'  # Обновляем статус оплаты на "оплачено полностью"
     salary.final_payment_date = datetime.now().date()
     salary.payment_confirmed_by = request.user
-    salary.paid_amount = total_amount  # Устанавливаем выплаченную сумму равной общей сумме
+    salary.paid_amount = salary_data['total']  # Устанавливаем выплаченную сумму равной общей сумме
     salary.save()
     
     # В данной реализации мы не создаем транзакцию, так как модель Transaction предназначена только для студентов
@@ -1009,7 +1403,7 @@ def mark_salary_paid(request, teacher_id, year, month):
     elif 'admin_salary_summary' in referer:
         return redirect('finance:admin_salary_summary', year=year, month=month)
     else:
-        return redirect('finance:teacher_salary', year=year, month=month, teacher_id=teacher_id)
+        return redirect('finance:teacher_salary', year=year, month=month)
 
 
 @login_required
@@ -1036,61 +1430,15 @@ def pay_salary_advance(request, teacher_id, year, month):
                 messages.error(request, f"Зарплата {teacher.full_name} за {first_day.strftime('%B %Y')} уже выплачена полностью")
                 return redirect('finance:teacher_salary')
         except TeacherSalary.DoesNotExist:
-            # Если записи нет, создаем новую
-            if int(month) == 12:
-                last_day = datetime(year=int(year) + 1, month=1, day=1).date()
-            else:
-                last_day = datetime(year=int(year), month=int(month) + 1, day=1).date()
-                
-            # Считаем количество занятий
-            lessons_count = Attendance.objects.filter(
-                class_schedule__class_obj__teacher=teacher,
-                date__gte=first_day,
-                date__lt=last_day,
-                reception_confirmed=True
-            ).values('class_schedule', 'date').distinct().count()
-            
-            # Получаем все посещения для подсчета уникальных занятий
-            attendances = Attendance.objects.filter(
-                class_schedule__class_obj__teacher=teacher,
-                date__gte=first_day,
-                date__lt=last_day,
-                reception_confirmed=True
-            ).select_related('class_schedule', 'class_schedule__class_obj')
-            
-            # Группируем посещения по дате и расписанию
-            from collections import defaultdict
-            
-            # Считаем количество учеников на каждом занятии
-            lesson_stats = defaultdict(lambda: {'students': 0, 'class_obj': None})
-            for attendance in attendances:
-                key = (attendance.date, attendance.class_schedule.class_obj.id, attendance.class_schedule.id)
-                lesson_stats[key]['students'] += 1
-                if lesson_stats[key]['class_obj'] is None:
-                    lesson_stats[key]['class_obj'] = attendance.class_schedule.class_obj
-            
-            # Рассчитываем сумму зарплаты
-            total_amount = Decimal('0.00')
-            for key, data in lesson_stats.items():
-                class_obj = data['class_obj']
-                students_count = data['students']
-                
-                # Определяем сумму за занятие
-                if class_obj.teacher_payment_type == 'percentage':
-                    # Сумма со всех учеников
-                    total_lesson_price = class_obj.price_per_lesson * Decimal(str(students_count))
-                    percentage = Decimal(str(class_obj.teacher_percentage)) / Decimal('100')
-                    amount = total_lesson_price * percentage
-                else:  # fixed payment
-                    amount = class_obj.teacher_fixed_payment
-                
-                total_amount += amount
+            # Если записи нет, создаем новую используя метод calculate_teacher_salary
+            # Этот метод учитывает как уроки по расписанию, так и уроки не по расписанию
+            salary_data = TeacherSalary.calculate_teacher_salary(teacher, first_day)
             
             salary = TeacherSalary(
                 teacher=teacher, 
                 month=first_day, 
-                amount=total_amount, 
-                lessons_count=len(lesson_stats)
+                amount=salary_data['total'], 
+                lessons_count=salary_data['lessons_count']
             )
         
         # Получаем сумму аванса из формы
@@ -1107,7 +1455,10 @@ def pay_salary_advance(request, teacher_id, year, month):
         salary.advance_amount = advance_amount
         salary.advance_paid_date = datetime.now().date()  # Используем новое поле для даты аванса
         salary.advance_confirmed_by = request.user
-        salary.paid_amount = advance_amount  # Устанавливаем выплаченную сумму равной авансу
+        
+        # Устанавливаем выплаченную сумму равной авансу
+        # Это поле используется для отображения фактически выплаченной суммы в сводке зарплат
+        salary.paid_amount = advance_amount
         
         # Проверяем, равен ли аванс полной сумме зарплаты
         if abs(advance_amount - salary.amount) < 0.01:  # Если аванс равен полной сумме (с учетом погрешности)
@@ -1156,6 +1507,7 @@ def teacher_salary_detail(request, teacher_id, year, month):
     from attendance.models import Attendance
     from classes.models import ClassSchedule, Class
     from django.db.models import Count, Sum, F
+    from django.utils import timezone
     
     teacher = get_object_or_404(Teacher, id=teacher_id)
     first_day = datetime(int(year), int(month), 1).date()
@@ -1170,6 +1522,7 @@ def teacher_salary_detail(request, teacher_id, year, month):
     salary, created = TeacherSalary.get_or_create_salary(teacher, first_day)
     
     # Пересчитываем зарплату на основе фактических посещений
+    # Используем обновленный метод, который учитывает уроки не по расписанию
     recalculated_salary = TeacherSalary.calculate_teacher_salary(teacher, first_day)
     
     # Получаем все посещения со статусом 'present' для классов учителя за указанный месяц
@@ -1179,6 +1532,15 @@ def teacher_salary_detail(request, teacher_id, year, month):
         date__lt=last_day,
         status='present'
     ).select_related('class_schedule', 'class_schedule__class_obj')
+    
+    # Получаем все посещения для уроков не по расписанию
+    from classes.models import NonScheduledLesson, NonScheduledLessonAttendance
+    non_scheduled_attendances = NonScheduledLessonAttendance.objects.filter(
+        lesson__teacher=teacher,
+        lesson__date__gte=first_day,
+        lesson__date__lt=last_day,
+        is_present=True
+    ).select_related('lesson', 'student')
     
     # Используем рассчитанную зарплату для получения детальной информации
     salary_details = recalculated_salary
@@ -1193,18 +1555,45 @@ def teacher_salary_detail(request, teacher_id, year, month):
             unique_classes[key] = {
                 'date': attendance.date,
                 'class_obj': attendance.class_schedule.class_obj,
-                'class_schedule': attendance.class_schedule
+                'class_schedule': attendance.class_schedule,
+                'is_scheduled': True
+            }
+    
+    # Добавляем уроки не по расписанию
+    # Группируем по уникальным урокам не по расписанию
+    non_scheduled_lessons = {}
+    for attendance in non_scheduled_attendances:
+        lesson = attendance.lesson
+        key = (lesson.date, f'non_scheduled_{lesson.id}')
+        
+        if key not in non_scheduled_lessons:
+            non_scheduled_lessons[key] = {
+                'date': lesson.date,
+                'lesson': lesson,
+                'students': [],
+                'is_scheduled': False
+            }
+        
+        # Добавляем студента в список присутствующих
+        non_scheduled_lessons[key]['students'].append(attendance.student)
+    
+    # Добавляем уроки не по расписанию в общий список
+    for key, data in non_scheduled_lessons.items():
+        lesson = data['lesson']
+        unique_key = (data['date'], f'non_scheduled_{lesson.id}', lesson.id)
+        
+        if unique_key not in unique_classes:
+            unique_classes[unique_key] = {
+                'date': data['date'],
+                'non_scheduled_lesson': lesson,
+                'students_count': len(data['students']),
+                'is_scheduled': False
             }
     
     # Теперь группируем по датам
     attendance_by_date = {}
     for key, data in unique_classes.items():
         date_str = data['date'].strftime('%Y-%m-%d')
-        class_obj = data['class_obj']
-        class_schedule = data['class_schedule']
-        
-        # Определяем сумму за занятие используя вспомогательный метод
-        amount = TeacherSalary.calculate_lesson_payment(class_obj)
         
         if date_str not in attendance_by_date:
             attendance_by_date[date_str] = {
@@ -1214,15 +1603,49 @@ def teacher_salary_detail(request, teacher_id, year, month):
                 'total_amount': Decimal('0')
             }
         
-        # Добавляем информацию о классе
-        attendance_by_date[date_str]['classes'].append({
-            'class_name': class_obj.name,
-            'time': f"{class_schedule.start_time.strftime('%H:%M')} - {class_schedule.end_time.strftime('%H:%M')}",
-            'amount': amount
-        })
+        # Обрабатываем уроки по расписанию
+        if data.get('is_scheduled', True):
+            class_obj = data['class_obj']
+            class_schedule = data['class_schedule']
+            
+            # Определяем сумму за занятие используя вспомогательный метод
+            amount = TeacherSalary.calculate_lesson_payment(class_obj)
+            
+            # Добавляем информацию о классе
+            attendance_by_date[date_str]['classes'].append({
+                'class_name': class_obj.name,
+                'time': f"{class_schedule.start_time.strftime('%H:%M')} - {class_schedule.end_time.strftime('%H:%M')}",
+                'amount': amount,
+                'is_scheduled': True
+            })
+            
+            # Увеличиваем общую сумму за день
+            attendance_by_date[date_str]['total_amount'] += amount
         
-        # Увеличиваем общую сумму за день
-        attendance_by_date[date_str]['total_amount'] += amount
+        # Обрабатываем уроки не по расписанию
+        else:
+            lesson = data['non_scheduled_lesson']
+            students_count = data['students_count']
+            
+            # Определяем сумму за урок не по расписанию
+            # Сумма зависит от количества присутствующих студентов
+            amount = lesson.teacher_payment
+            
+            # Добавляем информацию о уроке не по расписанию
+            # Используем поле name вместо subject, и поле time вместо start_time/end_time
+            end_time = (timezone.datetime.combine(timezone.datetime.today(), lesson.time) + 
+                       timezone.timedelta(minutes=lesson.duration)).time()
+            
+            attendance_by_date[date_str]['classes'].append({
+                'class_name': f"{lesson.name} (Вне расписания)",
+                'time': f"{lesson.time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}",
+                'amount': amount,
+                'students_count': students_count,
+                'is_scheduled': False
+            })
+            
+            # Увеличиваем общую сумму за день
+            attendance_by_date[date_str]['total_amount'] += amount
     
     # Сортируем дни по дате
     attendance_days = sorted(attendance_by_date.values(), key=lambda x: x['date'])
@@ -1233,14 +1656,32 @@ def teacher_salary_detail(request, teacher_id, year, month):
     # Статистика по классам из рассчитанной зарплаты
     class_stats = []
     for class_id, data in salary_details.get('class_earnings', {}).items():
-        class_obj = next((c for c in teacher_classes if c.id == int(class_id)), None)
-        if class_obj:
+        # Проверяем, является ли class_id строкой, начинающейся с 'non_scheduled_lesson_'
+        if isinstance(class_id, str) and class_id.startswith('non_scheduled_lesson_'):
+            # Это урок не по расписанию, добавляем его в статистику
             class_stats.append({
-                'class_name': data.get('name', class_obj.name),
+                'class_name': data.get('name', 'Урок вне расписания'),
                 'attendances_count': data.get('lessons_conducted', 0),
-                'amount_per_lesson': TeacherSalary.calculate_lesson_payment(class_obj),
-                'total_amount': data.get('amount_earned', Decimal('0'))
+                'amount_per_lesson': data.get('amount_earned', Decimal('0')) / data.get('lessons_conducted', 1) if data.get('lessons_conducted', 0) > 0 else Decimal('0'),
+                'total_amount': data.get('amount_earned', Decimal('0')),
+                'is_scheduled': False
             })
+        else:
+            # Пытаемся преобразовать class_id в целое число
+            try:
+                class_id_int = int(class_id)
+                class_obj = next((c for c in teacher_classes if c.id == class_id_int), None)
+                if class_obj:
+                    class_stats.append({
+                        'class_name': data.get('name', class_obj.name),
+                        'attendances_count': data.get('lessons_conducted', 0),
+                        'amount_per_lesson': TeacherSalary.calculate_lesson_payment(class_obj),
+                        'total_amount': data.get('amount_earned', Decimal('0')),
+                        'is_scheduled': True
+                    })
+            except (ValueError, TypeError):
+                # Если не удалось преобразовать в целое число, пропускаем этот класс
+                pass
     
     # Используем общую сумму из рассчитанной зарплаты
     total_amount = salary_details.get('total', Decimal('0'))

@@ -1,9 +1,15 @@
 {% extends 'base.html' %}
 
-{% block title %}Сообщения - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Хабарламалар - Білім беру орталығы{% else %}Сообщения - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="{% url 'core:home' %}" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> {% if user_language == 'kk' %}Басты бетке оралу{% else %}Вернуться на главную{% endif %}
+        </a>
+    </div>
+
     {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -15,12 +21,11 @@
 
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1 class="display-5 fw-bold">Сообщения</h1>
-            <p class="text-muted fs-5">Общение с администрацией образовательного центра</p>
+            <h1 class="h3 mb-2">{% if user_language == 'kk' %}Хабарламалар{% else %}Сообщения{% endif %}</h1>
         </div>
         <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
             <a href="{% url 'messaging:create_conversation' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-2"></i> Новое сообщение
+                <i class="bi bi-plus-circle me-2"></i> {% if user_language == 'kk' %}Жаңа хабарлама{% else %}Новое сообщение{% endif %}
             </a>
         </div>
     </div>
@@ -36,14 +41,14 @@
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <h5 class="mb-1 {% if conversation.unread_count > 0 %}fw-bold{% endif %}">
-                                                {{ conversation.subject|default:"Без темы" }}
+                                                {{ conversation.subject|default:"{% if user_language == 'kk' %}Тақырыпсыз{% else %}Без темы{% endif %}" }}
                                                 {% if conversation.status == 'closed' %}
-                                                    <span class="badge bg-secondary ms-2">Закрыт</span>
+                                                    <span class="badge bg-secondary ms-2">{% if user_language == 'kk' %}Жабық{% else %}Закрыт{% endif %}</span>
                                                 {% endif %}
                                             </h5>
                                             <p class="mb-1 text-truncate" style="max-width: 500px;">{{ conversation.last_message|default:"" }}</p>
                                             <small class="text-muted">
-                                                Последнее сообщение: {{ conversation.last_message_date|date:"d.m.Y H:i" }}
+                                                {% if user_language == 'kk' %}Соңғы хабарлама: {{ conversation.last_message_date|date:"d.m.Y H:i" }}{% else %}Последнее сообщение: {{ conversation.last_message_date|date:"d.m.Y H:i" }}{% endif %}
                                             </small>
                                         </div>
                                         <div class="d-flex align-items-center">
@@ -59,10 +64,10 @@
                     {% else %}
                         <div class="text-center py-5">
                             <i class="bi bi-chat-left-text display-1 text-muted mb-3"></i>
-                            <h4>У вас пока нет сообщений</h4>
-                            <p class="text-muted mb-4">Начните новый диалог с администрацией</p>
+                            <h4>{% if user_language == 'kk' %}Сізде әлі хабарламалар жоқ{% else %}У вас пока нет сообщений{% endif %}</h4>
+                            <p class="text-muted mb-4">{% if user_language == 'kk' %}Әкімшілікпен жаңа диалог бастаңыз{% else %}Начните новый диалог с администрацией{% endif %}</p>
                             <a href="{% url 'messaging:create_conversation' %}" class="btn btn-primary">
-                                <i class="bi bi-plus-circle me-2"></i> Новое сообщение
+                                <i class="bi bi-plus-circle me-2"></i> {% if user_language == 'kk' %}Жаңа хабарлама{% else %}Новое сообщение{% endif %}
                             </a>
                         </div>
                     {% endif %}

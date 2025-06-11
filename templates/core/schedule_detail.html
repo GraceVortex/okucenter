@@ -89,7 +89,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Главная</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'core:schedule' %}">Расписание</a></li>
+                    <li class="breadcrumb-item"><a href="{% if user.is_student %}{% url 'classes:student_schedule' %}{% elif user.is_parent %}{% url 'classes:student_schedule' %}{% else %}{% url 'core:schedule' %}{% endif %}">Расписание</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ schedule.class_obj.name }}</li>
                 </ol>
             </nav>
@@ -117,7 +117,7 @@
                 </div>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <a href="{% url 'core:schedule' %}" class="btn btn-light px-4 py-2">
+                <a href="{% if user.is_student %}{% url 'classes:student_schedule' %}{% elif user.is_parent %}{% url 'classes:student_schedule' %}{% else %}{% url 'core:schedule' %}{% endif %}" class="btn btn-light px-4 py-2">
                     <i class="bi bi-arrow-left me-2"></i> Назад к расписанию
                 </a>
             </div>

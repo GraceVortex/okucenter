@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from accounts.models import Student, Teacher
 from classes.models import Class
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 class Transaction(models.Model):
@@ -70,14 +70,14 @@ class Transaction(models.Model):
     
     def clean(self):
         """Валидация на уровне модели"""
-        if self.amount <= 0 and self.transaction_type != 'refund':
+        if self.amount <= 0 and self.transaction_type not in ['refund']:
             raise ValidationError({
                 'amount': "Сумма должна быть положительной для типа транзакции '{}'.".format(
                     self.get_transaction_type_display())
             })
-        if self.amount >= 0 and self.transaction_type == 'refund':
+        if self.amount < 0 and self.transaction_type == 'refund':
             raise ValidationError({
-                'amount': "Сумма должна быть отрицательной для типа транзакции 'Возврат'."
+                'amount': "Сумма должна быть положительной для типа транзакции 'Возврат'."
             })
     
     def __str__(self):
@@ -249,11 +249,14 @@ class TeacherSalary(models.Model):
     def calculate_teacher_salary(teacher, month=None):
         """
         Рассчитывает зарплату учителя за указанный месяц
-        на основе проведенных занятий и типа оплаты (процент или фиксированная сумма)
+        на основе проведенных занятий и типа оплаты (процент или фиксированная сумма).
+        Учитывает как уроки по расписанию, так и уроки не по расписанию.
         """
         from attendance.models import Attendance
-        from classes.models import ClassSchedule # Убедимся, что импорт здесь
+        from classes.models import ClassSchedule
+        from classes.non_scheduled_lesson_models import NonScheduledLesson, NonScheduledLessonAttendance
         from django.db.models import Count, Sum, F, ExpressionWrapper, DecimalField, Case, When
+        from decimal import Decimal
         
         if month is None:
             month = TeacherSalary.get_current_month()
@@ -261,62 +264,89 @@ class TeacherSalary(models.Model):
         first_day_of_month = month
         if month.month == 12:
             last_day_of_month = datetime(month.year + 1, 1, 1).date() - timedelta(days=1)
+            next_month = datetime(month.year + 1, 1, 1).date()
         else:
             last_day_of_month = datetime(month.year, month.month + 1, 1).date() - timedelta(days=1)
+            next_month = datetime(month.year, month.month + 1, 1).date()
             
-        # Получаем подтвержденные посещения для классов учителя за указанный месяц
-        # Учитываем только те посещения, где учитель указан в Class.teacher
+        # 1. Получаем подтвержденные посещения для уроков по расписанию
         attendances = Attendance.objects.filter(
             class_schedule__class_obj__teacher=teacher,
             date__range=[first_day_of_month, last_day_of_month],
             status='present' # Только за присутствие
-            # Не требуем подтверждения рецепшеном, так как это может привести к неправильному расчету
-            # если посещение отмечено, но не подтверждено рецепшеном
         ).select_related('class_schedule__class_obj')
 
         total_salary = Decimal('0.00')
         class_earnings = {} # Для детальной информации по каждому классу
+        lessons_count = 0 # Общее количество уроков (по расписанию + не по расписанию)
         
-        # Группируем посещения по ClassSchedule, чтобы правильно считать уникальные уроки
-        # Это важно, если одно ClassSchedule может иметь несколько записей Attendance (например, разные студенты)
-        # но урок для учителя считается один раз.
-        
+        # 2. Обрабатываем уроки по расписанию
         # Сначала соберем уникальные проведенные уроки (дата + расписание)
         unique_lessons = set()
         for att in attendances:
             unique_lessons.add((att.date, att.class_schedule_id))
 
-        lessons_count = len(unique_lessons)
+        scheduled_lessons_count = len(unique_lessons)
+        lessons_count += scheduled_lessons_count
         
-        # Теперь рассчитаем зарплату на основе этих уникальных уроков
-        # Для этого нам нужно снова пройтись по посещениям или получить данные о ClassSchedule
-        
-        # Оптимизированный подход: агрегируем напрямую из Attendance, если возможно,
-        # или получаем детали ClassSchedule для каждого уникального урока.
-
-        # Пройдемся по уникальным урокам и рассчитаем зарплату
+        # Пройдемся по уникальным урокам по расписанию и рассчитаем зарплату
         for lesson_date, schedule_id in unique_lessons:
-            # Получаем объект ClassSchedule и связанный Class
             try:
                 schedule = ClassSchedule.objects.select_related('class_obj').get(id=schedule_id)
                 class_obj = schedule.class_obj
             except ClassSchedule.DoesNotExist:
-                continue # Пропускаем, если расписание не найдено (маловероятно)
+                continue
 
             class_id = class_obj.id
             if class_id not in class_earnings:
                 class_earnings[class_id] = {
                     'name': class_obj.name,
-                    'lessons_conducted': 0, # Количество проведенных уроков по этому курсу
-                    'amount_earned': Decimal('0.00') # Заработано по этому курсу
+                    'lessons_conducted': 0,
+                    'amount_earned': Decimal('0.00'),
+                    'is_scheduled': True
                 }
 
-            # Используем вспомогательный метод для расчета суммы за занятие
             base_amount_for_lesson = TeacherSalary.calculate_lesson_payment(class_obj)
             
             class_earnings[class_id]['lessons_conducted'] += 1
             class_earnings[class_id]['amount_earned'] += base_amount_for_lesson
             total_salary += base_amount_for_lesson
+            
+        # 3. Обрабатываем уроки не по расписанию
+        # Получаем все уроки не по расписанию для данного учителя за указанный месяц
+        non_scheduled_lessons = NonScheduledLesson.objects.filter(
+            teacher=teacher,
+            date__range=[first_day_of_month, last_day_of_month],
+            is_completed=True  # Учитываем только проведенные уроки
+        )
+        
+        # Для каждого урока не по расписанию получаем количество присутствовавших студентов
+        for lesson in non_scheduled_lessons:
+            # Получаем количество присутствовавших студентов
+            present_students = NonScheduledLessonAttendance.objects.filter(
+                lesson=lesson,
+                is_present=True
+            ).count()
+            
+            # Если есть присутствовавшие студенты, учитываем этот урок в зарплате
+            if present_students > 0:
+                lessons_count += 1
+                
+                # Создаем уникальный идентификатор для урока не по расписанию
+                non_scheduled_id = f'non_scheduled_lesson_{lesson.id}'
+                
+                if non_scheduled_id not in class_earnings:
+                    class_earnings[non_scheduled_id] = {
+                        'name': lesson.name,
+                        'lessons_conducted': 0,
+                        'amount_earned': Decimal('0.00'),
+                        'is_scheduled': False
+                    }
+                
+                # Используем поле teacher_payment для определения суммы оплаты учителю
+                class_earnings[non_scheduled_id]['lessons_conducted'] += 1
+                class_earnings[non_scheduled_id]['amount_earned'] += lesson.teacher_payment
+                total_salary += lesson.teacher_payment
         
         return {
             'total': total_salary,
@@ -348,72 +378,7 @@ class TeacherSalary(models.Model):
             
         return salary, created
 
-    # Метод reset_current_salary больше не нужен в таком виде,
-    # так как статус управляется через paid_amount и payment_status.
-    # Вместо него будут функции для выплаты аванса и основной зарплаты.за указанный месяц
-        attendances = Attendance.objects.filter(
-            class_schedule__class_obj__teacher=teacher,
-            date__gte=month,
-            date__lt=last_day,
-            reception_confirmed=True
-        )
-        
-        # Группируем посещения по классам для подсчета количества проведенных занятий
-        attendance_by_class = attendances.values('class_schedule__class_obj').annotate(
-            attended_count=Count('id')
-        )
-        
-        # Создаем словарь для быстрого доступа к количеству проведенных занятий по классу
-        attended_counts = {}
-        for item in attendance_by_class:
-            class_id = item['class_schedule__class_obj']
-            attended_counts[class_id] = item['attended_count']
-        
-        # Рассчитываем общее количество запланированных занятий по каждому классу за месяц
-        # Для простоты предположим, что в месяце 4 недели
-        scheduled_counts = {}
-        for schedule in class_schedules:
-            class_id = schedule.class_obj.id
-            if class_id not in scheduled_counts:
-                scheduled_counts[class_id] = 0
-            # Каждый день недели в расписании означает 4 занятия в месяц
-            scheduled_counts[class_id] += 4
-        
-        total_salary = Decimal('0.00')
-        class_earnings = {}
-        
-        # Рассчитываем зарплату по каждому классу
-        for attendance in attendances:
-            class_obj = attendance.class_schedule.class_obj
-            class_id = class_obj.id
-            
-            # Определяем базовую сумму в зависимости от типа оплаты
-            base_amount = TeacherSalary.calculate_lesson_payment(class_obj)
-            
-            # Добавляем в статистику по классам
-            if class_id not in class_earnings:
-                class_earnings[class_id] = {
-                    'class_name': class_obj.name,
-                    'amount': 0,
-                    'attendances': 0,
-                    'scheduled': scheduled_counts.get(class_id, 0)
-                }
-            
-            class_earnings[class_id]['amount'] += base_amount
-            class_earnings[class_id]['attendances'] += 1
-        
-        # Рассчитываем итоговую зарплату на основе статистики по классам
-        for class_id, data in class_earnings.items():
-            total_salary += data['amount']
-        
-        return {
-            'total': total_salary,
-            'class_earnings': class_earnings,
-            'attendances_count': attendances.count(),
-            'lessons_count': attendances.count(),
-            'scheduled_counts': scheduled_counts,
-            'attended_counts': attended_counts
-        }
+
     
     @staticmethod
     def get_or_create_salary(teacher, month=None):

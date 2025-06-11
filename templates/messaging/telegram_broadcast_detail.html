@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Детали Telegram рассылки{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Telegram тарату егжейлері{% else %}Детали Telegram рассылки{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -10,42 +10,42 @@
                 <div>
                     <h1 class="mb-0">{{ broadcast.title }}</h1>
                     <p class="text-muted">
-                        Создано: {{ broadcast.created_at|date:"d.m.Y H:i" }} | 
-                        Статус: 
+                        {% if user_language == 'kk' %}Жасалған күні{% else %}Создано{% endif %}: {{ broadcast.created_at|date:"d.m.Y H:i" }} | 
+                        {% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}: 
                         {% if broadcast.status == 'draft' %}
-                        <span class="badge bg-secondary">Черновик</span>
+                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Қолжазба{% else %}Черновик{% endif %}</span>
                         {% elif broadcast.status == 'scheduled' %}
-                        <span class="badge bg-info">Запланировано на {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</span>
+                        <span class="badge bg-info">{% if user_language == 'kk' %}Жоспарланған уақыты{% else %}Запланировано на{% endif %} {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</span>
                         {% elif broadcast.status == 'in_progress' %}
-                        <span class="badge bg-warning">В процессе</span>
+                        <span class="badge bg-warning">{% if user_language == 'kk' %}Жүріп жатыр{% else %}В процессе{% endif %}</span>
                         {% elif broadcast.status == 'completed' %}
-                        <span class="badge bg-success">Завершено</span>
+                        <span class="badge bg-success">{% if user_language == 'kk' %}Аяқталды{% else %}Завершено{% endif %}</span>
                         {% elif broadcast.status == 'failed' %}
                         <span class="badge bg-danger">Ошибка</span>
                         {% elif broadcast.status == 'cancelled' %}
-                        <span class="badge bg-secondary">Отменено</span>
+                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Тоқтатылды{% else %}Отменено{% endif %}</span>
                         {% endif %}
                     </p>
                 </div>
                 <div>
                     <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-outline-secondary me-2">
-                        <i class="fas fa-arrow-left me-1"></i> Назад к рассылкам
+                        <i class="fas fa-arrow-left me-1"></i> {% if user_language == 'kk' %}Таратуларға қайту{% else %}Назад к рассылкам{% endif %}
                     </a>
                     
                     {% if broadcast.status == 'draft' or broadcast.status == 'scheduled' %}
                     <a href="{% url 'messaging:send_telegram_broadcast' broadcast.id %}" class="btn btn-success me-2">
-                        <i class="fas fa-paper-plane me-1"></i> Отправить
+                        <i class="fas fa-paper-plane me-1"></i> {% if user_language == 'kk' %}Жіберу{% else %}Отправить{% endif %}
                     </a>
                     {% endif %}
                     
                     {% if broadcast.status == 'scheduled' %}
                     <a href="{% url 'messaging:cancel_telegram_broadcast' broadcast.id %}" class="btn btn-warning me-2">
-                        <i class="fas fa-ban me-1"></i> Отменить
+                        <i class="fas fa-ban me-1"></i> {% if user_language == 'kk' %}Тоқтату{% else %}Отменить{% endif %}
                     </a>
                     {% endif %}
                     
-                    <a href="{% url 'messaging:delete_telegram_broadcast' broadcast.id %}" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить эту рассылку?')">
-                        <i class="fas fa-trash me-1"></i> Удалить
+                    <a href="{% url 'messaging:delete_telegram_broadcast' broadcast.id %}" class="btn btn-danger" onclick="var confirmMsg = '{% if user_language == \'kk\' %}Бұл таратуды жойғыңыз келетініне сенімдісіз бе?{% else %}Вы уверены, что хотите удалить эту рассылку?{% endif %}'; return confirm(confirmMsg);">
+                        <i class="fas fa-trash me-1"></i> {% if user_language == 'kk' %}Жою{% else %}Удалить{% endif %}
                     </a>
                 </div>
             </div>
@@ -57,28 +57,28 @@
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Информация о рассылке</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Тарату туралы ақпарат{% else %}Информация о рассылке{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <h6 class="text-muted mb-2">Получатели</h6>
+                        <h6 class="text-muted mb-2">{% if user_language == 'kk' %}Алушылар{% else %}Получатели{% endif %}</h6>
                         <p>
                             {% if broadcast.recipient_type == 'students' %}
-                            <i class="fas fa-user-graduate text-primary me-2"></i> Только студенты
+                            <i class="fas fa-user-graduate text-primary me-2"></i> {% if user_language == 'kk' %}Тек студенттер{% else %}Только студенты{% endif %}
                             {% elif broadcast.recipient_type == 'parents' %}
-                            <i class="fas fa-user-friends text-success me-2"></i> Только родители
+                            <i class="fas fa-user-friends text-success me-2"></i> {% if user_language == 'kk' %}Тек ата-аналар{% else %}Только родители{% endif %}
                             {% elif broadcast.recipient_type == 'teachers' %}
-                            <i class="fas fa-chalkboard-teacher text-info me-2"></i> Только преподаватели
+                            <i class="fas fa-chalkboard-teacher text-info me-2"></i> {% if user_language == 'kk' %}Тек оқытушылар{% else %}Только преподаватели{% endif %}
                             {% elif broadcast.recipient_type == 'both' %}
                             <i class="fas fa-users text-warning me-2"></i> Студенты и родители
                             {% else %}
-                            <i class="fas fa-users text-secondary me-2"></i> Все пользователи
+                            <i class="fas fa-users text-secondary me-2"></i> {% if user_language == 'kk' %}Барлық пайдаланушылар{% else %}Все пользователи{% endif %}
                             {% endif %}
                         </p>
                         
                         <div class="mt-2">
                             {% if broadcast.target_class %}
-                            <span class="badge bg-primary me-2">Класс: {{ broadcast.target_class.name }}</span>
+                            <span class="badge bg-primary me-2">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}: {{ broadcast.target_class.name }}</span>
                             {% endif %}
                             
                             {% if broadcast.target_schedule %}
@@ -91,57 +91,57 @@
                             
                             {% if broadcast.target_day %}
                             <span class="badge bg-secondary me-2">
-                                День: {{ broadcast.get_target_day_display }}
+                                {% if user_language == 'kk' %}Күн{% else %}День{% endif %}: {{ broadcast.get_target_day_display }}
                             </span>
                             {% endif %}
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <h6 class="text-muted mb-2">Статистика</h6>
+                        <h6 class="text-muted mb-2">{% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %}</h6>
                         <div class="row">
                             <div class="col-6">
-                                <p class="mb-1"><strong>Всего:</strong> {{ broadcast.total_recipients }}</p>
+                                <p class="mb-1"><strong>{% if user_language == 'kk' %}Барлығы:{% else %}Всего:{% endif %}</strong> {{ broadcast.total_recipients }}</p>
                             </div>
                             <div class="col-6">
-                                <p class="mb-1"><strong>Отправлено:</strong> {{ broadcast.successful_sent }}</p>
+                                <p class="mb-1"><strong>{% if user_language == 'kk' %}Жіберілді:{% else %}Отправлено:{% endif %}</strong> {{ broadcast.successful_sent }}</p>
                             </div>
                             <div class="col-6">
-                                <p class="mb-1"><strong>Ошибок:</strong> {{ broadcast.failed_sent }}</p>
+                                <p class="mb-1"><strong>{% if user_language == 'kk' %}Қателер:{% else %}Ошибок:{% endif %}</strong> {{ broadcast.failed_sent }}</p>
                             </div>
                             <div class="col-6">
-                                <p class="mb-1"><strong>Ожидает:</strong> {{ message_stats.pending }}</p>
+                                <p class="mb-1"><strong>{% if user_language == 'kk' %}Күтуде:{% else %}Ожидает:{% endif %}</strong> {{ message_stats.pending }}</p>
                             </div>
                         </div>
                         
                         {% if broadcast.total_recipients > 0 %}
                         <div class="progress mt-2">
                             {% with sent_percent=broadcast.successful_sent|default:0|floatformat:0 %}
-                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ sent_percent }}%;" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100">{{ sent_percent }}%</div>
+                            <div class="progress-bar bg-success progress-value" role="progressbar" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100" data-value="{{ sent_percent }}">{{ sent_percent }}%</div>
                             {% endwith %}
                         </div>
                         {% endif %}
                     </div>
                     
                     <div class="mb-3">
-                        <h6 class="text-muted mb-2">Время</h6>
-                        <p class="mb-1"><strong>Создано:</strong> {{ broadcast.created_at|date:"d.m.Y H:i" }}</p>
+                        <h6 class="text-muted mb-2">{% if user_language == 'kk' %}Уақыт{% else %}Время{% endif %}</h6>
+                        <p class="mb-1"><strong>{% if user_language == 'kk' %}Жасалған:{% else %}Создано:{% endif %}</strong> {{ broadcast.created_at|date:"d.m.Y H:i" }}</p>
                         
                         {% if broadcast.scheduled_at %}
-                        <p class="mb-1"><strong>Запланировано:</strong> {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</p>
+                        <p class="mb-1"><strong>{% if user_language == 'kk' %}Жоспарланған:{% else %}Запланировано:{% endif %}</strong> {{ broadcast.scheduled_at|date:"d.m.Y H:i" }}</p>
                         {% endif %}
                         
                         {% if broadcast.started_at %}
-                        <p class="mb-1"><strong>Начато:</strong> {{ broadcast.started_at|date:"d.m.Y H:i" }}</p>
+                        <p class="mb-1"><strong>{% if user_language == 'kk' %}Басталған:{% else %}Начато:{% endif %}</strong> {{ broadcast.started_at|date:"d.m.Y H:i" }}</p>
                         {% endif %}
                         
                         {% if broadcast.completed_at %}
-                        <p class="mb-1"><strong>Завершено:</strong> {{ broadcast.completed_at|date:"d.m.Y H:i" }}</p>
+                        <p class="mb-1"><strong>{% if user_language == 'kk' %}Аяқталған:{% else %}Завершено:{% endif %}</strong> {{ broadcast.completed_at|date:"d.m.Y H:i" }}</p>
                         {% endif %}
                     </div>
                     
                     <div>
-                        <h6 class="text-muted mb-2">Создатель</h6>
+                        <h6 class="text-muted mb-2">{% if user_language == 'kk' %}Құрушы{% else %}Создатель{% endif %}</h6>
                         <p class="mb-1">{{ broadcast.created_by.get_full_name }}</p>
                     </div>
                 </div>
@@ -150,57 +150,57 @@
             <!-- Статусы сообщений -->
             <div class="card mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Статусы сообщений</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Хабарлама күйлері{% else %}Статусы сообщений{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Ожидает</span>
+                            <span>{% if user_language == 'kk' %}Күтуде{% else %}Ожидает{% endif %}</span>
                             <span>{{ message_stats.pending }}</span>
                         </div>
-                        <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress mb-3" style="height:10px">
                             {% with pending_percent=message_stats.pending|default:0|floatformat:0 %}
-                            <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ pending_percent }}%;" aria-valuenow="{{ pending_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-secondary progress-value" role="progressbar" aria-valuenow="{{ pending_percent }}" aria-valuemin="0" aria-valuemax="100" data-value="{{ pending_percent }}">{{ pending_percent }}%</div>
                             {% endwith %}
                         </div>
                         
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Отправлено</span>
+                            <span>{% if user_language == 'kk' %}Жіберілді{% else %}Отправлено{% endif %}</span>
                             <span>{{ message_stats.sent }}</span>
                         </div>
-                        <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress mb-3" style="height:10px">
                             {% with sent_percent=message_stats.sent|default:0|floatformat:0 %}
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ sent_percent }}%;" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-primary progress-value" role="progressbar" aria-valuenow="{{ sent_percent }}" aria-valuemin="0" aria-valuemax="100" data-value="{{ sent_percent }}">{{ sent_percent }}%</div>
                             {% endwith %}
                         </div>
                         
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Доставлено</span>
+                            <span>{% if user_language == 'kk' %}Жеткізілді{% else %}Доставлено{% endif %}</span>
                             <span>{{ message_stats.delivered }}</span>
                         </div>
-                        <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress mb-3" style="height:10px">
                             {% with delivered_percent=message_stats.delivered|default:0|floatformat:0 %}
-                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ delivered_percent }}%;" aria-valuenow="{{ delivered_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-info progress-value" role="progressbar" aria-valuenow="{{ delivered_percent }}" aria-valuemin="0" aria-valuemax="100" data-value="{{ delivered_percent }}">{{ delivered_percent }}%</div>
                             {% endwith %}
                         </div>
                         
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Прочитано</span>
+                            <span>{% if user_language == 'kk' %}Оқылды{% else %}Прочитано{% endif %}</span>
                             <span>{{ message_stats.read }}</span>
                         </div>
-                        <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress mb-3" style="height:10px">
                             {% with read_percent=message_stats.read|default:0|floatformat:0 %}
-                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ read_percent }}%;" aria-valuenow="{{ read_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-success progress-value" role="progressbar" aria-valuenow="{{ read_percent }}" aria-valuemin="0" aria-valuemax="100" data-value="{{ read_percent }}">{{ read_percent }}%</div>
                             {% endwith %}
                         </div>
                         
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Ошибки</span>
+                            <span>{% if user_language == 'kk' %}Қателер{% else %}Ошибки{% endif %}</span>
                             <span>{{ message_stats.failed }}</span>
                         </div>
-                        <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress mb-3" style="height:10px">
                             {% with failed_percent=message_stats.failed|default:0|floatformat:0 %}
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ failed_percent }}%;" aria-valuenow="{{ failed_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-danger progress-value" role="progressbar" aria-valuenow="{{ failed_percent }}" aria-valuemin="0" aria-valuemax="100" data-value="{{ failed_percent }}">{{ failed_percent }}%</div>
                             {% endwith %}
                         </div>
                     </div>
@@ -212,7 +212,7 @@
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Предпросмотр сообщения</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Хабарламаның алдын ала көру{% else %}Предпросмотр сообщения{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="telegram-preview">
@@ -222,8 +222,8 @@
                                     <i class="fab fa-telegram-plane"></i>
                                 </div>
                                 <div class="ms-2">
-                                    <div class="telegram-name">Ваш бот</div>
-                                    <div class="telegram-status">онлайн</div>
+                                    <div class="telegram-name">{% if user_language == 'kk' %}Сіздің ботыңыз{% else %}Ваш бот{% endif %}</div>
+                                    <div class="telegram-status">{% if user_language == 'kk' %}онлайн{% else %}онлайн{% endif %}</div>
                                 </div>
                             </div>
                         </div>
@@ -240,21 +240,21 @@
                             {% if broadcast.media_file %}
                             <div class="telegram-media mt-2">
                                 {% if broadcast.media_type == 'photo' %}
-                                <img src="{{ broadcast.media_file.url }}" alt="Медиа" class="img-fluid rounded mb-2">
+                                <img src="{{ broadcast.media_file.url }}" alt="{% if user_language == 'kk' %}Медиа{% else %}Медиа{% endif %}" class="img-fluid rounded mb-2">
                                 {% elif broadcast.media_type == 'video' %}
                                 <div class="text-center p-3 bg-light rounded">
                                     <i class="fas fa-video fa-3x text-danger"></i>
-                                    <p class="mt-2 mb-0">Видео</p>
+                                    <p class="mt-2 mb-0">{% if user_language == 'kk' %}Бейне{% else %}Видео{% endif %}</p>
                                 </div>
                                 {% elif broadcast.media_type == 'audio' %}
                                 <div class="text-center p-3 bg-light rounded">
                                     <i class="fas fa-music fa-3x text-info"></i>
-                                    <p class="mt-2 mb-0">Аудио</p>
+                                    <p class="mt-2 mb-0">{% if user_language == 'kk' %}Аудио{% else %}Аудио{% endif %}</p>
                                 </div>
                                 {% else %}
                                 <div class="text-center p-3 bg-light rounded">
                                     <i class="fas fa-file fa-3x text-secondary"></i>
-                                    <p class="mt-2 mb-0">Документ</p>
+                                    <p class="mt-2 mb-0">{% if user_language == 'kk' %}Құжат{% else %}Документ{% endif %}</p>
                                 </div>
                                 {% endif %}
                             </div>
@@ -276,15 +276,15 @@
             {% if broadcast.has_buttons and buttons %}
             <div class="card mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Кнопки</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Түймелер{% else %}Кнопки{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Текст</th>
-                                    <th>Данные</th>
+                                    <th>{% if user_language == 'kk' %}Мәтін{% else %}Текст{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Деректер{% else %}Данные{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -307,8 +307,8 @@
             <div class="card">
                 <div class="card-header bg-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Сообщения</h5>
-                        <span class="badge bg-primary">{{ messages.paginator.count }}</span>
+                        <h5 class="mb-0">{% if user_language == 'kk' %}Хабарламалар{% else %}Сообщения{% endif %}</h5>
+                        <span class="badge bg-info me-2">{% if user_language == 'kk' %}Пән{% else %}Предмет{% endif %}: {{ broadcast.target_subject.name }}</span>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -319,9 +319,9 @@
                                 <div>
                                     <h6 class="mb-1">
                                         {% if message.student %}
-                                        <i class="fas fa-user-graduate text-primary me-1" title="Студент"></i> {{ message.student.get_full_name }}
+                                        <i class="fas fa-user-graduate text-primary me-1" title="{% if user_language == 'kk' %}Студент{% else %}Студент{% endif %}"></i> {{ message.student.get_full_name }}
                                         {% elif message.parent %}
-                                        <i class="fas fa-user-friends text-success me-1" title="Родитель"></i> {{ message.parent.get_full_name }}
+                                        <i class="fas fa-user-friends text-success me-1" title="{% if user_language == 'kk' %}Ата-ана{% else %}Родитель{% endif %}"></i> {{ message.parent.get_full_name }}
                                         {% else %}
                                         <i class="fas fa-user text-secondary me-1"></i> {{ message.recipient.get_full_name }}
                                         {% endif %}
@@ -329,21 +329,21 @@
                                     <p class="small text-muted mb-0">
                                         ID: {{ message.recipient.telegram_id }}
                                         {% if message.sent_at %}
-                                        | Отправлено: {{ message.sent_at|date:"d.m.Y H:i" }}
+                                        | {% if user_language == 'kk' %}Жіберілді{% else %}Отправлено{% endif %}: {{ message.sent_at|date:"d.m.Y H:i" }}
                                         {% endif %}
                                     </p>
                                 </div>
                                 <div>
                                     {% if message.status == 'pending' %}
-                                    <span class="badge bg-secondary">Ожидает</span>
+                                    <span class="badge bg-secondary">{% if user_language == 'kk' %}Күтуде{% else %}Ожидает{% endif %}</span>
                                     {% elif message.status == 'sent' %}
-                                    <span class="badge bg-primary">Отправлено</span>
+                                    <span class="badge bg-primary">{% if user_language == 'kk' %}Жіберілді{% else %}Отправлено{% endif %}</span>
                                     {% elif message.status == 'delivered' %}
-                                    <span class="badge bg-info">Доставлено</span>
+                                    <span class="badge bg-info">{% if user_language == 'kk' %}Жеткізілді{% else %}Доставлено{% endif %}</span>
                                     {% elif message.status == 'read' %}
-                                    <span class="badge bg-success">Прочитано</span>
+                                    <span class="badge bg-success">{% if user_language == 'kk' %}Оқылды{% else %}Прочитано{% endif %}</span>
                                     {% elif message.status == 'failed' %}
-                                    <span class="badge bg-danger">Ошибка</span>
+                                    <span class="badge bg-danger">{% if user_language == 'kk' %}Қате{% else %}Ошибка{% endif %}</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -351,7 +351,7 @@
                             {% if message.error_message %}
                             <div class="mt-2">
                                 <div class="alert alert-danger py-1 px-2 mb-0">
-                                    <small>{{ message.error_message }}</small>
+                                    <span class="text-danger">{% if user_language == 'kk' %}Қате{% else %}Ошибка{% endif %}: {{ message.error_message }}</span>
                                 </div>
                             </div>
                             {% endif %}
@@ -360,7 +360,7 @@
                         <div class="text-center py-4">
                             <div class="text-muted">
                                 <i class="fas fa-inbox fa-3x mb-3"></i>
-                                <p>Нет сообщений для отображения</p>
+                                <p>{% if user_language == 'kk' %}Хабарламалар жоқ{% else %}Нет сообщений{% endif %}</p>
                             </div>
                         </div>
                         {% endfor %}
@@ -373,17 +373,17 @@
                         <ul class="pagination justify-content-center mb-0">
                             {% if messages.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page=1">&laquo; Первая</a>
+                                <a class="page-link" href="?page=1">{% if user_language == 'kk' %}Бірінші &laquo;{% else %}Первая &laquo;{% endif %}</a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ messages.previous_page_number }}">Пред.</a>
+                                <a class="page-link" href="?page={{ messages.previous_page_number }}">{% if user_language == 'kk' %}Алд.{% else %}Пред.{% endif %}</a>
                             </li>
                             {% else %}
                             <li class="page-item disabled">
-                                <span class="page-link">&laquo; Первая</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Бірінші &laquo;{% else %}Первая &laquo;{% endif %}</span>
                             </li>
                             <li class="page-item disabled">
-                                <span class="page-link">Пред.</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Алд.{% else %}Пред.{% endif %}</span>
                             </li>
                             {% endif %}
                             
@@ -395,17 +395,17 @@
                             
                             {% if messages.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ messages.next_page_number }}">След.</a>
+                                <a class="page-link" href="?page={{ messages.next_page_number }}">{% if user_language == 'kk' %}Кел.{% else %}След.{% endif %}</a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ messages.paginator.num_pages }}">Последняя &raquo;</a>
+                                <a class="page-link" href="?page={{ messages.paginator.num_pages }}">{% if user_language == 'kk' %}Соңғы &raquo;{% else %}Последняя &raquo;{% endif %}</a>
                             </li>
                             {% else %}
                             <li class="page-item disabled">
-                                <span class="page-link">След.</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Кел.{% else %}След.{% endif %}</span>
                             </li>
                             <li class="page-item disabled">
-                                <span class="page-link">Последняя &raquo;</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Соңғы &raquo;{% else %}Последняя &raquo;{% endif %}</span>
                             </li>
                             {% endif %}
                         </ul>
@@ -499,17 +499,29 @@
     }
 </style>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Установка ширины прогресс-баров на основе data-value
+    const progressBars = document.querySelectorAll('.progress-value');
+    progressBars.forEach(function(bar) {
+      const value = bar.getAttribute('data-value');
+      bar.style.width = value + '%';
+    });
+  });
+</script>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Автоматическое обновление страницы, если рассылка в процессе
-        {% if broadcast.status == 'in_progress' %}
-        setTimeout(function() {
-            location.reload();
-        }, 5000); // Обновление каждые 5 секунд
-        {% endif %}
+        var broadcastStatus = "{{ broadcast.status }}";
+        if (broadcastStatus === 'in_progress') {
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000); // Обновление каждые 5 секунд
+        }
     });
 </script>
 {% endblock %}

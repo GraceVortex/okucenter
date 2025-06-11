@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Создание Telegram рассылки{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Telegram тарату жасау{% else %}Создание Telegram рассылки{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -8,12 +8,12 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="mb-0">Создание Telegram рассылки</h1>
-                    <p class="text-muted">Заполните форму для создания новой рассылки</p>
+                    <h1 class="mb-0">{% if user_language == 'kk' %}Telegram тарату жасау{% else %}Создание Telegram рассылки{% endif %}</h1>
+                    <p class="text-muted">{% if user_language == 'kk' %}Жаңа тарату жасау үшін форманы толтырыңыз{% else %}Заполните форму для создания новой рассылки{% endif %}</p>
                 </div>
                 <div>
                     <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Назад к рассылкам
+                        <i class="fas fa-arrow-left me-1"></i> {% if user_language == 'kk' %}Таратуларға қайту{% else %}Назад к рассылкам{% endif %}
                     </a>
                 </div>
             </div>
@@ -28,40 +28,40 @@
                         {% csrf_token %}
                         
                         <div class="mb-4">
-                            <h5 class="mb-3">Основная информация</h5>
+                            <h5 class="mb-3">{% if user_language == 'kk' %}Негізгі ақпарат{% else %}Основная информация{% endif %}</h5>
                             <div class="mb-3">
-                                <label for="title" class="form-label">Название рассылки <span class="text-danger">*</span></label>
+                                <label for="title" class="form-label">{% if user_language == 'kk' %}Тарату атауы{% else %}Название рассылки{% endif %} <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="title" name="title" required>
-                                <div class="form-text">Внутреннее название для идентификации рассылки</div>
+                                <div class="form-text">{% if user_language == 'kk' %}Таратуды сәйкестендіру үшін ішкі атау{% else %}Внутреннее название для идентификации рассылки{% endif %}</div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="message" class="form-label">Текст сообщения <span class="text-danger">*</span></label>
+                                <label for="message" class="form-label">{% if user_language == 'kk' %}Хабарлама мәтіні{% else %}Текст сообщения{% endif %} <span class="text-danger">*</span></label>
                                 <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
                                 <div class="form-text">
-                                    Поддерживается HTML-форматирование и переменные:
+                                    {% if user_language == 'kk' %}HTML-пішімдеу және айнымалылар қолданылады{% else %}Поддерживается HTML-форматирование и переменные{% endif %}:
                                     <ul class="mt-1">
-                                        <li><code>{имя}</code> - имя получателя</li>
-                                        <li><code>{имя_студента}</code> - имя студента (для родителей)</li>
-                                        <li><code>{имя_родителя}</code> - имя родителя (для родителей)</li>
-                                        <li><code>{класс}</code> - название класса</li>
+                                        <li><code>{имя}</code> - {% if user_language == 'kk' %}алушының аты{% else %}имя получателя{% endif %}</li>
+                                        <li><code>{имя_студента}</code> - {% if user_language == 'kk' %}студенттің аты (ата-аналар үшін){% else %}имя студента (для родителей){% endif %}</li>
+                                        <li><code>{имя_родителя}</code> - {% if user_language == 'kk' %}ата-ананың аты (ата-аналар үшін){% else %}имя родителя (для родителей){% endif %}</li>
+                                        <li><code>{класс}</code> - {% if user_language == 'kk' %}сынып атауы{% else %}название класса{% endif %}</li>
                                     </ul>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="media_file" class="form-label">Медиа-файл (опционально)</label>
+                                <label for="media_file" class="form-label">{% if user_language == 'kk' %}Медиа-файл (міндетті емес){% else %}Медиа-файл (опционально){% endif %}</label>
                                 <input type="file" class="form-control" id="media_file" name="media_file">
-                                <div class="form-text">Поддерживаются изображения, видео, аудио и документы</div>
+                                <div class="form-text">{% if user_language == 'kk' %}Суреттер, бейне, аудио және құжаттар қолданылады{% else %}Поддерживаются изображения, видео, аудио и документы{% endif %}</div>
                             </div>
                         </div>
                         
                         <div class="mb-4">
-                            <h5 class="mb-3">Кнопки (опционально)</h5>
+                            <h5 class="mb-3">{% if user_language == 'kk' %}Түймелер (міндетті емес){% else %}Кнопки (опционально){% endif %}</h5>
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" id="has_buttons" name="has_buttons">
                                 <label class="form-check-label" for="has_buttons">
-                                    Добавить интерактивные кнопки
+                                    {% if user_language == 'kk' %}Интерактивті түймелерді қосу{% else %}Добавить интерактивные кнопки{% endif %}
                                 </label>
                             </div>
                             
@@ -94,40 +94,40 @@
                                 </div>
                                 
                                 <button type="button" id="add_button" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-plus me-1"></i> Добавить кнопку
+                                    <i class="fas fa-plus me-1"></i> {% if user_language == 'kk' %}Түйме қосу{% else %}Добавить кнопку{% endif %}
                                 </button>
                             </div>
                         </div>
                         
                         <div class="mb-4">
-                            <h5 class="mb-3">Получатели</h5>
+                            <h5 class="mb-3">{% if user_language == 'kk' %}Алушылар{% else %}Получатели{% endif %}</h5>
                             <div class="mb-3">
-                                <label for="recipient_type" class="form-label">Тип получателей <span class="text-danger">*</span></label>
+                                <label for="recipient_type" class="form-label">{% if user_language == 'kk' %}Алушылар түрі{% else %}Тип получателей{% endif %} <span class="text-danger">*</span></label>
                                 <select class="form-select" id="recipient_type" name="recipient_type" required>
-                                    <option value="">Выберите тип получателей</option>
-                                    <option value="students">Только студенты</option>
-                                    <option value="parents">Только родители</option>
-                                    <option value="teachers">Только преподаватели</option>
-                                    <option value="both">Студенты и родители</option>
-                                    <option value="all">Все</option>
+                                    <option value="">{% if user_language == 'kk' %}Алушылар түрін таңдаңыз{% else %}Выберите тип получателей{% endif %}</option>
+                                    <option value="students">{% if user_language == 'kk' %}Тек студенттер{% else %}Только студенты{% endif %}</option>
+                                    <option value="parents">{% if user_language == 'kk' %}Тек ата-аналар{% else %}Только родители{% endif %}</option>
+                                    <option value="teachers">{% if user_language == 'kk' %}Тек оқытушылар{% else %}Только преподаватели{% endif %}</option>
+                                    <option value="both">{% if user_language == 'kk' %}Студенттер және ата-аналар{% else %}Студенты и родители{% endif %}</option>
+                                    <option value="all">{% if user_language == 'kk' %}Барлығы{% else %}Все{% endif %}</option>
                                 </select>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="target_class" class="form-label">Класс (опционально)</label>
+                                <label for="target_class" class="form-label">{% if user_language == 'kk' %}Сынып (міндетті емес){% else %}Класс (опционально){% endif %}</label>
                                 <select class="form-select" id="target_class" name="target_class">
-                                    <option value="">Все классы</option>
+                                    <option value="">{% if user_language == 'kk' %}Сыныпты таңдаңыз{% else %}Выберите класс{% endif %}</option>
                                     {% for class in classes %}
                                     <option value="{{ class.id }}">{{ class.name }}</option>
                                     {% endfor %}
                                 </select>
-                                <div class="form-text">Выберите класс для фильтрации получателей</div>
+                                <div class="form-text">{% if user_language == 'kk' %}Алушыларды сүзу үшін сыныпты таңдаңыз{% else %}Выберите класс для фильтрации получателей{% endif %}</div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="target_schedule" class="form-label">Расписание (опционально)</label>
+                                <label for="target_schedule" class="form-label">{% if user_language == 'kk' %}Кесте (міндетті емес){% else %}Расписание (опционально){% endif %}</label>
                                 <select class="form-select" id="target_schedule" name="target_schedule">
-                                    <option value="">Все расписания</option>
+                                    <option value="now">{% if user_language == 'kk' %}Қазір жіберу{% else %}Отправить сейчас{% endif %}</option>
                                     {% for schedule in schedules %}
                                     <option value="{{ schedule.id }}" data-class="{{ schedule.class_obj.id }}">
                                         {{ schedule.class_obj.name }} - 
@@ -136,40 +136,40 @@
                                     </option>
                                     {% endfor %}
                                 </select>
-                                <div class="form-text">Выберите конкретное расписание для фильтрации получателей</div>
+                                <div class="form-text">{% if user_language == 'kk' %}Алушыларды сүзу үшін расписание таңдаңыз{% else %}Выберите расписание для фильтрации получателей{% endif %}</div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="target_day" class="form-label">День недели (опционально)</label>
+                                <label for="target_day" class="form-label">{% if user_language == 'kk' %}Апта күні (міндетті емес){% else %}День недели (опционально){% endif %}</label>
                                 <select class="form-select" id="target_day" name="target_day">
-                                    <option value="">Все дни</option>
+                                    <option value="">{% if user_language == 'kk' %}Апта күнін таңдаңыз{% else %}Выберите день недели{% endif %}</option>
                                     {% for day_id, day_name in days_of_week %}
                                     <option value="{{ day_id }}">{{ day_name }}</option>
                                     {% endfor %}
                                 </select>
-                                <div class="form-text">Выберите день недели для фильтрации получателей</div>
+                                <div class="form-text">{% if user_language == 'kk' %}Алушыларды сүзу үшін день тижня таңдаңыз{% else %}Выберите день недели для фильтрации получателей{% endif %}</div>
                             </div>
                             
                             <div class="alert alert-info" id="recipients_info">
-                                <i class="fas fa-info-circle me-2"></i> Выберите параметры для определения получателей
+                                <i class="fas fa-info-circle me-2"></i> {% if user_language == 'kk' %}Алушыларды анықтау үшін параметрлерді таңдаңыз{% else %}Выберите параметры для определения получателей{% endif %}
                             </div>
                         </div>
                         
                         <div class="mb-4">
-                            <h5 class="mb-3">Время отправки</h5>
+                            <h5 class="mb-3">{% if user_language == 'kk' %}Жіберу уақыты{% else %}Время отправки{% endif %}</h5>
                             <div class="mb-3">
-                                <label for="scheduled_at" class="form-label">Запланировать отправку (опционально)</label>
+                                <label for="scheduled_at" class="form-label">{% if user_language == 'kk' %}Жіберу уақытын белгілеу (міндетті емес){% else %}Запланировать отправку (опционально){% endif %}</label>
                                 <input type="datetime-local" class="form-control" id="scheduled_at" name="scheduled_at">
-                                <div class="form-text">Оставьте пустым для создания черновика без отправки</div>
+                                <div class="form-text">{% if user_language == 'kk' %}Бос қалдыру арқылы жіберу уақытын белгілемейді{% else %}Оставьте пустым для создания черновика без отправки{% endif %}</div>
                             </div>
                         </div>
                         
                         <div class="d-flex justify-content-between">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Сохранить как черновик
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-save me-1"></i> {% if user_language == 'kk' %}Қолжазба ретінде сақтау{% else %}Сохранить как черновик{% endif %}
                             </button>
                             <button type="submit" name="send_now" class="btn btn-success">
-                                <i class="fas fa-paper-plane me-1"></i> Отправить сейчас
+                                <i class="fas fa-paper-plane me-1"></i> {% if user_language == 'kk' %}Қазір жіберу{% else %}Отправить сейчас{% endif %}
                             </button>
                         </div>
                     </form>
@@ -180,7 +180,7 @@
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Предпросмотр</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Алдын ала қарау{% else %}Предпросмотр{% endif %}</h5>
                 </div>
                 <div class="card-body">
                     <div class="telegram-preview">
@@ -190,22 +190,22 @@
                                     <i class="fab fa-telegram-plane"></i>
                                 </div>
                                 <div class="ms-2">
-                                    <div class="telegram-name">Ваш бот</div>
-                                    <div class="telegram-status">онлайн</div>
+                                    <div class="telegram-name">{% if user_language == 'kk' %}Сіздің бот{% else %}Ваш бот{% endif %}</div>
+                                    <div class="telegram-status">{% if user_language == 'kk' %}онлайн{% else %}онлайн{% endif %}</div>
                                 </div>
                             </div>
                         </div>
                         <div class="telegram-messages" id="preview_container">
                             <div class="telegram-message">
                                 <div class="telegram-message-text" id="preview_text">
-                                    Предпросмотр сообщения будет отображаться здесь
+                                    {% if user_language == 'kk' %}Хабарламаның алдын ала қарауы осында көрсетіледі{% else %}Предпросмотр сообщения будет отображаться здесь{% endif %}
                                 </div>
                                 <div class="telegram-message-time">
-                                    Сейчас
+                                    {% if user_language == 'kk' %}Қазір{% else %}Сейчас{% endif %}
                                 </div>
                             </div>
                             <div class="telegram-media d-none" id="preview_media">
-                                <img src="" alt="Медиа" class="img-fluid rounded mb-2" id="preview_media_content">
+                                <img src="" alt="{% if user_language == 'kk' %}Медиа{% else %}Медиа{% endif %}" class="img-fluid rounded mb-2" id="preview_media_content">
                             </div>
                             <div class="telegram-buttons d-none" id="preview_buttons">
                                 <!-- Кнопки будут добавлены динамически -->
@@ -217,34 +217,34 @@
             
             <div class="card">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0">Помощь</h5>
+                    <h5 class="mb-0">{% if user_language == 'kk' %}Көмек{% else %}Помощь{% endif %}</h5>
                 </div>
                 <div class="card-body">
-                    <h6>HTML-форматирование</h6>
+                    <h6>{% if user_language == 'kk' %}HTML-пішімдеу{% else %}HTML-форматирование{% endif %}</h6>
                     <ul class="small">
-                        <li><code>&lt;b&gt;Жирный текст&lt;/b&gt;</code></li>
-                        <li><code>&lt;i&gt;Курсив&lt;/i&gt;</code></li>
-                        <li><code>&lt;u&gt;Подчеркнутый&lt;/u&gt;</code></li>
-                        <li><code>&lt;s&gt;Зачеркнутый&lt;/s&gt;</code></li>
-                        <li><code>&lt;a href="URL"&gt;Ссылка&lt;/a&gt;</code></li>
-                        <li><code>&lt;code&gt;Моноширинный текст&lt;/code&gt;</code></li>
-                        <li><code>&lt;pre&gt;Предварительно отформатированный текст&lt;/pre&gt;</code></li>
+                        <li><code>&lt;b&gt;{% if user_language == 'kk' %}Қалың мәтін{% else %}Жирный текст{% endif %}&lt;/b&gt;</code></li>
+                        <li><code>&lt;i&gt;{% if user_language == 'kk' %}Көлбеу мәтін{% else %}Курсив{% endif %}&lt;/i&gt;</code></li>
+                        <li><code>&lt;u&gt;{% if user_language == 'kk' %}Асты сызылған{% else %}Подчеркнутый{% endif %}&lt;/u&gt;</code></li>
+                        <li><code>&lt;s&gt;{% if user_language == 'kk' %}Сызылған{% else %}Зачеркнутый{% endif %}&lt;/s&gt;</code></li>
+                        <li><code>&lt;a href="URL"&gt;{% if user_language == 'kk' %}Сілтеме{% else %}Ссылка{% endif %}&lt;/a&gt;</code></li>
+                        <li><code>&lt;code&gt;{% if user_language == 'kk' %}Моноширинді мәтін{% else %}Моноширинный текст{% endif %}&lt;/code&gt;</code></li>
+                        <li><code>&lt;pre&gt;{% if user_language == 'kk' %}Алдын ала пішімделген мәтін{% else %}Предварительно отформатированный текст{% endif %}&lt;/pre&gt;</code></li>
                     </ul>
                     
-                    <h6 class="mt-3">Переменные</h6>
+                    <h6 class="mt-3">{% if user_language == 'kk' %}Айнымалылар{% else %}Переменные{% endif %}</h6>
                     <ul class="small">
-                        <li><code>{имя}</code> - имя получателя</li>
-                        <li><code>{имя_студента}</code> - имя студента (для родителей)</li>
-                        <li><code>{имя_родителя}</code> - имя родителя (для родителей)</li>
-                        <li><code>{класс}</code> - название класса</li>
+                        <li><code>{имя}</code> - {% if user_language == 'kk' %}алушының аты{% else %}имя получателя{% endif %}</li>
+                        <li><code>{имя_студента}</code> - {% if user_language == 'kk' %}студенттің аты (ата-аналар үшін){% else %}имя студента (для родителей){% endif %}</li>
+                        <li><code>{имя_родителя}</code> - {% if user_language == 'kk' %}ата-ананың аты (ата-аналар үшін){% else %}имя родителя (для родителей){% endif %}</li>
+                        <li><code>{класс}</code> - {% if user_language == 'kk' %}сынып атауы{% else %}название класса{% endif %}</li>
                     </ul>
                     
-                    <h6 class="mt-3">Поддерживаемые типы файлов</h6>
+                    <h6 class="mt-3">{% if user_language == 'kk' %}Қолдаулы файл түрлері{% else %}Поддерживаемые типы файлов{% endif %}</h6>
                     <ul class="small">
-                        <li>Изображения: jpg, jpeg, png, gif</li>
-                        <li>Видео: mp4, mov, 3gp</li>
-                        <li>Аудио: mp3, ogg, wav</li>
-                        <li>Документы: pdf, doc, docx, xls, xlsx, ppt, pptx, txt</li>
+                        <li>{% if user_language == 'kk' %}Суреттер{% else %}Изображения{% endif %}: jpg, jpeg, png, gif</li>
+                        <li>{% if user_language == 'kk' %}Бейне{% else %}Видео{% endif %}: mp4, mov, 3gp</li>
+                        <li>{% if user_language == 'kk' %}Аудио{% else %}Аудио{% endif %}: mp3, ogg, wav</li>
+                        <li>{% if user_language == 'kk' %}Құжаттар{% else %}Документы{% endif %}: pdf, doc, docx, xls, xlsx, ppt, pptx, txt</li>
                     </ul>
                 </div>
             </div>

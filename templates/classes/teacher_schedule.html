@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Моё расписание - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Менің кестем - Білім беру орталығы{% else %}Моё расписание - Образовательный центр{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Общие стили для всех устройств */
     .calendar-container {
         border-radius: 10px;
         overflow: hidden;
@@ -69,6 +70,68 @@
         background-color: rgba(255, 193, 7, 0.1);
     }
     
+    /* Стили для мобильных устройств */
+    @media (max-width: 767px) {
+        /* Скрываем обычный календарь на мобильных устройствах */
+        .desktop-calendar {
+            display: none;
+        }
+        
+        /* Показываем мобильный календарь */
+        .mobile-calendar {
+            display: block;
+        }
+        
+        /* Стили для мобильного календаря */
+        .mobile-day {
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 1px solid #eaeaea;
+            overflow: hidden;
+        }
+        
+        .mobile-day-header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 1px solid #eaeaea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .mobile-day-content {
+            padding: 10px;
+        }
+        
+        .mobile-day.today .mobile-day-header {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        .mobile-day.today .day-name {
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .mobile-no-classes {
+            padding: 15px;
+            text-align: center;
+            color: #6c757d;
+        }
+    }
+    
+    /* Стили для десктопов */
+    @media (min-width: 768px) {
+        .mobile-calendar {
+            display: none;
+        }
+        
+        .desktop-calendar {
+            display: block;
+        }
+    }
+    
     .class-item.no-students {
         border-left-color: #6c757d;
         background-color: rgba(108, 117, 125, 0.05);
@@ -115,6 +178,23 @@
         padding: 2px 5px;
     }
 </style>
+<style>
+    /* Стили для календаря */
+    #desktopCalendar {
+        display: block;
+    }
+    #mobileCalendar {
+        display: none;
+    }
+    @media (max-width: 767px) {
+        #desktopCalendar {
+            display: none;
+        }
+        #mobileCalendar {
+            display: block;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -122,7 +202,7 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold">Моё расписание</h4>
+                <h4 class="fw-bold">{% if user_language == 'kk' %}Менің кестем{% else %}Моё расписание{% endif %}</h4>
                 <div>
                     <a href="{% url 'attendance:cancellation_requests_list' %}" class="btn btn-outline-primary position-relative">
                         Запросы на отмену
@@ -142,7 +222,7 @@
                     </a>
                 </div>
             </div>
-            <p class="text-muted fs-5">Управление расписанием и запросы на отмену уроков</p>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Кестені басқару және сабақтарды болдырмау сұраныстары{% else %}Управление расписанием и запросы на отмену уроков{% endif %}</p>
         </div>
     </div>
 
@@ -150,7 +230,7 @@
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                 {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% if user_language == 'kk' %}Болдырмау{% else %}Отмена{% endif %}</button>" aria-label="Close"></button>
             </div>
         {% endfor %}
     {% endif %}
@@ -158,26 +238,139 @@
     <div class="card mb-4 shadow-sm">
         <div class="card-body p-4">
             <div class="mb-4">
-                <h4 class="fw-bold mb-2">Календарь занятий</h4>
-                <p class="text-muted mb-3">Период: {{ start_of_week|date:"d.m.Y" }} - {{ end_of_week|date:"d.m.Y" }}</p>
+                <h4 class="fw-bold mb-2">{% if user_language == 'kk' %}Сабақтар күнтізбесі{% else %}Календарь занятий{% endif %}</h4>
+                <p class="text-muted mb-3">{% if user_language == 'kk' %}Кезең{% else %}Период{% endif %}: {{ start_of_week|date:"d.m.Y" }} - {{ end_of_week|date:"d.m.Y" }}</p>
                 
                 <!-- Простая и надежная верстка для кнопок навигации -->
                 <div class="text-center mb-4">
                     <div style="display: inline-block; border-radius: 30px; overflow: hidden; border: 1px solid #dee2e6;">
                         <a href="{% url 'classes:teacher_schedule' %}?week_offset={{ prev_week_offset }}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd; border-right: 1px solid #dee2e6;">
-                            <i class="bi bi-chevron-left"></i> Предыдущая неделя
+                            <i class="bi bi-chevron-left"></i> {% if user_language == 'kk' %}Алдыңғы апта{% else %}Предыдущая неделя{% endif %}
                         </a>
                         <a href="{% url 'classes:teacher_schedule' %}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #6c757d; border-right: 1px solid #dee2e6;">
-                            Сегодня
+                            {% if user_language == 'kk' %}Ағымдағы апта{% else %}Текущая неделя{% endif %}
                         </a>
                         <a href="{% url 'classes:teacher_schedule' %}?week_offset={{ next_week_offset }}" style="display: inline-block; padding: 8px 16px; text-decoration: none; color: #0d6efd;">
-                            Следующая неделя <i class="bi bi-chevron-right"></i>
+                            {% if user_language == 'kk' %}Келесі апта{% else %}Следующая неделя{% endif %} <i class="bi bi-chevron-right"></i>
                         </a>
                     </div>
                 </div>
             </div>
             
-            <div class="calendar-container">
+            <!-- Мобильная версия календаря -->
+            <div class="mobile-calendar" id="mobileCalendar">
+                {% for day in calendar_days %}
+                    {% if day.schedules or day.date == today %}
+                        <div class="mobile-day {% if day.date == today %}today{% endif %}">
+                            <div class="mobile-day-header">
+                                <div>
+                                    {% if day.date.weekday == 0 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Дүйсенбі{% else %}Понедельник{% endif %}</span>
+                                    {% elif day.date.weekday == 1 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Сейсенбі{% else %}Вторник{% endif %}</span>
+                                    {% elif day.date.weekday == 2 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Сәрсенбі{% else %}Среда{% endif %}</span>
+                                    {% elif day.date.weekday == 3 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Бейсенбі{% else %}Четверг{% endif %}</span>
+                                    {% elif day.date.weekday == 4 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Жұма{% else %}Пятница{% endif %}</span>
+                                    {% elif day.date.weekday == 5 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Сенбі{% else %}Суббота{% endif %}</span>
+                                    {% elif day.date.weekday == 6 %}
+                                        <span class="day-name">{% if user_language == 'kk' %}Жексенбі{% else %}Воскресенье{% endif %}</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="date">{{ day.date|date:"d.m.Y" }}</span>
+                                    {% if day.date == today %}
+                                        <span class="badge bg-primary ms-2">Сегодня</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mobile-day-content">
+                                {% if day.schedules %}
+                                    {% for schedule_info in day.schedules %}
+                                        <div class="class-item {% if schedule_info.cancellation_request %}{% if schedule_info.cancellation_request.status == 'approved' %}canceled{% elif schedule_info.cancellation_request.status == 'pending' %}pending-cancel{% endif %}{% endif %} {% if not schedule_info.has_students %}no-students{% endif %}">
+                                            {% if schedule_info.schedule.class_obj.id and schedule_info.schedule.id %}
+                                            <a href="{% url 'classes:lesson_detail' schedule_info.schedule.class_obj.id schedule_info.schedule.id day.date|date:'Y-m-d' %}" style="text-decoration: none; color: inherit;">
+                                            {% endif %}
+                                                <div class="class-time">
+                                                    {{ schedule_info.schedule.start_time|time:"H:i" }} - {{ schedule_info.schedule.end_time|time:"H:i" }}
+                                                </div>
+                                                <div class="class-name">{{ schedule_info.schedule.class_obj.name }}</div>
+                                                <div class="class-room">Кабинет: {{ schedule_info.schedule.room }}</div>
+                                                
+                                                {% if not schedule_info.has_students %}
+                                                    <div class="enrollment-info text-muted">
+                                                        <i class="bi bi-exclamation-circle"></i> Нет активных студентов
+                                                    </div>
+                                                {% endif %}
+                                            {% if schedule_info.schedule.class_obj.id and schedule_info.schedule.id %}
+                                            </a>
+                                            {% endif %}
+                                            
+                                            {% if schedule_info.cancellation_request %}
+                                                {% if schedule_info.cancellation_request.status == 'approved' %}
+                                                    <span class="badge bg-danger cancel-badge">Отменен</span>
+                                                {% elif schedule_info.cancellation_request.status == 'pending' %}
+                                                    <p class="text-danger"><small>{% if user_language == 'kk' %}Сабақты болдырмау әкімшінің растауын қажет етеді.{% else %}Отмена занятия требует подтверждения администратора.{% endif %}</small></p>
+                                                {% endif %}
+                                            {% endif %}
+                                            
+                                            {% if schedule_info.schedule.class_obj.id and schedule_info.schedule.id %}
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <div class="mt-2">
+                                                {% if schedule_info.schedule.class_obj.id and schedule_info.schedule.id %}
+                                                <a href="{% url 'classes:lesson_detail' schedule_info.schedule.class_obj.id schedule_info.schedule.id day.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-primary">
+                                                {% else %}
+                                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelClassModal{{ schedule.id }}">{% if user_language == 'kk' %}Болдырмау{% else %}Отменить{% endif %}</button>
+                                                {% endif %}
+                                                    <i class="bi bi-eye"></i> Детали
+                                                </a>
+                                                
+                                                {% if not schedule_info.cancellation_request and schedule_info.schedule.class_obj.id %}
+                                                    <a href="{% url 'attendance:request_class_cancellation_date' schedule_info.schedule.class_obj.id day.date|date:'Y-m-d' %}" class="btn btn-sm btn-outline-danger ms-1">
+                                                        <i class="bi bi-x-circle"></i> Отменить
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                    
+                                    {% for substitute in day.substitutes %}
+                                        <div class="class-item substitute position-relative">
+                                            {% if substitute.class_obj.id and substitute.schedule.id %}
+                                            <a href="{% url 'classes:lesson_detail' substitute.class_obj.id substitute.schedule.id day.date|date:'Y-m-d' %}" class="text-decoration-none text-dark">
+                                            {% else %}
+                                            <a href="#" class="text-decoration-none text-dark" title="Детали недоступны">
+                                            {% endif %}
+                                                <div class="class-time">
+                                                    {{ substitute.schedule.start_time|time:"H:i" }} - {{ substitute.schedule.end_time|time:"H:i" }}
+                                                </div>
+                                                <div class="class-name">{{ substitute.class_obj.name }}</div>
+                                                <div class="class-room">Кабинет: {{ substitute.schedule.room }}</div>
+                                                <div class="enrollment-info text-warning">
+                                                    <i class="bi bi-person-badge"></i> Вы назначены заменяющим учителем
+                                                </div>
+                                            </a>
+                                            <span class="badge bg-warning substitute-badge">Замена</span>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="mobile-no-classes">{% if user_language == 'kk' %}Бұл күнге сабақтар жоқ{% else %}Нет занятий на этот день{% endif %}</div>                                    <i class="bi bi-calendar-x text-muted"></i> Нет занятий
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <!-- Десктопная версия календаря -->
+            <div class="calendar-container desktop-calendar">
                 <div class="row calendar-header">
                     <div class="col">Пн</div>
                     <div class="col">Вт</div>
@@ -224,7 +417,7 @@
                                         {% elif schedule_info.cancellation_request.status == 'pending' %}
                                             <span class="badge bg-warning cancel-badge">Ожидает подтверждения</span>
                                         {% elif schedule_info.cancellation_request.status == 'rejected' %}
-                                            <span class="badge bg-secondary cancel-badge">Отклонен</span>
+                                            <span class="badge bg-secondary">{% if user_language == 'kk' %}Оқушылар жоқ{% else %}Нет учеников{% endif %}</span>cel-badge">Отклонен</span>
                                         {% endif %}
                                     {% else %}
                                         {% if day.date >= today %}
@@ -238,8 +431,7 @@
                                 </div>
                             {% empty %}
                                 {% if not day.substitute_schedules %}
-                                    <div class="text-center text-muted mt-3">
-                                        <small>Нет занятий</small>
+                                    <div class="text-center text-muted py-3">{% if user_language == 'kk' %}Сабақтар жоқ{% else %}Нет занятий{% endif %}</div>                                       <small>Нет занятий</small>
                                     </div>
                                 {% endif %}
                             {% endfor %}
@@ -293,25 +485,25 @@
     
     <div class="card mb-4 shadow-sm">
         <div class="card-body p-4">
-            <h4 class="fw-bold mb-4">Условные обозначения</h4>
+            <h5 class="fw-bold mb-3">{% if user_language == 'kk' %}Шартты белгілер{% else %}Условные обозначения{% endif %}</h5>
             
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <div class="d-flex align-items-center">
                         <div class="class-item me-3" style="width: 50px; height: 20px;"></div>
-                        <span>Обычное занятие</span>
+                        <span class="legend-text">{% if user_language == 'kk' %}Қалыпты сабақ{% else %}Обычное занятие{% endif %}</span>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
                     <div class="d-flex align-items-center">
                         <div class="class-item pending-cancel me-3" style="width: 50px; height: 20px;"></div>
-                        <span>Ожидает подтверждения отмены</span>
+                        <span>{% if user_language == 'kk' %}Сәрсенбі{% else %}Среда{% endif %}</span>ет подтверждения отмены</span>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
                     <div class="d-flex align-items-center">
                         <div class="class-item canceled me-3" style="width: 50px; height: 20px;"></div>
-                        <span>Отмененное занятие</span>
+                        <span class="legend-text">{% if user_language == 'kk' %}Болдырылмаған сабақ{% else %}Отмененное занятие{% endif %}</span>
                     </div>
                 </div>
             </div>
@@ -322,9 +514,138 @@
 
 {% block extra_js %}
 <script>
-    // JavaScript для интерактивности календаря
+    // JavaScript для интерактивности календаря и определения мобильного режима
     document.addEventListener('DOMContentLoaded', function() {
-        // Здесь может быть код для дополнительной интерактивности
+        // Функция для определения, используется ли мобильный режим
+        function isMobileView() {
+            // Проверяем ширину экрана
+            const isMobileWidth = window.innerWidth < 768;
+            
+            // Проверяем, используется ли режим эмуляции мобильного устройства в инструментах разработчика
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            
+            // Проверяем, включен ли режим эмуляции в инструментах разработчика
+            const isDevToolsMobileMode = window.navigator.userAgent.includes('Mobile') || 
+                                        window.navigator.userAgent.includes('Android') ||
+                                        window.innerWidth <= 768 ||
+                                        (window.orientation !== undefined && window.orientation !== 0);
+            
+            // Проверяем наличие параметра в URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceMobile = urlParams.get('mobile') === 'true';
+            
+            return isMobileWidth || isMobileDevice || isDevToolsMobileMode || forceMobile;
+        }
+        
+        // Функция для переключения между мобильным и десктопным видом
+        function toggleCalendarView() {
+            const desktopCalendar = document.getElementById('desktopCalendar');
+            const mobileCalendar = document.getElementById('mobileCalendar');
+            
+            if (!desktopCalendar || !mobileCalendar) return;
+            
+            if (isMobileView()) {
+                desktopCalendar.style.display = 'none';
+                mobileCalendar.style.display = 'block';
+                
+                // Добавляем класс для мобильного вида
+                document.body.classList.add('mobile-view');
+            } else {
+                desktopCalendar.style.display = 'block';
+                mobileCalendar.style.display = 'none';
+                
+                // Удаляем класс мобильного вида
+                document.body.classList.remove('mobile-view');
+            }
+            
+            // Обновляем текст кнопки переключения
+            const toggleButton = document.getElementById('toggleViewButton');
+            if (toggleButton) {
+                if (isMobileView()) {
+                    toggleButton.innerHTML = '<i class="bi bi-laptop"></i> Десктопный вид';
+                } else {
+                    toggleButton.innerHTML = '<i class="bi bi-phone"></i> Мобильный вид';
+                }
+            }
+        }
+        
+        // Функция для принудительного переключения вида
+        function forceViewMode(mode) {
+            const desktopCalendar = document.getElementById('desktopCalendar');
+            const mobileCalendar = document.getElementById('mobileCalendar');
+            
+            if (!desktopCalendar || !mobileCalendar) return;
+            
+            if (mode === 'mobile') {
+                desktopCalendar.style.display = 'none';
+                mobileCalendar.style.display = 'block';
+                document.body.classList.add('mobile-view');
+            } else {
+                desktopCalendar.style.display = 'block';
+                mobileCalendar.style.display = 'none';
+                document.body.classList.remove('mobile-view');
+            }
+            
+            // Обновляем текст кнопки переключения
+            const toggleButton = document.getElementById('toggleViewButton');
+            if (toggleButton) {
+                if (mode === 'mobile') {
+                    toggleButton.innerHTML = '<i class="bi bi-laptop"></i> Десктопный вид';
+                } else {
+                    toggleButton.innerHTML = '<i class="bi bi-phone"></i> Мобильный вид';
+                }
+            }
+        }
+        
+        // Добавляем ID к календарям для удобства работы
+        const desktopCalendar = document.querySelector('.desktop-calendar');
+        if (desktopCalendar && !desktopCalendar.id) {
+            desktopCalendar.id = 'desktopCalendar';
+        }
+        
+        const mobileCalendar = document.querySelector('.mobile-calendar');
+        if (mobileCalendar && !mobileCalendar.id) {
+            mobileCalendar.id = 'mobileCalendar';
+        }
+        
+        // Вызываем функцию при загрузке страницы
+        toggleCalendarView();
+        
+        // Вызываем функцию при изменении размера окна
+        window.addEventListener('resize', toggleCalendarView);
+        
+        // Добавляем кнопку для ручного переключения режимов
+        const navButtons = document.querySelector('.text-center.mb-4');
+        if (navButtons) {
+            const toggleButton = document.createElement('button');
+            toggleButton.className = 'btn btn-outline-secondary ms-2';
+            toggleButton.id = 'toggleViewButton';
+            toggleButton.innerHTML = isMobileView() ? 
+                                    '<i class="bi bi-laptop"></i> Десктопный вид' : 
+                                    '<i class="bi bi-phone"></i> Мобильный вид';
+            
+            toggleButton.onclick = function() {
+                const desktopCalendar = document.getElementById('desktopCalendar');
+                
+                if (desktopCalendar.style.display === 'none' || getComputedStyle(desktopCalendar).display === 'none') {
+                    forceViewMode('desktop');
+                } else {
+                    forceViewMode('mobile');
+                }
+                
+                return false;
+            };
+            
+            navButtons.appendChild(toggleButton);
+        }
+        
+        // Принудительно показываем мобильную версию при эмуляции
+        if (window.innerWidth <= 767 || window.navigator.userAgent.includes('Mobile')) {
+            setTimeout(function() {
+                forceViewMode('mobile');
+            }, 100);
+        }
     });
 </script>
 {% endblock %}

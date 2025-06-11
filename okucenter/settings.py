@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'crispy_forms',
     'crispy_bootstrap5',
+    'rosetta',  # Для управления переводами
     
     # Local apps
     'accounts',
@@ -64,6 +65,8 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # Добавляем middleware для поддержки интернационализации
+    'core.middleware.LanguageMiddleware',  # Наш собственный middleware для активации языка
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -78,7 +81,7 @@ ROOT_URLCONF = 'okucenter.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -86,6 +89,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.language_context',  # Добавляем наш контекстный процессор
                 'messaging.context_processors.unread_messages_count',
                 'accounts.context_processors.pending_cancellations',
             ],
@@ -144,13 +148,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'  # Язык по умолчанию - русский
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Almaty'  # Часовой пояс Казахстана
 
 USE_I18N = True
-
+USE_L10N = True
 USE_TZ = True
+
+# Доступные языки
+LANGUAGES = [
+    ('ru', 'Русский'),
+    ('kk', 'Қазақша'),
+]
+
+# Путь к файлам локализации
+LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
 
 
 # Static files (CSS, JavaScript, Images)

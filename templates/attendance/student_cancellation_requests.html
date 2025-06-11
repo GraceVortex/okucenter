@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Мои запросы на отмену занятий - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Менің сабақтарды болдырмау сұраныстарым - Оқу орталығы{% else %}Мои запросы на отмену занятий - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h1 class="display-5 fw-bold">Мои запросы на отмену занятий</h1>
-            <p class="text-muted fs-5">История запросов на отмену занятий</p>
+            <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Менің сабақтарды болдырмау сұраныстарым{% else %}Мои запросы на отмену занятий{% endif %}</h1>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстарының тарихы{% else %}История запросов на отмену занятий{% endif %}</p>
         </div>
     </div>
 
@@ -25,9 +25,9 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4 d-flex justify-content-between align-items-center">
-                    <h4 class="fw-bold mb-0">История запросов</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Сұраныстар тарихы{% else %}История запросов{% endif %}</h4>
                     <a href="{% url 'classes:student_classes' %}" class="btn btn-outline-primary">
-                        <i class="bi bi-calendar-event me-2"></i> К расписанию
+                        <i class="bi bi-calendar-event me-2"></i> {% if user_language == 'kk' %}Кестеге өту{% else %}К расписанию{% endif %}
                     </a>
                 </div>
                 <div class="card-body p-0">
@@ -36,13 +36,13 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th scope="col">Дата запроса</th>
-                                        <th scope="col">Класс</th>
-                                        <th scope="col">Дата занятия</th>
-                                        <th scope="col">Время</th>
-                                        <th scope="col">Причина</th>
-                                        <th scope="col">Статус</th>
-                                        <th scope="col">Действия</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сұраныс күні{% else %}Дата запроса{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сабақ күні{% else %}Дата занятия{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Уақыты{% else %}Время{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Себебі{% else %}Причина{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Мәртебесі{% else %}Статус{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -55,16 +55,16 @@
                                             <td>{{ request.reason }}</td>
                                             <td>
                                                 {% if request.status == 'pending' %}
-                                                    <span class="badge bg-info">Ожидает подтверждения</span>
+                                                    <span class="badge bg-info">{% if user_language == 'kk' %}Растауды күтуде{% else %}Ожидает подтверждения{% endif %}</span>
                                                 {% elif request.status == 'approved' %}
-                                                    <span class="badge bg-success">Подтверждено</span>
+                                                    <span class="badge bg-success">{% if user_language == 'kk' %}Расталды{% else %}Подтверждено{% endif %}</span>
                                                 {% elif request.status == 'rejected' %}
-                                                    <span class="badge bg-danger">Отклонено</span>
+                                                    <span class="badge bg-danger">{% if user_language == 'kk' %}Қабылданбады{% else %}Отклонено{% endif %}</span>
                                                 {% endif %}
                                             </td>
                                             <td>
-                                                <a href="{% url 'attendance:cancel_student_cancellation_request' request_id=request.id %}" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Вы уверены, что хотите отменить этот запрос?')">
-                                                    <i class="bi bi-x-circle me-1"></i> Отменить запрос
+                                                <a href="{% url 'attendance:cancel_student_cancellation_request' request_id=request.id %}" class="btn btn-sm btn-outline-secondary" onclick="return confirmCancel()">
+                                                    <i class="bi bi-x-circle me-1"></i> {% if user_language == 'kk' %}Сұранысты болдырмау{% else %}Отменить запрос{% endif %}
                                                 </a>
                                             </td>
                                         </tr>
@@ -75,10 +75,10 @@
                     {% else %}
                         <div class="p-5 text-center">
                             <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
-                            <h4>У вас пока нет запросов на отмену занятий</h4>
-                            <p class="text-muted">Запросы на отмену занятий появятся здесь после их создания</p>
+                            <h4>{% if user_language == 'kk' %}Сізде әлі сабақтарды болдырмау сұраныстары жоқ{% else %}У вас пока нет запросов на отмену занятий{% endif %}</h4>
+                            <p class="text-muted">{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары жасалғаннан кейін осы жерде пайда болады{% else %}Запросы на отмену занятий появятся здесь после их создания{% endif %}</p>
                             <a href="{% url 'classes:student_classes' %}" class="btn btn-primary mt-3">
-                                <i class="bi bi-calendar-event me-2"></i> Перейти к расписанию
+                                <i class="bi bi-calendar-event me-2"></i> {% if user_language == 'kk' %}Кестеге өту{% else %}Перейти к расписанию{% endif %}
                             </a>
                         </div>
                     {% endif %}
@@ -91,26 +91,26 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4">
-                    <h4 class="fw-bold mb-0">Информация о статусах</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Мәртебелер туралы ақпарат{% else %}Информация о статусах{% endif %}</h4>
                 </div>
                 <div class="card-body p-4">
                     <div class="row">
                         <div class="col-md-4">
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-info me-3 p-2">Ожидает подтверждения</div>
-                                <span>Запрос создан и ожидает рассмотрения администратором</span>
+                                <div class="badge bg-info me-3 p-2">{% if user_language == 'kk' %}Растауды күтуде{% else %}Ожидает подтверждения{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сұраныс жасалды және әкімшінің қарауын күтуде{% else %}Запрос создан и ожидает рассмотрения администратором{% endif %}</span>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-success me-3 p-2">Подтверждено</div>
-                                <span>Запрос одобрен, деньги за занятие не будут списаны</span>
+                                <div class="badge bg-success me-3 p-2">{% if user_language == 'kk' %}Расталды{% else %}Подтверждено{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сұраныс мақұлданды, сабақ үшін ақша алынбайды{% else %}Запрос одобрен, деньги за занятие не будут списаны{% endif %}</span>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="d-flex align-items-center mb-3">
-                                <div class="badge bg-danger me-3 p-2">Отклонено</div>
-                                <span>Запрос отклонен, деньги за занятие будут списаны</span>
+                                <div class="badge bg-danger me-3 p-2">{% if user_language == 'kk' %}Қабылданбады{% else %}Отклонено{% endif %}</div>
+                                <span>{% if user_language == 'kk' %}Сұраныс қабылданбады, сабақ үшін ақша алынады{% else %}Запрос отклонен, деньги за занятие будут списаны{% endif %}</span>
                             </div>
                         </div>
                     </div>
@@ -119,4 +119,14 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var confirmMessage = "{% if user_language == 'kk' %}Сіз бұл сұранысты болдырмауға сенімдісіз бе?{% else %}Вы уверены, что хотите отменить этот запрос?{% endif %}"; 
+    
+    function confirmCancel() {
+        return confirm(confirmMessage);
+    }
+</script>
 {% endblock %}

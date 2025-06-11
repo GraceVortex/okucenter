@@ -78,9 +78,31 @@ class AttendanceFilterForm(forms.Form):
         return cleaned_data
 
 class CancelAttendanceForm(forms.Form):
-    """Форма для отмены подтвержденного посещения."""
+    """Форма для отмены подтвержденного посещения с выбором нового статуса и опцией возврата средств."""
+    
+    # Выбор нового статуса посещения
+    STATUS_CHOICES = [
+        ('absent', 'Отсутствовал'),
+        ('excused', 'Отсутствовал по уважительной причине')
+    ]
+    
+    new_status = forms.ChoiceField(
+        label='Новый статус посещения',
+        choices=STATUS_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='absent'
+    )
+    
+    # Опция возврата средств
+    refund_payment = forms.BooleanField(
+        label='Вернуть средства на счет студента',
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
     
     reason = forms.CharField(
+        label='Причина отмены',
         max_length=500,
         widget=forms.Textarea(attrs={
             'class': 'form-control',

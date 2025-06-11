@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои финансы - Образовательный центр{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{% url 'core:home' %}" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-left me-2"></i> Вернуться на главную
+        </a>
+        <div>
+            <a href="?period=current_month" class="btn {% if current_period == 'current_month' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2">
+                Этот месяц
+            </a>
+            <a href="?period=previous_month" class="btn {% if current_period == 'previous_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                Прошлый месяц
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h1 class="h3 mb-0">Мои финансы</h1>
+            <p class="text-muted">
+                За {{ month_year }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Сводная информация -->
+    <!-- Первый ряд: Текущий баланс и Списания -->
+    <div class="row mb-3">
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-wallet2 text-primary fs-3 mb-1"></i>
+                    <h5 class="card-title mb-1">Текущий баланс</h5>
+                    <h3 class="{% if balance >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                        {{ balance|floatformat:0 }} ₸
+                    </h3>
+                    <div class="mt-2 small">
+                        {% if balance_matches %}
+                            <span class="text-success">
+                                <i class="bi bi-check-circle-fill me-1"></i> Баланс соответствует формуле
+                            </span>
+                        {% else %}
+                            <span class="text-warning">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Ожидаемый баланс: {{ expected_balance|floatformat:0 }} ₸
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card bg-danger bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-cash-coin text-danger fs-3 mb-1"></i>
+                    <h5 class="card-title mb-1">Списания</h5>
+                    <h3 class="text-danger mb-0">{{ payments|floatformat:0 }} ₸</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Второй ряд: Возвраты и Пополнения -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card bg-info bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-arrow-repeat text-info fs-3 mb-1"></i>
+                    <h5 class="card-title mb-1">Возвраты</h5>
+                    <h3 class="text-info mb-0">{{ refunds|floatformat:0 }} ₸</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card bg-success bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-wallet2-fill text-success fs-3 mb-1"></i>
+                    <h5 class="card-title mb-1">Пополнения</h5>
+                    <h3 class="text-success mb-0">{{ deposits|floatformat:0 }} ₸</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список транзакций -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">История транзакций</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Дата</th>
+                            <th>Тип</th>
+                            <th>Описание</th>
+                            <th class="text-end">Сумма</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.date|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if transaction.transaction_type == 'deposit' %}
+                                        <span class="badge bg-success">Пополнение</span>
+                                    {% elif transaction.transaction_type == 'payment' %}
+                                        <span class="badge bg-danger">Списание</span>
+                                    {% elif transaction.transaction_type == 'refund' %}
+                                        <span class="badge bg-info">Возврат</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ transaction.transaction_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ transaction.description }}
+                                    {% if transaction.class_obj %}
+                                        <small class="text-muted d-block">{{ transaction.class_obj.name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end {% if transaction.transaction_type == 'deposit' or transaction.transaction_type == 'refund' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                    {% if transaction.transaction_type == 'deposit' or transaction.transaction_type == 'refund' %}+{% else %}-{% endif %}{{ transaction.amount|floatformat:0 }} ₸
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="bi bi-info-circle text-muted fs-4 d-block mb-2"></i>
+                                    <p class="mb-0">Нет транзакций за выбранный период</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

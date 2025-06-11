@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Пользователи Telegram{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Telegram пайдаланушылары{% else %}Пользователи Telegram{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -8,26 +8,26 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="mb-0">Пользователи Telegram</h1>
-                    <p class="text-muted">Управление пользователями Telegram бота</p>
+                    <h1 class="mb-0">{% if user_language == 'kk' %}Telegram пайдаланушылары{% else %}Пользователи Telegram{% endif %}</h1>
+                    <p class="text-muted">{% if user_language == 'kk' %}Telegram бот пайдаланушыларын басқару{% else %}Управление пользователями Telegram бота{% endif %}</p>
                 </div>
                 <div>
                     <a href="{% url 'messaging:telegram_dashboard' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Назад к рассылкам
+                        <i class="fas fa-arrow-left me-1"></i> {% if user_language == 'kk' %}Таратуларға оралу{% else %}Назад к рассылкам{% endif %}
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Статистика -->
+    <!-- {% if user_language == 'kk' %}Статистика{% else %}Статистика{% endif %} -->
     <div class="row mb-4">
         <div class="col-md-2 mb-3">
             <div class="card bg-primary text-white h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Всего</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Барлығы{% else %}Всего{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.total }}</h2>
                         </div>
                         <div>
@@ -42,7 +42,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Активные</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Белсенділер{% else %}Активные{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.active }}</h2>
                         </div>
                         <div>
@@ -57,7 +57,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Студенты</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Студенттер{% else %}Студенты{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.students }}</h2>
                         </div>
                         <div>
@@ -72,7 +72,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Родители</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Ата-аналар{% else %}Родители{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.parents }}</h2>
                         </div>
                         <div>
@@ -87,7 +87,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Учителя</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Оқытушылар{% else %}Учителя{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.teachers }}</h2>
                         </div>
                         <div>
@@ -102,7 +102,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-0">Неизвестные</h6>
+                            <h6 class="text-uppercase mb-0">{% if user_language == 'kk' %}Белгісіздер{% else %}Неизвестные{% endif %}</h6>
                             <h2 class="mt-2 mb-0">{{ stats.unknown }}</h2>
                         </div>
                         <div>
@@ -114,39 +114,39 @@
         </div>
     </div>
 
-    <!-- Фильтры -->
+    <!-- {% if user_language == 'kk' %}Сүзгілер{% else %}Фильтры{% endif %} -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
                     <form method="get" class="row g-3">
                         <div class="col-md-4">
-                            <label for="search" class="form-label">Поиск</label>
-                            <input type="text" class="form-control" id="search" name="search" value="{{ search|default:'' }}" placeholder="ID, имя, телефон...">
+                            <label for="search" class="form-label">{% if user_language == 'kk' %}Іздеу{% else %}Поиск{% endif %}</label>
+                            <input type="text" class="form-control" id="search" name="search" value="{{ search|default:'' }}" placeholder="{% if user_language == 'kk' %}ID, аты, телефон...{% else %}ID, имя, телефон...{% endif %}">
                         </div>
                         <div class="col-md-3">
-                            <label for="role" class="form-label">Роль</label>
+                            <label for="role" class="form-label">{% if user_language == 'kk' %}Рөлі{% else %}Роль{% endif %}</label>
                             <select class="form-select" id="role" name="role">
-                                <option value="">Все роли</option>
-                                <option value="student" {% if role == 'student' %}selected{% endif %}>Студенты</option>
-                                <option value="parent" {% if role == 'parent' %}selected{% endif %}>Родители</option>
-                                <option value="teacher" {% if role == 'teacher' %}selected{% endif %}>Преподаватели</option>
-                                <option value="admin" {% if role == 'admin' %}selected{% endif %}>Администраторы</option>
-                                <option value="reception" {% if role == 'reception' %}selected{% endif %}>Ресепшн</option>
-                                <option value="unknown" {% if role == 'unknown' %}selected{% endif %}>Неизвестные</option>
+                                <option value="">{% if user_language == 'kk' %}Барлық рөлдер{% else %}Все роли{% endif %}</option>
+                                <option value="student" {% if role == 'student' %}selected{% endif %}>{% if user_language == 'kk' %}Студенттер{% else %}Студенты{% endif %}</option>
+                                <option value="parent" {% if role == 'parent' %}selected{% endif %}>{% if user_language == 'kk' %}Ата-аналар{% else %}Родители{% endif %}</option>
+                                <option value="teacher" {% if role == 'teacher' %}selected{% endif %}>{% if user_language == 'kk' %}Оқытушылар{% else %}Преподаватели{% endif %}</option>
+                                <option value="admin" {% if role == 'admin' %}selected{% endif %}>{% if user_language == 'kk' %}Әкімшілер{% else %}Администраторы{% endif %}</option>
+                                <option value="reception" {% if role == 'reception' %}selected{% endif %}>{% if user_language == 'kk' %}Ресепшн{% else %}Ресепшн{% endif %}</option>
+                                <option value="unknown" {% if role == 'unknown' %}selected{% endif %}>{% if user_language == 'kk' %}Белгісіздер{% else %}Неизвестные{% endif %}</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label for="is_active" class="form-label">Статус</label>
+                            <label for="is_active" class="form-label">{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</label>
                             <select class="form-select" id="is_active" name="is_active">
-                                <option value="">Все</option>
-                                <option value="true" {% if is_active == True %}selected{% endif %}>Активные</option>
-                                <option value="false" {% if is_active == False %}selected{% endif %}>Неактивные</option>
+                                <option value="">{% if user_language == 'kk' %}Барлығы{% else %}Все{% endif %}</option>
+                                <option value="true" {% if is_active == True %}selected{% endif %}>{% if user_language == 'kk' %}Белсенділер{% else %}Активные{% endif %}</option>
+                                <option value="false" {% if is_active == False %}selected{% endif %}>{% if user_language == 'kk' %}Белсенді емес{% else %}Неактивные{% endif %}</option>
                             </select>
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search me-2"></i> Применить
+                                <i class="fas fa-search me-2"></i> {% if user_language == 'kk' %}Қолдану{% else %}Применить{% endif %}
                             </button>
                         </div>
                     </form>
@@ -155,13 +155,13 @@
         </div>
     </div>
 
-    <!-- Список пользователей -->
+    <!-- {% if user_language == 'kk' %}Пайдаланушылар тізімі{% else %}Список пользователей{% endif %} -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Список пользователей</h5>
+                        <h5 class="mb-0">{% if user_language == 'kk' %}Пайдаланушылар тізімі{% else %}Список пользователей{% endif %}</h5>
                         <span class="badge bg-primary">{{ users.paginator.count }}</span>
                     </div>
                 </div>
@@ -171,13 +171,13 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Имя</th>
-                                    <th>Телефон</th>
-                                    <th>Роль</th>
-                                    <th>Связь</th>
-                                    <th>Статус</th>
-                                    <th>Дата регистрации</th>
-                                    <th>Действия</th>
+                                    <th>{% if user_language == 'kk' %}Аты{% else %}Имя{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Телефон{% else %}Телефон{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Рөлі{% else %}Роль{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Байланыс{% else %}Связь{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Тіркелу күні{% else %}Дата регистрации{% endif %}</th>
+                                    <th>{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -206,33 +206,33 @@
                                     <td>{{ user.phone|default:"-" }}</td>
                                     <td>
                                         {% if user.role == 'student' %}
-                                        <span class="badge bg-info">Студент</span>
+                                        <span class="badge bg-info">{% if user_language == 'kk' %}Студент{% else %}Студент{% endif %}</span>
                                         {% elif user.role == 'parent' %}
-                                        <span class="badge bg-warning">Родитель</span>
+                                        <span class="badge bg-warning">{% if user_language == 'kk' %}Ата-ана{% else %}Родитель{% endif %}</span>
                                         {% elif user.role == 'teacher' %}
-                                        <span class="badge bg-secondary">Преподаватель</span>
+                                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Оқытушы{% else %}Преподаватель{% endif %}</span>
                                         {% elif user.role == 'admin' %}
-                                        <span class="badge bg-danger">Администратор</span>
+                                        <span class="badge bg-danger">{% if user_language == 'kk' %}Әкімші{% else %}Администратор{% endif %}</span>
                                         {% elif user.role == 'reception' %}
-                                        <span class="badge bg-success">Ресепшн</span>
+                                        <span class="badge bg-success">{% if user_language == 'kk' %}Ресепшн{% else %}Ресепшн{% endif %}</span>
                                         {% else %}
-                                        <span class="badge bg-dark">Неизвестно</span>
+                                        <span class="badge bg-dark">{% if user_language == 'kk' %}Белгісіз{% else %}Неизвестно{% endif %}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if user.student %}
-                                        <span class="badge bg-info">Студент: {{ user.student.get_full_name }}</span>
+                                        <span class="badge bg-info">{% if user_language == 'kk' %}Студент{% else %}Студент{% endif %}: {{ user.student.get_full_name }}</span>
                                         {% elif user.parent %}
-                                        <span class="badge bg-warning">Родитель: {{ user.parent.get_full_name }}</span>
+                                        <span class="badge bg-warning">{% if user_language == 'kk' %}Ата-ана{% else %}Родитель{% endif %}: {{ user.parent.get_full_name }}</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">Не связан</span>
+                                        <span class="badge bg-secondary">{% if user_language == 'kk' %}Байланыспаған{% else %}Не связан{% endif %}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if user.is_active %}
-                                        <span class="badge bg-success">Активен</span>
+                                        <span class="badge bg-success">{% if user_language == 'kk' %}Белсенді{% else %}Активен{% endif %}</span>
                                         {% else %}
-                                        <span class="badge bg-danger">Неактивен</span>
+                                        <span class="badge bg-danger">{% if user_language == 'kk' %}Белсенді емес{% else %}Неактивен{% endif %}</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ user.created_at|date:"d.m.Y H:i" }}</td>
@@ -256,7 +256,7 @@
                                     <td colspan="8" class="text-center py-4">
                                         <div class="text-muted">
                                             <i class="fas fa-users fa-3x mb-3"></i>
-                                            <p>Пользователи не найдены</p>
+                                            <p>{% if user_language == 'kk' %}Пайдаланушылар табылмады{% else %}Пользователи не найдены{% endif %}</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -272,39 +272,39 @@
                         <ul class="pagination justify-content-center mb-0">
                             {% if users.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">&laquo; Первая</a>
+                                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">&laquo; {% if user_language == 'kk' %}Бірінші{% else %}Первая{% endif %}</a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ users.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">Пред.</a>
+                                <a class="page-link" href="?page={{ users.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">{% if user_language == 'kk' %}Алдыңғы{% else %}Пред.{% endif %}</a>
                             </li>
                             {% else %}
                             <li class="page-item disabled">
-                                <span class="page-link">&laquo; Первая</span>
+                                <span class="page-link">&laquo; {% if user_language == 'kk' %}Бірінші{% else %}Первая{% endif %}</span>
                             </li>
                             <li class="page-item disabled">
-                                <span class="page-link">Пред.</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Алдыңғы{% else %}Пред.{% endif %}</span>
                             </li>
                             {% endif %}
                             
                             <li class="page-item active">
                                 <span class="page-link">
-                                    {{ users.number }} из {{ users.paginator.num_pages }}
+                                    {{ users.number }} {% if user_language == 'kk' %}бет / {% else %}из {% endif %}{{ users.paginator.num_pages }}
                                 </span>
                             </li>
                             
                             {% if users.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ users.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">След.</a>
+                                <a class="page-link" href="?page={{ users.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">{% if user_language == 'kk' %}Келесі{% else %}След.{% endif %}</a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ users.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">Последняя &raquo;</a>
+                                <a class="page-link" href="?page={{ users.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}">{% if user_language == 'kk' %}Соңғы{% else %}Последняя{% endif %} &raquo;</a>
                             </li>
                             {% else %}
                             <li class="page-item disabled">
-                                <span class="page-link">След.</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Келесі{% else %}След.{% endif %}</span>
                             </li>
                             <li class="page-item disabled">
-                                <span class="page-link">Последняя &raquo;</span>
+                                <span class="page-link">{% if user_language == 'kk' %}Соңғы{% else %}Последняя{% endif %} &raquo;</span>
                             </li>
                             {% endif %}
                         </ul>

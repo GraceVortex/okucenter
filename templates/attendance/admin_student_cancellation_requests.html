@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Запросы на отмену занятий - Образовательный центр{% endblock %}
+{% block title %}{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары - Білім беру орталығы{% else %}Запросы на отмену занятий - Образовательный центр{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-5">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h1 class="display-5 fw-bold">Запросы на отмену занятий</h1>
-            <p class="text-muted fs-5">Управление запросами на отмену занятий от студентов</p>
+            <h1 class="display-5 fw-bold">{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары{% else %}Запросы на отмену занятий{% endif %}</h1>
+            <p class="text-muted fs-5">{% if user_language == 'kk' %}Оқушылардан сабақтарды болдырмау сұраныстарын басқару{% else %}Управление запросами на отмену занятий от студентов{% endif %}</p>
         </div>
     </div>
 
@@ -25,31 +25,31 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4">
-                    <h4 class="fw-bold mb-0">Фильтры</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Фильтрлер{% else %}Фильтры{% endif %}</h4>
                 </div>
                 <div class="card-body p-4">
                     <form method="get" class="row g-3">
                         <div class="col-md-2">
-                            <label for="status" class="form-label">Статус</label>
+                            <label for="status" class="form-label">{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</label>
                             <select name="status" id="status" class="form-select">
-                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Ожидает подтверждения</option>
-                                <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Подтверждено</option>
-                                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Отклонено</option>
-                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>{% if user_language == 'kk' %}Растауды күтуде{% else %}Ожидает подтверждения{% endif %}</option>
+                                <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% if user_language == 'kk' %}Расталған{% else %}Подтверждено{% endif %}</option>
+                                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>{% if user_language == 'kk' %}Қабылданбаған{% else %}Отклонено{% endif %}</option>
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% if user_language == 'kk' %}Барлығы{% else %}Все{% endif %}</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label for="start_date" class="form-label">Дата с</label>
+                            <label for="start_date" class="form-label">{% if user_language == 'kk' %}Күні (бастап){% else %}Дата с{% endif %}</label>
                             <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
                         </div>
                         <div class="col-md-2">
-                            <label for="end_date" class="form-label">Дата по</label>
+                            <label for="end_date" class="form-label">{% if user_language == 'kk' %}Күні (дейін){% else %}Дата по{% endif %}</label>
                             <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
                         </div>
                         <div class="col-md-3">
-                            <label for="student_id" class="form-label">Студент</label>
+                            <label for="student_id" class="form-label">{% if user_language == 'kk' %}Оқушы{% else %}Студент{% endif %}</label>
                             <select name="student_id" id="student_id" class="form-select">
-                                <option value="">Все студенты</option>
+                                <option value="">{% if user_language == 'kk' %}Барлық оқушылар{% else %}Все студенты{% endif %}</option>
                                 {% for student in students %}
                                     <option value="{{ student.id }}" {% if student_id == student.id|stringformat:"i" %}selected{% endif %}>
                                         {{ student.full_name }}
@@ -58,9 +58,9 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label for="class_id" class="form-label">Класс</label>
+                            <label for="class_id" class="form-label">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</label>
                             <select name="class_id" id="class_id" class="form-select">
-                                <option value="">Все классы</option>
+                                <option value="">{% if user_language == 'kk' %}Барлық сыныптар{% else %}Все классы{% endif %}</option>
                                 {% for class in classes %}
                                     <option value="{{ class.id }}" {% if class_id == class.id|stringformat:"i" %}selected{% endif %}>
                                         {{ class.name }}
@@ -70,7 +70,7 @@
                         </div>
                         <div class="col-md-12 d-flex justify-content-end">
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-filter me-2"></i> Применить фильтры
+                                <i class="bi bi-filter me-2"></i> {% if user_language == 'kk' %}Фильтрлерді қолдану{% else %}Применить фильтры{% endif %}
                             </button>
                         </div>
                     </form>
@@ -84,17 +84,18 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="card shadow-sm bg-light">
-                        <div class="card-body p-4 text-center">
+                        <div class="card-body p-3 text-center">
+                            <p class="mb-0">{% if user_language == 'kk' %}Растауды күтуде{% else %}Ожидает подтверждения{% endif %}</p>
                             <h3 class="fw-bold text-info mb-2">{{ pending_count }}</h3>
-                            <p class="mb-0">Ожидают подтверждения</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow-sm bg-light">
+                            <p class="mb-0">{% if user_language == 'kk' %}Расталған{% else %}Подтверждено{% endif %}</p>
                         <div class="card-body p-4 text-center">
                             <h3 class="fw-bold text-success mb-2">{{ approved_count }}</h3>
-                            <p class="mb-0">Подтверждено</p>
+                            <p class="mb-0">{% if user_language == 'kk' %}Расталған{% else %}Подтверждено{% endif %}</p>
                         </div>
                     </div>
                 </div>
@@ -102,7 +103,7 @@
                     <div class="card shadow-sm bg-light">
                         <div class="card-body p-4 text-center">
                             <h3 class="fw-bold text-danger mb-2">{{ rejected_count }}</h3>
-                            <p class="mb-0">Отклонено</p>
+                            <p class="mb-0">{% if user_language == 'kk' %}Қабылданбаған{% else %}Отклонено{% endif %}</p>
                         </div>
                     </div>
                 </div>
@@ -114,7 +115,7 @@
         <div class="col-md-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white p-4">
-                    <h4 class="fw-bold mb-0">Запросы на отмену занятий</h4>
+                    <h4 class="fw-bold mb-0">{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары{% else %}Запросы на отмену занятий{% endif %}</h4>
                 </div>
                 <div class="card-body p-0">
                     {% if cancellation_requests %}
@@ -123,14 +124,14 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th scope="col">ID</th>
-                                        <th scope="col">Дата запроса</th>
-                                        <th scope="col">Студент</th>
-                                        <th scope="col">Класс</th>
-                                        <th scope="col">Дата занятия</th>
-                                        <th scope="col">Время</th>
-                                        <th scope="col">Причина</th>
-                                        <th scope="col">Статус</th>
-                                        <th scope="col">Действия</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сұраныс күні{% else %}Дата запроса{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Оқушы{% else %}Студент{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сынып{% else %}Класс{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Сабақ күні{% else %}Дата занятия{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Уақыты{% else %}Время{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Себебі{% else %}Причина{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Күйі{% else %}Статус{% endif %}</th>
+                                        <th scope="col">{% if user_language == 'kk' %}Әрекеттер{% else %}Действия{% endif %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -145,35 +146,35 @@
                                             <td>{{ request.reason }}</td>
                                             <td>
                                                 {% if request.status == 'pending' %}
-                                                    <span class="badge bg-info">Ожидает подтверждения</span>
+                                                    <span class="badge bg-warning text-dark">{% if user_language == 'kk' %}Растауды күтуде{% else %}Ожидает подтверждения{% endif %}</span>
                                                 {% elif request.status == 'approved' %}
-                                                    <span class="badge bg-success">Подтверждено</span>
+                                                    <span class="badge bg-success">{% if user_language == 'kk' %}Расталған{% else %}Подтверждено{% endif %}</span>
                                                 {% elif request.status == 'rejected' %}
-                                                    <span class="badge bg-danger">Отклонено</span>
+                                                    <span class="badge bg-danger">{% if user_language == 'kk' %}Қабылданбаған{% else %}Отклонено{% endif %}</span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {% if request.status == 'pending' %}
                                                     <div class="d-flex flex-column gap-2">
                                                         <div class="btn-group" role="group">
-                                                            <a href="{% url 'attendance:process_student_cancellation_request' request.id 'approve' %}" class="btn btn-sm btn-success" onclick="return confirm('Вы уверены, что хотите подтвердить запрос? Деньги за занятие не будут списаны.')">
-                                                                <i class="bi bi-check-circle"></i> Подтвердить
+                                                            <a href="{% url 'attendance:process_student_cancellation_request' request.id 'approve' %}" class="btn btn-sm btn-success" onclick="var confirmMsg = '{% if user_language == 'kk' %}Сұранысты растағыңыз келетініне сенімдісіз бе? Сабақ үшін ақша алынбайды.{% else %}Вы уверены, что хотите подтвердить запрос? Деньги за занятие не будут списаны.{% endif %}'; return confirm(confirmMsg);">
+                                                                <i class="bi bi-check-circle"></i> {% if user_language == 'kk' %}Растау{% else %}Подтвердить{% endif %}
                                                             </a>
-                                                            <a href="{% url 'attendance:process_student_cancellation_request' request.id 'reject' %}" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите отклонить запрос? Деньги за занятие будут списаны.')">
-                                                                <i class="bi bi-x-circle"></i> Отклонить
+                                                            <a href="{% url 'attendance:process_student_cancellation_request' request.id 'reject' %}" class="btn btn-sm btn-danger" onclick="var confirmMsg = '{% if user_language == 'kk' %}Сұранысты қабылдамағыңыз келетініне сенімдісіз бе? Сабақ үшін ақша алынады.{% else %}Вы уверены, что хотите отклонить запрос? Деньги за занятие будут списаны.{% endif %}'; return confirm(confirmMsg);">
+                                                                <i class="bi bi-x-circle"></i> {% if user_language == 'kk' %}Қабылдамау{% else %}Отклонить{% endif %}
                                                             </a>
                                                         </div>
                                                         <a href="{% url 'attendance:cancel_student_cancellation_request' request_id=request.id %}" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Вы уверены, что хотите отменить этот запрос?')">
-                                                            <i class="bi bi-trash me-1"></i> Удалить запрос
+                                                            <i class="bi bi-trash me-1"></i> {% if user_language == 'kk' %}Сұранысты жою{% else %}Удалить запрос{% endif %}
                                                         </a>
                                                     </div>
                                                 {% else %}
                                                     <div class="d-flex flex-column gap-2">
                                                         {% if request.processed_by %}
-                                                            <small class="text-muted">Обработано: {{ request.processed_by.get_full_name }}</small>
+                                                            <small class="text-muted">{% if user_language == 'kk' %}Өңделді: {% else %}Обработано: {% endif %}{{ request.processed_by.get_full_name }}</small>
                                                         {% endif %}
                                                         <a href="{% url 'attendance:cancel_student_cancellation_request' request_id=request.id %}" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Вы уверены, что хотите отменить этот запрос?')">
-                                                            <i class="bi bi-x-circle me-1"></i> Отменить запрос
+                                                            <i class="bi bi-x-circle me-1"></i> {% if user_language == 'kk' %}Сұранысты болдырмау{% else %}Отменить запрос{% endif %}
                                                         </a>
                                                     </div>
                                                 {% endif %}
@@ -186,8 +187,8 @@
                     {% else %}
                         <div class="p-5 text-center">
                             <i class="bi bi-calendar-x fs-1 text-muted mb-3"></i>
-                            <h4>Запросы на отмену занятий не найдены</h4>
-                            <p class="text-muted">Попробуйте изменить параметры фильтрации</p>
+                            <h4>{% if user_language == 'kk' %}Сабақтарды болдырмау сұраныстары табылмады{% else %}Запросы на отмену занятий не найдены{% endif %}</h4>
+                            <p class="text-muted">{% if user_language == 'kk' %}Фильтр параметрлерін өзгертіп көріңіз{% else %}Попробуйте изменить параметры фильтрации{% endif %}</p>
                         </div>
                     {% endif %}
                 </div>

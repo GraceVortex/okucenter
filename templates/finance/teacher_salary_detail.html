@@ -190,8 +190,16 @@
                                                     <div class="list-group-item class-item border-0 p-3">
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <div>
-                                                                <h6 class="fw-bold mb-1">{{ class.class_name }}</h6>
+                                                                <h6 class="fw-bold mb-1">
+                                                                    {{ class.class_name }}
+                                                                    {% if not class.is_scheduled %}
+                                                                        <span class="badge bg-warning text-dark ms-2">Вне расписания</span>
+                                                                    {% endif %}
+                                                                </h6>
                                                                 <p class="text-muted mb-0 small">{{ class.time }}</p>
+                                                                {% if not class.is_scheduled and class.students_count %}
+                                                                    <p class="text-muted mb-0 small">Присутствовало студентов: {{ class.students_count }}</p>
+                                                                {% endif %}
                                                             </div>
                                                             <span class="badge bg-light text-dark">{{ class.amount }} ₸</span>
                                                         </div>
