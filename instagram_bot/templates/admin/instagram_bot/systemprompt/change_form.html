@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<div class="module">
+    <h2>{% trans "System Prompt Editor" %}</h2>
+    <div class="prompt-info" style="margin-bottom: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+        <p>{% trans "The system prompt is used to guide the behavior of the Instagram chatbot. It defines how the bot responds to user messages." %}</p>
+        <p>{% trans "Only one system prompt can be active at a time. When you set a prompt as active, all other prompts will be automatically deactivated." %}</p>
+    </div>
+</div>
+{{ block.super }}
+{% endblock %}

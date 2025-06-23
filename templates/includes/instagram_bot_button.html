@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if user.is_admin or user.is_reception %}
+<div class="instagram-bot-button">
+    <a href="{% url 'instagram_bot:instagram_bot_dashboard' %}" class="btn btn-primary">
+        <i class="fab fa-instagram"></i> {% trans "Instagram Bot" %}
+    </a>
+</div>
+{% endif %}

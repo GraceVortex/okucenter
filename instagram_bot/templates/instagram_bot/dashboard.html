@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Instagram Bot Dashboard | OkuCenter{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Главная</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Instagram Bot Dashboard</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 fw-bold">Instagram Bot Dashboard</h1>
+                <div>
+                    <a href="{% url 'admin:instagram_bot_systemprompt_changelist' %}" class="btn btn-warning"><i class="bi bi-gear me-2"></i>Управление System Prompts</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-start border-success border-4">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-people display-4 text-success mb-3"></i>
+                    <h3 class="h5 fw-bold text-muted">Total Clients</h3>
+                    <p class="display-4 fw-bold my-3">{{ total_clients }}</p>
+                    <p class="text-muted small">Уникальные пользователи Instagram</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-start border-primary border-4">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-chat-dots display-4 text-primary mb-3"></i>
+                    <h3 class="h5 fw-bold text-muted">Total Messages</h3>
+                    <p class="display-4 fw-bold my-3">{{ total_messages }}</p>
+                    <p class="text-muted small">Все сообщения</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-start border-warning border-4">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-calendar-check display-4 text-warning mb-3"></i>
+                    <h3 class="h5 fw-bold text-muted">Messages Today</h3>
+                    <p class="display-4 fw-bold my-3">{{ messages_today }}</p>
+                    <p class="text-muted small">Активность сегодня</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
+                    <h2 class="h5 mb-0 fw-bold">Recent Conversations</h2>
+                    <a href="{% url 'admin:instagram_bot_instagramclient_changelist' %}" class="btn btn-sm btn-primary"><i class="bi bi-list me-1"></i>Показать все</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Instagram ID</th>
+                                    <th>Последняя активность</th>
+                                    <th>Сообщений</th>
+                                    <th>Первое появление</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in recent_clients %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ client.instagram_id }}</strong>
+                                        {% if client.updated_at|date:"Y-m-d" == today|date:"Y-m-d" %}
+                                            <span class="badge bg-success rounded-pill ms-2">Сегодня</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ client.updated_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ client.messages.count }}</td>
+                                    <td>{{ client.created_at|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'admin:instagram_bot_instagramclient_change' client.id %}" class="btn btn-sm btn-primary"><i class="bi bi-chat me-1"></i>Просмотр чата</a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                                        <p class="mb-1">Нет разговоров</p>
+                                        <p class="small">Когда пользователи Instagram напишут вашей странице, они появятся здесь</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h2 class="h5 mb-0 fw-bold">Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'admin:instagram_bot_instagramclient_changelist' %}" class="btn btn-primary"><i class="bi bi-chat-square-text me-2"></i>Все разговоры</a>
+                        <a href="{% url 'admin:instagram_bot_systemprompt_changelist' %}" class="btn btn-warning"><i class="bi bi-gear me-2"></i>Редактировать System Prompts</a>
+                        <a href="{% url 'admin:instagram_bot_instagrammessage_changelist' %}" class="btn btn-info"><i class="bi bi-envelope me-2"></i>Все сообщения</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

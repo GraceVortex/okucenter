@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block branding %}
+{{ block.super }}
+{% endblock %}
+
+{% block nav-global %}
+<div class="module" style="margin-top: 20px;">
+    <h2>{% trans "Instagram Bot" %}</h2>
+    <ul>
+        <li><a href="{% url 'instagram_bot:instagram_bot_dashboard' %}">{% trans "Dashboard" %}</a></li>
+    </ul>
+    <p class="help" style="font-size: 0.8em; margin-top: 5px;">{% trans "Available to Admins and Receptionists" %}</p>
+</div>
+{% endblock %}

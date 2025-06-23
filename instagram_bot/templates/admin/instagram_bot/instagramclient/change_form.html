@@ -1,0 +1,121 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .chat-container {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #f9f9f9;
+    }
+    .message {
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        border-radius: 18px;
+        max-width: 80%;
+        position: relative;
+        clear: both;
+    }
+    .client-message {
+        background-color: #e1f5fe;
+        float: left;
+        border-bottom-left-radius: 5px;
+    }
+    .bot-message {
+        background-color: #e8f5e9;
+        float: right;
+        border-bottom-right-radius: 5px;
+    }
+    .message-header {
+        font-size: 0.8em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+    .message-content {
+        word-wrap: break-word;
+    }
+    .message-time {
+        font-size: 0.7em;
+        color: #999;
+        margin-top: 5px;
+        text-align: right;
+    }
+    .chat-title {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .chat-title h2 {
+        margin: 0;
+        flex-grow: 1;
+    }
+    .chat-actions {
+        margin-left: 15px;
+    }
+    .clearfix::after {
+        content: "";
+        clear: both;
+        display: table;
+    }
+</style>
+{% endblock %}
+
+{% block after_field_sets %}
+<div class="module">
+    <div class="chat-title">
+        <h2>{% trans "Conversation History" %}</h2>
+        <div class="chat-actions">
+            <a href="{% url 'instagram_bot:instagram_bot_dashboard' %}" class="button" style="background-color: #405DE6; color: white;">
+                {% trans "Back to Dashboard" %}
+            </a>
+        </div>
+    </div>
+    
+    <div class="chat-container">
+        {% for message in original.messages.all|dictsortreversed:"timestamp" %}
+            <div class="message {% if message.sender == 'client' %}client-message{% else %}bot-message{% endif %} clearfix">
+                <div class="message-header">
+                    {% if message.sender == 'client' %}
+                        <strong>{{ original.instagram_id }}</strong>
+                    {% else %}
+                        <strong>Bot</strong>
+                    {% endif %}
+                </div>
+                <div class="message-content">{{ message.content }}</div>
+                <div class="message-time">{{ message.timestamp|date:"d.m.Y H:i" }}</div>
+            </div>
+        {% empty %}
+            <p style="text-align: center; color: #999;">{% trans "No messages yet." %}</p>
+        {% endfor %}
+        <div style="clear: both;"></div>
+    </div>
+    
+    <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+        <h3>{% trans "Client Information" %}</h3>
+        <table style="width: 100%;">
+            <tr>
+                <th style="width: 150px; text-align: left; padding: 8px 0;">{% trans "Instagram ID" %}:</th>
+                <td>{{ original.instagram_id }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left; padding: 8px 0;">{% trans "First Seen" %}:</th>
+                <td>{{ original.created_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left; padding: 8px 0;">{% trans "Last Message" %}:</th>
+                <td>{{ original.updated_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: left; padding: 8px 0;">{% trans "Total Messages" %}:</th>
+                <td>{{ original.messages.count }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{{ block.super }}
+{% endblock %}

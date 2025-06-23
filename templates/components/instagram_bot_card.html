@@ -1,0 +1,18 @@
+{% load i18n %}
+{% load static %}
+{% if user.is_admin or user.is_reception %}
+<div class="card">
+    <div class="card-body text-center">
+        <div class="icon-container mb-3">
+            <img src="{% static 'images/instagram-icon.png' %}" alt="Instagram" onerror="this.src='https://cdn-icons-png.flaticon.com/512/174/174855.png'" style="width: 60px; height: 60px;">
+        </div>
+        <h2 class="card-title">Instagram Bot</h2>
+        <div class="counter">
+            <span class="number">{{ instagram_clients_count|default:"0" }}</span>
+        </div>
+        <a href="{% url 'instagram_bot:instagram_bot_dashboard' %}" class="btn btn-primary btn-block">
+            <i class="fas fa-comments"></i> Управление ботом
+        </a>
+    </div>
+</div>
+{% endif %}

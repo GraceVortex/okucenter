@@ -5,6 +5,7 @@ from classes.models import Class, ClassSchedule, Homework, HomeworkSubmission, E
 from accounts.models import Student, Teacher, Parent
 from attendance.models import Attendance, CancellationRequest, StudentCancellationRequest, Mark
 from finance.models import Transaction, TeacherSalary
+from instagram_bot.models import InstagramClient
 from django.db.models import Count, Q, Sum
 from django.utils import timezone, translation
 from django.conf import settings
@@ -20,9 +21,13 @@ def home(request):
         user = request.user
         context['user_type'] = user.user_type
         
+        # Добавляем количество Instagram клиентов для админов и ресепшионистов
+        if user.is_admin or user.is_reception:
+            context['instagram_clients_count'] = InstagramClient.objects.count()
+        
         # Перенаправляем родителей на их страницу
         if user.is_parent:
-            return redirect('core:parent_home')
+            return redirect('accounts:parent_dashboard')
         
         if user.is_admin:
             # Базовая статистика

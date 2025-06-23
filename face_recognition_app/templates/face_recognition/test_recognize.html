@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Тестирование распознавания лиц{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Тестирование распознавания лиц</h1>
+    
+    <div class="alert alert-info">
+        Это тестовая страница для отладки распознавания лиц без проверки аутентификации и CSRF.
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Камера</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <video id="video" width="100%" height="auto" autoplay></video>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button id="startCamera" class="btn btn-secondary">Пересесть</button>
+                        <button id="capture" class="btn btn-primary">Распознать лицо</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Результат распознавания</h5>
+                </div>
+                <div class="card-body">
+                    <div id="result" class="alert d-none"></div>
+                    
+                    <div id="userScores" class="mt-4">
+                        <h6>Сходство со всеми пользователями:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Пользователь</th>
+                                        <th>Тип</th>
+                                        <th>Сходство</th>
+                                        <th>Прогресс</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userScoresTable">
+                                    <!-- Здесь будут отображаться результаты -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <p><strong>Текущий порог распознавания:</strong> <span id="threshold">-</span>%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="canvas" style="display:none;"></canvas>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const startCameraBtn = document.getElementById('startCamera');
+    const captureBtn = document.getElementById('capture');
+    const resultDiv = document.getElementById('result');
+    const userScoresTable = document.getElementById('userScoresTable');
+    const thresholdSpan = document.getElementById('threshold');
+    
+    // Запускаем камеру при загрузке страницы
+    startCamera();
+    
+    // Обработчик кнопки запуска камеры
+    startCameraBtn.addEventListener('click', startCamera);
+    
+    // Обработчик кнопки захвата изображения
+    captureBtn.addEventListener('click', captureImage);
+    
+    // Функция запуска камеры
+    function startCamera() {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(function(error) {
+                    console.error("Ошибка доступа к камере:", error);
+                    resultDiv.textContent = "Ошибка доступа к камере: " + error.message;
+                    resultDiv.className = "alert alert-danger";
+                    resultDiv.classList.remove('d-none');
+                });
+        } else {
+            resultDiv.textContent = "Ваш браузер не поддерживает доступ к камере";
+            resultDiv.className = "alert alert-danger";
+            resultDiv.classList.remove('d-none');
+        }
+    }
+    
+    // Функция захвата изображения
+    function captureImage() {
+        // Отображаем сообщение о загрузке
+        resultDiv.textContent = "Распознавание лица...";
+        resultDiv.className = "alert alert-info";
+        resultDiv.classList.remove('d-none');
+        
+        // Очищаем предыдущие результаты
+        userScoresTable.innerHTML = '';
+        
+        // Настраиваем canvas для захвата изображения
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Получаем изображение в формате base64
+        const imageData = canvas.toDataURL('image/jpeg', 0.9);
+        
+        // Отправляем запрос на сервер
+        fetch('/face-recognition/api/test-recognize/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                face_data: imageData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Ответ сервера:", data);
+            
+            // Отображаем порог распознавания
+            if (data.threshold_percent) {
+                thresholdSpan.textContent = data.threshold_percent;
+            }
+            
+            // Обрабатываем результат
+            if (data.success) {
+                resultDiv.textContent = `Лицо распознано как ${data.username} (${data.confidence_percent}%)`;
+                resultDiv.className = "alert alert-success";
+            } else {
+                resultDiv.textContent = data.message || "Лицо не распознано";
+                resultDiv.className = "alert alert-warning";
+            }
+            
+            // Отображаем сходство со всеми пользователями
+            if (data.user_scores && data.user_scores.length > 0) {
+                data.user_scores.forEach(score => {
+                    const row = document.createElement('tr');
+                    
+                    // Определяем цвет строки в зависимости от порога
+                    if (score.confidence >= data.threshold_percent) {
+                        row.className = 'table-success';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${score.username}</td>
+                        <td>${score.user_type}</td>
+                        <td>${score.confidence}%</td>
+                        <td>
+                            <div class="progress">
+                                <div class="progress-bar ${score.confidence >= data.threshold_percent ? 'bg-success' : 'bg-warning'}" 
+                                     role="progressbar" 
+                                     style="width: ${score.confidence}%" 
+                                     aria-valuenow="${score.confidence}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    ${score.confidence}%
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    userScoresTable.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4" class="text-center">Нет данных о сходстве</td>';
+                userScoresTable.appendChild(row);
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка при отправке запроса:", error);
+            resultDiv.textContent = "Ошибка при отправке запроса: " + error.message;
+            resultDiv.className = "alert alert-danger";
+        });
+    }
+});
+</script>
+{% endblock %}

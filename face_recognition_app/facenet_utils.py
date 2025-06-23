@@ -21,32 +21,33 @@ MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 # Инициализируем детектор лиц MTCNN и модель FaceNet
-# Используем GPU, если доступен
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-logger.info(f"Используем устройство: {device}")
+# Принудительно используем CPU для стабильной работы
+device = torch.device('cpu')
+logger.info(f"Принудительно используем CPU: {device}")
 
 # Инициализируем MTCNN для обнаружения лиц
 try:
+    # Уменьшаем размер изображения для ускорения на CPU
     mtcnn = MTCNN(
-        image_size=160, margin=0, min_face_size=20,
+        image_size=120, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
-        device=device, keep_all=False
+        device='cpu', keep_all=False
     )
-    logger.info("MTCNN успешно инициализирован")
+    logger.info("МТCNN успешно инициализирован на CPU")
 except Exception as e:
     logger.error(f"Ошибка при инициализации MTCNN: {e}")
     raise
 
 # Загружаем предобученную модель FaceNet
 try:
-    facenet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
-    logger.info("Модель FaceNet успешно загружена")
+    facenet = InceptionResnetV1(pretrained='vggface2').eval().to('cpu')
+    logger.info("Модель FaceNet успешно загружена на CPU")
 except Exception as e:
     logger.error(f"Ошибка при загрузке модели FaceNet: {e}")
     raise
 
-# Константы для распознавания лиц
-FACENET_THRESHOLD = 0.88  # Порог для FaceNet (косинусное расстояние)
+# Константы# Глобальные настройки
+FACENET_THRESHOLD = 0.75  # Порог сходства для распознавания лица (повышен для более точного распознавания)
 
 def encode_face_data(face_features):
     """Преобразует массив numpy или тензор PyTorch в строку JSON для хранения в базе данных"""
@@ -107,6 +108,11 @@ def process_base64_image(base64_image):
             _, base64_data = base64_image.split(',', 1)
             base64_image = base64_data
         
+        # Проверяем, что данные не пустые
+        if not base64_image or base64_image == "data:,":
+            logger.error("Пустые данные изображения")
+            return None, "Пустые данные изображения"
+        
         # Декодируем base64 в байты
         try:
             # Добавляем паддинг, если необходимо
@@ -122,13 +128,29 @@ def process_base64_image(base64_image):
         try:
             from io import BytesIO
             
-            # Открываем изображение напрямую из байтов
-            image_buffer = BytesIO(image_data)
-            image = Image.open(image_buffer)
+            # Проверяем длину данных
+            if len(image_data) < 100:
+                logger.error(f"Слишком мало данных для изображения: {len(image_data)} байт")
+                return None, "Недостаточно данных для изображения"
             
-            # Конвертируем в RGB, если необходимо
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
+            # Открываем изображение напрямую из байтов
+            try:
+                image_buffer = BytesIO(image_data)
+                image = Image.open(image_buffer)
+                
+                # Проверяем, что изображение загрузилось
+                image.verify()  # Проверяем целостность изображения
+                
+                # Перезагружаем изображение после проверки
+                image_buffer.seek(0)
+                image = Image.open(image_buffer)
+                
+                # Конвертируем в RGB, если необходимо
+                if image.mode != 'RGB':
+                    image = image.convert('RGB')
+            except Exception as e:
+                logger.error(f"Ошибка при открытии изображения: {e}")
+                return None, f"Ошибка при открытии изображения: {str(e)}"
             
             # Минимальная предобработка для ускорения
             # Только улучшаем контраст и яркость, пропускаем другие фильтры
@@ -165,47 +187,48 @@ def process_base64_image(base64_image):
                 
                 # Обрезаем изображение до квадрата
                 image = image.crop((left, top, right, bottom))
-        except Exception as e:
-            return None, f"Ошибка при обработке изображения: {str(e)}"
-        
-        # Используем оптимизированные параметры MTCNN для быстрого обнаружения лица
-        try:
-            # Используем предустановленный MTCNN с оптимальными параметрами
             face_tensor = mtcnn(image)
             
-            # Если лицо не обнаружено с первой попытки, используем запасной вариант
-            # с более мягкими параметрами, но только один раз
             if face_tensor is None:
-                # Используем глобальную переменную для кэширования
-                global mtcnn_optimized
-                if 'mtcnn_optimized' not in globals():
-                    mtcnn_optimized = MTCNN(
-                        image_size=160, margin=20, min_face_size=10,
-                        thresholds=[0.5, 0.6, 0.6], factor=0.8,
-                        post_process=True, device=device, keep_all=False
-                    )
-                
-                # Пробуем с оптимизированными параметрами
-                face_tensor = mtcnn_optimized(image)
-        except Exception as e:
-            return None, f"Ошибка при обнаружении лица: {str(e)}"
-        
-        # Если лицо все еще не обнаружено
-        if face_tensor is None:
-            return None, "Лицо не обнаружено на изображении"
-        
-        # Получаем эмбеддинг лица с помощью FaceNet
-        try:
-            with torch.no_grad():
-                embedding = facenet(face_tensor.unsqueeze(0))
+                logger.warning("Лицо не обнаружено на изображении")
+                return None, "Лицо не обнаружено на изображении"
             
-            # Преобразуем тензор в массив numpy
-            embedding_np = embedding.cpu().numpy()[0]
-            return embedding_np, None
+            logger.info(f"Лицо успешно обнаружено, размер тензора: {face_tensor.shape}")
+            
+            # Получаем эмбеддинг лица с помощью FaceNet
+            # Добавляем размерность батча (1, ...)
+            face_tensor = face_tensor.unsqueeze(0).to('cpu')  # Принудительно используем CPU
+            
+            # Отключаем вычисление градиентов для ускорения
+            with torch.no_grad():
+                embedding = facenet(face_tensor)
+            
+            # Преобразуем эмбеддинг в numpy массив
+            embedding = embedding.cpu().numpy().flatten()
+            
+            # Проверяем, что эмбеддинг не содержит NaN или бесконечностей
+            if np.isnan(embedding).any() or np.isinf(embedding).any():
+                logger.warning("Эмбеддинг содержит NaN или бесконечности")
+                return None, "Ошибка при обработке лица: некорректные значения в эмбеддинге"
+            
+            # Нормализуем вектор эмбеддинга
+            norm = np.linalg.norm(embedding)
+            if norm > 0:
+                embedding = embedding / norm
+            else:
+                logger.warning("Норма эмбеддинга равна нулю")
+                return None, "Ошибка при обработке лица: нулевой эмбеддинг"
+            
+            logger.info(f"Эмбеддинг успешно получен, размерность: {embedding.shape}")
+            
+            return embedding, None
+            
         except Exception as e:
-            return None, f"Ошибка при получении эмбеддинга лица: {str(e)}"
-    
+            logger.error(f"Ошибка при обработке лица с помощью MTCNN/FaceNet: {e}")
+            return None, f"Ошибка при обработке лица: {str(e)}"
+        
     except Exception as e:
+        logger.error(f"Ошибка при обработке изображения: {e}")
         return None, f"Ошибка при обработке изображения: {str(e)}"
 
 def compare_faces(face1_embedding, face2_embedding, threshold=FACENET_THRESHOLD):
@@ -277,13 +300,41 @@ def compare_faces(face1_embedding, face2_embedding, threshold=FACENET_THRESHOLD)
         return False, 0.0
 
 def register_face(user, base64_image):
-    """Регистрирует лицо пользователя с использованием FaceNet"""
+    """Регистрирует лицо пользователя в базе данных"""
     try:
         # Обрабатываем изображение и получаем эмбеддинг лица
         face_embedding, error = process_base64_image(base64_image)
         
+        if error:
+            logger.error(f"[Регистрация лица] Ошибка при обработке изображения: {error}")
+            return False, error
+        
         if face_embedding is None:
-            return False, error or "Не удалось обнаружить лицо на изображении"
+            logger.error("[Регистрация лица] Не удалось получить эмбеддинг лица")
+            return False, "Не удалось получить эмбеддинг лица"
+        
+        # Проверяем качество эмбеддинга
+        import numpy as np
+        embedding_norm = np.linalg.norm(face_embedding)
+        logger.info(f"[Регистрация лица] Норма эмбеддинга: {embedding_norm:.6f}")
+        
+        # Проверяем на NaN и бесконечности
+        if np.isnan(embedding_norm) or np.isinf(embedding_norm) or embedding_norm < 0.1:
+            logger.error(f"[Регистрация лица] Некачественный эмбеддинг с нормой {embedding_norm:.6f}")
+            return False, "Некачественное изображение лица. Попробуйте сделать снимок в лучшем освещении."
+        
+        # Нормализуем эмбеддинг перед сохранением
+        face_embedding = face_embedding / embedding_norm
+        
+        # Проверяем норму после нормализации
+        embedding_norm_after = np.linalg.norm(face_embedding)
+        logger.info(f"[Регистрация лица] Норма эмбеддинга после нормализации: {embedding_norm_after:.6f}")
+        
+        # Проверяем первые значения эмбеддинга
+        logger.info(f"[Регистрация лица] Первые 5 значений эмбеддинга: {face_embedding[:5]}")
+        
+        # Проверяем статистику эмбеддинга
+        logger.info(f"[Регистрация лица] Статистика эмбеддинга: min={np.min(face_embedding):.4f}, max={np.max(face_embedding):.4f}, mean={np.mean(face_embedding):.4f}, std={np.std(face_embedding):.4f}")
         
         # Кодируем эмбеддинг лица для хранения в базе данных
         face_data = encode_face_data(face_embedding)
@@ -350,11 +401,36 @@ def register_face(user, base64_image):
         logger.error(f"Ошибка при регистрации лица: {e}")
         return False, f"Произошла ошибка: {str(e)}"
 
-def recognize_face(base64_image, request=None, threshold=None):
-    """Оптимизированная функция распознавания лица на изображении с использованием FaceNet"""
+def recognize_face(base64_image, request=None, threshold=None, return_all_scores=False):
+    """Оптимизированная функция распознавания лица на изображении с использованием FaceNet
+    
+    Args:
+        base64_image: Изображение в формате base64
+        request: Объект запроса Django
+        threshold: Порог распознавания
+        return_all_scores: Если True, возвращает сходства со всеми пользователями
+    
+    Returns:
+        success: Успешность распознавания
+        user: Пользователь, который был распознан
+        error: Сообщение об ошибке
+        confidence: Уверенность распознавания
+        all_similarities: Список кортежей (user, confidence) для всех пользователей (если return_all_scores=True)
+    """
+    # Установим более строгий порог распознавания по умолчанию
+    global FACENET_THRESHOLD
+    DEFAULT_THRESHOLD = 0.75  # Повышаем порог по умолчанию для более точного распознавания
+    # Импортируем numpy в начале функции
+    import numpy as np
+    
     # Устанавливаем порог распознавания
     if threshold is None:
-        threshold = FACENET_THRESHOLD
+        threshold = DEFAULT_THRESHOLD
+    
+    # Обновляем глобальный порог для отображения в UI
+    FACENET_THRESHOLD = threshold
+    
+    logger.info(f"[Распознавание] Используемый порог распознавания: {threshold:.4f} ({threshold*100:.2f}%)")
     
     try:
         # Обрабатываем изображение и получаем эмбеддинг лица
@@ -381,8 +457,26 @@ def recognize_face(base64_image, request=None, threshold=None):
         best_match = None
         best_confidence = 0.0
         
+        # Отладочная информация о загруженных эмбеддингах
+        logger.info(f"[Отладка] Загружено {len(user_embeddings)} эмбеддингов лиц для сравнения")
+        logger.info(f"[Отладка] Текущий порог распознавания: {threshold}")
+        
+        # Выводим информацию о каждом пользователе с зарегистрированным лицом
+        for i, (user, emb) in enumerate(user_embeddings):
+            logger.info(f"[Отладка] Пользователь {i+1}: {user.username}, тип: {user.user_type}, длина эмбеддинга: {len(emb)}, норма: {np.linalg.norm(emb):.4f}")
+            
+        # Проверяем текущий эмбеддинг
+        logger.info(f"[Отладка] Текущий эмбеддинг: длина: {len(face_embedding)}, норма: {np.linalg.norm(face_embedding):.4f}")
+        
+        # Проверяем первые несколько значений эмбеддинга
+        logger.info(f"[Отладка] Первые 5 значений текущего эмбеддинга: {face_embedding[:5]}")
+        
+        if user_embeddings and len(user_embeddings) > 0:
+            logger.info(f"[Отладка] Первые 5 значений эмбеддинга первого пользователя: {user_embeddings[0][1][:5]}")
+        
+        
         # Оптимизация: используем векторизацию для ускорения
-        import numpy as np
+        # numpy уже импортирован в начале функции
         
         # Создаем матрицу всех эмбеддингов
         if user_embeddings:
@@ -390,18 +484,102 @@ def recognize_face(base64_image, request=None, threshold=None):
             all_embeddings = np.array([emb for _, emb in user_embeddings])
             
             # Вычисляем сходство между текущим эмбеддингом и всеми сохраненными
-            # Косинусное сходство = dot(a, b) / (norm(a) * norm(b))
-            dot_products = np.dot(all_embeddings, face_embedding)
-            norms = np.linalg.norm(all_embeddings, axis=1) * np.linalg.norm(face_embedding)
-            similarities = dot_products / norms
+            # Предполагаем, что эмбеддинги уже нормализованы
+            # Косинусное сходство = dot(a, b) для нормализованных векторов
+            
+            # Проверяем нормы эмбеддингов
+            face_embedding_norm = np.linalg.norm(face_embedding)
+            all_embeddings_norms = np.linalg.norm(all_embeddings, axis=1)
+            
+            # Логируем нормы для проверки
+            logger.info(f"[Отладка] Норма текущего эмбеддинга: {face_embedding_norm:.6f}")
+            logger.info(f"[Отладка] Нормы сохраненных эмбеддингов (min/max/mean): {np.min(all_embeddings_norms):.6f}/{np.max(all_embeddings_norms):.6f}/{np.mean(all_embeddings_norms):.6f}")
+            
+            # Нормализуем эмбеддинги, если они еще не нормализованы
+            if abs(face_embedding_norm - 1.0) > 1e-6:
+                logger.info("[Отладка] Нормализуем текущий эмбеддинг")
+                face_embedding = face_embedding / face_embedding_norm
+            
+            # Нормализуем сохраненные эмбеддинги, если нужно
+            need_normalization = np.any(np.abs(all_embeddings_norms - 1.0) > 1e-6)
+            if need_normalization:
+                logger.info("[Отладка] Нормализуем сохраненные эмбеддинги")
+                for i in range(len(all_embeddings)):
+                    if all_embeddings_norms[i] > 0:
+                        all_embeddings[i] = all_embeddings[i] / all_embeddings_norms[i]
+            
+            # Проверяем нормы эмбеддингов перед сравнением
+            face_embedding_norm = np.linalg.norm(face_embedding)
+            all_embeddings_norms = np.linalg.norm(all_embeddings, axis=1)
+            
+            # Логируем нормы для проверки
+            logger.info(f"[Распознавание] Норма текущего эмбеддинга: {face_embedding_norm:.6f}")
+            logger.info(f"[Распознавание] Нормы сохраненных эмбеддингов (min/max/mean): {np.min(all_embeddings_norms):.6f}/{np.max(all_embeddings_norms):.6f}/{np.mean(all_embeddings_norms):.6f}")
+            
+            # Всегда нормализуем эмбеддинги перед сравнением для более точных результатов
+            if abs(face_embedding_norm - 1.0) > 1e-6:
+                logger.info("[Распознавание] Нормализуем текущий эмбеддинг")
+                face_embedding = face_embedding / face_embedding_norm
+            
+            # Нормализуем все сохраненные эмбеддинги
+            for i in range(len(all_embeddings)):
+                if all_embeddings_norms[i] > 0 and abs(all_embeddings_norms[i] - 1.0) > 1e-6:
+                    all_embeddings[i] = all_embeddings[i] / all_embeddings_norms[i]
+            
+            # Вычисляем косинусное сходство после нормализации
+            similarities = np.dot(all_embeddings, face_embedding)
+            
+            # Логируем исходные значения сходства
+            logger.info(f"[Распознавание] Значения сходства (min/max/mean): {np.min(similarities):.6f}/{np.max(similarities):.6f}/{np.mean(similarities):.6f}")
+            
+            # Проверяем, нужно ли преобразовывать в диапазон [0, 1]
+            # Косинусное сходство должно быть в диапазоне [-1, 1], но после нормализации обычно в [0, 1]
+            if np.min(similarities) < 0:
+                logger.info("[Распознавание] Преобразуем сходства в диапазон [0, 1]")
+                similarities = (similarities + 1) / 2
             
             # Находим индекс наибольшего сходства
             best_idx = np.argmax(similarities)
             best_confidence = similarities[best_idx]
             
+            # Логируем результаты сравнения
+            logger.info(f"[Отладка] Лучшее совпадение: {best_confidence:.4f}, порог: {threshold}")
+            
+            # Создаем список всех пользователей с их сходствами
+            all_user_similarities = []
+            for idx, similarity in enumerate(similarities):
+                all_user_similarities.append((user_embeddings[idx][0], similarity))
+            
+            # Сортируем по убыванию сходства
+            all_user_similarities.sort(key=lambda x: x[1], reverse=True)
+            
+            # Выводим топ-3 лучших совпадения
+            for i, (user, conf) in enumerate(all_user_similarities[:3]):
+                logger.info(f"[Распознавание] Топ-{i+1}: {user.username}, тип: {user.user_type}, сходство: {conf:.4f} ({conf*100:.2f}%)")  
+                
+            # Проверяем разницу между первым и вторым лучшими совпадениями
+            if len(all_user_similarities) >= 2:
+                top1_user, top1_conf = all_user_similarities[0]
+                top2_user, top2_conf = all_user_similarities[1]
+                confidence_diff = top1_conf - top2_conf
+                logger.info(f"[Распознавание] Разница между 1-м и 2-м местом: {confidence_diff:.4f} ({confidence_diff*100:.2f}%)")
+                
+                # Если разница слишком мала, повышаем требуемый порог
+                if confidence_diff < 0.1 and top1_conf < threshold + 0.1:
+                    logger.warning(f"[Распознавание] Маленькая разница между лучшими совпадениями! Возможно неточное распознавание.")
+            
             # Если нашли совпадение выше порога
             if best_confidence >= threshold:
                 best_match = user_embeddings[best_idx][0]
+                logger.info(f"[Отладка] Найдено совпадение выше порога: {best_match.username}")
+            else:
+                logger.info(f"[Отладка] Не найдено совпадений выше порога {threshold}")
+          # Возвращаем результат
+        if best_confidence >= threshold:
+            best_match = user_embeddings[best_idx][0]
+            logger.info(f"[Отладка] Найдено совпадение выше порога: {best_match.username}")
+        else:
+            logger.info(f"[Отладка] Не найдено совпадений выше порога {threshold}")
         
         # Если найдено совпадение с достаточной уверенностью
         if best_match is not None and best_confidence >= threshold:
@@ -416,88 +594,25 @@ def recognize_face(base64_image, request=None, threshold=None):
                     device_info=request.META.get('HTTP_USER_AGENT', '')[:255]
                 )
             
-            return True, best_match, f"Лицо распознано как {best_match.get_full_name() or best_match.username}", best_confidence
-        
-        # Если совпадение не найдено
-        # Создаем запись в логе распознавания (неудачную)
-        if request and best_match:
-            from .models import FaceRecognitionLog
-            FaceRecognitionLog.objects.create(
-                user=best_match,
-                success=False,
-                confidence=best_confidence,
-                ip_address=request.META.get('REMOTE_ADDR', ''),
-                device_info=request.META.get('HTTP_USER_AGENT', '')[:255]
-            )
-        
-        return False, best_match, "Лицо не распознано", best_confidence
-    
-    except Exception as e:
-        return False, None, f"Произошла ошибка: {str(e)}", 0.0
-
-def check_face_data(username=None):
-    """Проверяет данные лица пользователя в базе данных"""
-    try:
-        from accounts.models import User
-        
-        # Определяем, каких пользователей проверять
-        if username:
-            users = User.objects.filter(username=username)
-            if not users.exists():
-                return False, f"Пользователь {username} не найден"
-        else:
-            users = User.objects.exclude(face_id_data__isnull=True).exclude(face_id_data="")
-        
-        results = []
-        
-        for user in users:
-            # Проверяем, что у пользователя есть данные лица
-            if not user.face_id_data:
-                results.append({
-                    'username': user.username,
-                    'status': 'error',
-                    'message': 'Данные лица отсутствуют'
-                })
-                continue
-            
-            # Декодируем данные лица
-            face_data = decode_face_data(user.face_id_data)
-            
-            if face_data is None:
-                results.append({
-                    'username': user.username,
-                    'status': 'error',
-                    'message': 'Не удалось декодировать данные лица'
-                })
-                continue
-            
-            # Проверяем тип данных и размерность
-            if isinstance(face_data, np.ndarray):
-                # Для FaceNet ожидаем эмбеддинг размерностью 512
-                if face_data.shape == (512,):
-                    results.append({
-                        'username': user.username,
-                        'status': 'ok',
-                        'message': f'Данные FaceNet корректны, размерность: {face_data.shape}'
-                    })
-                else:
-                    results.append({
-                        'username': user.username,
-                        'status': 'warning',
-                        'message': f'Неожиданная размерность данных FaceNet: {face_data.shape}, ожидалось (512,)'
-                    })
+            # Возвращаем результат успешного распознавания
+            if return_all_scores:
+                return True, best_match, None, best_confidence, all_user_similarities
             else:
-                results.append({
-                    'username': user.username,
-                    'status': 'warning',
-                    'message': f'Неожиданный тип данных: {type(face_data)}'
-                })
+                return True, best_match, None, best_confidence
         
-        return True, results
+        # Если распознавание не удалось, но есть список сходств
+        if return_all_scores and 'all_user_similarities' in locals():
+            return False, None, "Лицо не распознано", 0.0, all_user_similarities
+        else:
+            return False, None, "Лицо не распознано", 0.0
     
     except Exception as e:
-        logger.error(f"Ошибка при проверке данных лица: {e}")
-        return False, f"Произошла ошибка: {str(e)}"
+        error_msg = f"Произошла ошибка при распознавании лица: {str(e)}"
+        logger.error(error_msg)
+        if return_all_scores:
+            return False, None, error_msg, 0.0, []
+        else:
+            return False, None, error_msg, 0.0
 
 def mark_attendance_by_face(user, class_obj, date, status='present', request=None, confidence=None):
     """Отмечает посещаемость по распознанному лицу с использованием FaceNet"""

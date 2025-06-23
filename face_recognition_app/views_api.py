@@ -121,7 +121,7 @@ def api_recognize_attendance(request):
                             'success': True, 
                             'student_id': student.id,
                             'student_name': student.user.get_full_name(),
-                            'confidence': confidence,
+                            'confidence': float(confidence),
                             'today_schedules': schedule_data,
                             'attendance_marked': False,
                             'attendance_error': f'Студент не принадлежит к классу {class_obj.name}'
@@ -206,7 +206,7 @@ def api_recognize_attendance(request):
                         'success': True,
                         'student_id': student.id,
                         'student_name': student.user.get_full_name(),
-                        'confidence': confidence,
+                        'confidence': float(confidence),
                         'today_schedules': schedule_data,
                         'attendance_marked': True,
                         'attendance_id': attendance.id,
@@ -218,7 +218,7 @@ def api_recognize_attendance(request):
                         'success': True,
                         'student_id': student.id,
                         'student_name': student.user.get_full_name(),
-                        'confidence': confidence,
+                        'confidence': float(confidence),
                         'today_schedules': schedule_data,
                         'attendance_marked': False,
                         'attendance_error': 'Указанный класс не найден'
@@ -229,7 +229,7 @@ def api_recognize_attendance(request):
                 'success': True,
                 'student_id': student.id,
                 'student_name': student.user.get_full_name(),
-                'confidence': confidence,
+                'confidence': float(confidence),
                 'today_schedules': schedule_data,
                 'attendance_marked': False
             })

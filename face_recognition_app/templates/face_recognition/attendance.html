@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Отметка посещаемости по лицу{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Отметка посещаемости по распознаванию лица</h1>
+    
+    <div class="row">
+        <!-- Левая колонка с камерой -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Камера</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <video id="video" width="100%" autoplay></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                        <div class="mt-3">
+                            <button id="captureBtn" class="btn btn-primary">Сделать снимок</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Правая колонка с результатами -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Результат распознавания</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContainer">
+                        <div id="loadingIndicator" style="display:none;">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Распознавание лица...</p>
+                        </div>
+                        
+                        <div id="errorContainer" class="alert alert-danger" style="display:none;"></div>
+                        
+                        <div id="recognitionResult" style="display:none;">
+                            <div class="alert alert-success mb-3">
+                                <h5 id="recognizedUserName"></h5>
+                                <p id="recognizedUserInfo"></p>
+                                <p>Уверенность: <span id="confidenceValue"></span>%</p>
+                            </div>
+                            
+                            <div id="attendanceForm">
+                                <div class="mb-3">
+                                    <label for="classSelect" class="form-label">Выберите занятие:</label>
+                                    <select id="classSelect" class="form-select">
+                                        <option value="">Загрузка занятий...</option>
+                                    </select>
+                                </div>
+                                <button id="markAttendanceBtn" class="btn btn-success">Отметить посещение</button>
+                            </div>
+                        </div>
+                        
+                        <div id="topMatchesContainer" style="display:none;">
+                            <h5 class="mt-4">Топ-3 совпадения:</h5>
+                            <div id="topMatchesList" class="list-group">
+                                <!-- Сюда будут добавлены топ-3 совпадения -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Глобальные переменные
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let captureBtn = document.getElementById('captureBtn');
+    let recognizedUserId = null;
+    let recognizedUserType = null;
+    let recognitionConfidence = 0;
+    
+    // Инициализация камеры
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        } catch (err) {
+            showError('Ошибка доступа к камере: ' + err.message);
+            console.error('Ошибка доступа к камере:', err);
+        }
+    }
+    
+    // Загрузка списка занятий
+    async function loadClasses() {
+        try {
+            const response = await fetch('/api/classes/active/');
+            const data = await response.json();
+            
+            const classSelect = document.getElementById('classSelect');
+            classSelect.innerHTML = '';
+            
+            if (data.length === 0) {
+                classSelect.innerHTML = '<option value="">Нет активных занятий</option>';
+                return;
+            }
+            
+            data.forEach(classItem => {
+                const option = document.createElement('option');
+                option.value = classItem.id;
+                option.textContent = `${classItem.subject_name} (${classItem.start_time} - ${classItem.end_time})`;
+                classSelect.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Ошибка при загрузке занятий:', err);
+            document.getElementById('classSelect').innerHTML = 
+                '<option value="">Ошибка загрузки занятий</option>';
+        }
+    }
+    
+    // Отображение ошибки
+    function showError(message) {
+        const errorContainer = document.getElementById('errorContainer');
+        errorContainer.textContent = message;
+        errorContainer.style.display = 'block';
+        
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('recognitionResult').style.display = 'none';
+        document.getElementById('topMatchesContainer').style.display = 'none';
+    }
+    
+    // Отображение результата распознавания
+    function showRecognitionResult(data) {
+        // Скрываем индикатор загрузки
+        document.getElementById('loadingIndicator').style.display = 'none';
+        
+        if (data.success) {
+            // Сохраняем данные распознанного пользователя
+            recognizedUserId = data.user_id;
+            recognizedUserType = data.user_type;
+            recognitionConfidence = data.confidence_percent;
+            
+            // Отображаем информацию о распознанном пользователе
+            document.getElementById('recognizedUserName').textContent = data.full_name || data.username;
+            document.getElementById('recognizedUserInfo').textContent = 
+                `Тип пользователя: ${data.user_type}` + 
+                (data.is_student ? `, ID студента: ${data.student_id}` : '');
+            document.getElementById('confidenceValue').textContent = data.confidence_percent.toFixed(2);
+            
+            // Показываем блок с результатом
+            document.getElementById('recognitionResult').style.display = 'block';
+        } else {
+            showError(data.message || 'Лицо не распознано');
+        }
+        
+        // Отображаем топ-3 совпадения
+        if (data.user_scores && data.user_scores.length > 0) {
+            const topMatchesList = document.getElementById('topMatchesList');
+            topMatchesList.innerHTML = '';
+            
+            // Берем только топ-3 совпадения
+            const topMatches = data.user_scores.slice(0, 3);
+            
+            topMatches.forEach(match => {
+                const listItem = document.createElement('div');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${match.username} (${match.user_type})`;
+                
+                const confidenceSpan = document.createElement('span');
+                confidenceSpan.className = 'badge bg-primary rounded-pill';
+                confidenceSpan.textContent = `${match.confidence.toFixed(2)}%`;
+                
+                const markButton = document.createElement('button');
+                markButton.className = 'btn btn-sm btn-success ms-2';
+                markButton.textContent = 'Отметить';
+                markButton.onclick = function() {
+                    markAttendanceForUser(match.username);
+                };
+                
+                listItem.appendChild(nameSpan);
+                const rightGroup = document.createElement('div');
+                rightGroup.appendChild(confidenceSpan);
+                rightGroup.appendChild(markButton);
+                listItem.appendChild(rightGroup);
+                
+                topMatchesList.appendChild(listItem);
+            });
+            
+            document.getElementById('topMatchesContainer').style.display = 'block';
+        }
+    }
+    
+    // Отметка посещения для конкретного пользователя
+    async function markAttendanceForUser(username) {
+        const classId = document.getElementById('classSelect').value;
+        
+        if (!classId) {
+            showError('Пожалуйста, выберите занятие');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/face-recognition/mark-attendance/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    username: username,
+                    class_id: classId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(`Посещение для ${username} успешно отмечено!`);
+            } else {
+                showError(data.message || 'Ошибка при отметке посещения');
+            }
+        } catch (err) {
+            console.error('Ошибка при отметке посещения:', err);
+            showError('Ошибка при отметке посещения');
+        }
+    }
+    
+    // Получение CSRF токена из cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Захват изображения с камеры и отправка на сервер
+    async function captureAndRecognize() {
+        // Показываем индикатор загрузки
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('errorContainer').style.display = 'none';
+        document.getElementById('recognitionResult').style.display = 'none';
+        document.getElementById('topMatchesContainer').style.display = 'none';
+        
+        // Захватываем изображение с камеры
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Конвертируем изображение в base64
+        const imageData = canvas.toDataURL('image/jpeg', 0.9);
+        const base64Data = imageData.split(',')[1];
+        
+        try {
+            // Отправляем изображение на сервер для распознавания
+            const response = await fetch('/face-recognition/recognize/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    face_data: base64Data
+                })
+            });
+            
+            const data = await response.json();
+            showRecognitionResult(data);
+        } catch (err) {
+            console.error('Ошибка при распознавании лица:', err);
+            showError('Ошибка при распознавании лица');
+        }
+    }
+    
+    // Отметка посещения для распознанного пользователя
+    async function markAttendance() {
+        const classId = document.getElementById('classSelect').value;
+        
+        if (!recognizedUserId || !classId) {
+            showError('Не выбрано занятие или пользователь не распознан');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/face-recognition/mark-attendance/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    user_id: recognizedUserId,
+                    class_id: classId,
+                    confidence: recognitionConfidence
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('Посещение успешно отмечено!');
+            } else {
+                showError(data.message || 'Ошибка при отметке посещения');
+            }
+        } catch (err) {
+            console.error('Ошибка при отметке посещения:', err);
+            showError('Ошибка при отметке посещения');
+        }
+    }
+    
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализируем камеру
+        initCamera();
+        
+        // Загружаем список занятий
+        loadClasses();
+        
+        // Добавляем обработчики событий
+        captureBtn.addEventListener('click', captureAndRecognize);
+        document.getElementById('markAttendanceBtn').addEventListener('click', markAttendance);
+    });
+</script>
+{% endblock %}

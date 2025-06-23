@@ -1,0 +1,14 @@
+{% load i18n %}
+
+<div class="module" style="margin-bottom: 20px;">
+    <h2 style="margin-bottom: 10px; color: #333;">{% trans "Instagram Bot" %}</h2>
+    <div class="instagram-bot-actions">
+        <a href="{% url 'instagram_bot:instagram_bot_dashboard' %}" class="button" style="display: inline-block; padding: 10px 15px; background-color: #405DE6; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;">
+            <i class="fas fa-tachometer-alt" style="margin-right: 5px;"></i> {% trans "Dashboard" %}
+        </a>
+        <a href="{% url 'admin:instagram_bot_instagramclient_changelist' %}" class="button" style="display: inline-block; padding: 10px 15px; background-color: #E1306C; color: white; text-decoration: none; border-radius: 4px;">
+            <i class="fas fa-comments" style="margin-right: 5px;"></i> {% trans "View Conversations" %}
+        </a>
+    </div>
+    <p class="help" style="font-size: 0.8em; margin-top: 10px;">{% trans "Manage Instagram conversations and system prompts" %}</p>
+</div>

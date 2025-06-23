@@ -1,0 +1,20 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+    {% include "admin/instagram_bot/instagram_button.html" %}
+    {{ block.super }}
+{% endblock %}
+
+{% block sidebar %}
+{{ block.super }}
+<div class="module" style="margin-top: 20px;">
+    <h2>{% trans "Instagram Bot" %}</h2>
+    <ul>
+        <li><a href="{% url 'instagram_bot:instagram_bot_dashboard' %}">{% trans "Dashboard" %}</a></li>
+        <li><a href="{% url 'admin:instagram_bot_instagramclient_changelist' %}">{% trans "Conversations" %}</a></li>
+        <li><a href="{% url 'admin:instagram_bot_systemprompt_changelist' %}">{% trans "System Prompts" %}</a></li>
+    </ul>
+    <p class="help" style="font-size: 0.8em; margin-top: 5px;">{% trans "Available to Admins and Receptionists" %}</p>
+</div>
+{% endblock %}

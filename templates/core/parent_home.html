@@ -26,14 +26,7 @@
 
 {% block content %}
 <div class="container mt-2 px-2">
-    <!-- Переключатель языка -->
-    <div class="d-flex justify-content-end mb-3">
-        <div class="btn-group" role="group" aria-label="{% if user_language == 'kk' %}Тіл ауыстырғыш{% else %}Переключатель языка{% endif %}">
-            <a href="{% url 'core:change_language' %}?lang=ru&next={{ request.path }}" class="btn btn-sm {% if user_language == 'ru' %}btn-primary{% else %}btn-outline-primary{% endif %}">Рус</a>
-            <a href="{% url 'core:change_language' %}?lang=kk&next={{ request.path }}" class="btn btn-sm {% if user_language == 'kk' %}btn-primary{% else %}btn-outline-primary{% endif %}">Қаз</a>
-        </div>
-    </div>
-    
+
     <!-- {% if user_language == 'kk' %}Пайдаланушы профилі{% else %}Профиль пользователя{% endif %} -->
     <div class="mb-3">
         <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded-3">

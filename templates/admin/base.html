@@ -1,0 +1,9 @@
+{% extends 'admin/base.html' %}
+{% load i18n %}
+
+{% block userlinks %}
+    {{ block.super }}
+    {% if user.is_admin or user.is_reception %}
+    / <a href="{% url 'instagram_bot:instagram_bot_dashboard' %}">{% trans "Instagram Bot" %}</a>
+    {% endif %}
+{% endblock %}

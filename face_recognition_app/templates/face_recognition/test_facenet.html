@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Тестирование FaceNet{% endblock %}
+
+{% block extra_css %}
+<style>
+    .camera-container {
+        width: 400px;
+        height: 300px;
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .camera-container video,
+    .camera-container canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .face-container {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+    }
+    
+    .face-item {
+        text-align: center;
+        width: 200px;
+    }
+    
+    .face-image {
+        width: 150px;
+        height: 150px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        object-fit: cover;
+        margin-bottom: 10px;
+    }
+    
+    .result-container {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .log-container {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Тестирование модели распознавания лиц FaceNet</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p>Эта страница позволяет протестировать работу модели FaceNet для распознавания лиц.</p>
+                        <ol>
+                            <li>Сначала зарегистрируйте лицо 1 (эталон)</li>
+                            <li>Затем зарегистрируйте лицо 2 (эталон)</li>
+                            <li>После этого сделайте тестовое фото для сравнения</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="camera-container mb-3">
+                        <video id="video" autoplay></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <button id="capture-face1" class="btn btn-primary me-2">Зарегистрировать лицо 1</button>
+                        <button id="capture-face2" class="btn btn-success me-2">Зарегистрировать лицо 2</button>
+                        <button id="test-recognition" class="btn btn-warning" disabled>Тестировать распознавание</button>
+                    </div>
+                    
+                    <div class="face-container">
+                        <div class="face-item">
+                            <img id="face1-image" class="face-image" src="{% static 'images/placeholder-face.png' %}" alt="Лицо 1">
+                            <p>Лицо 1 (эталон)</p>
+                        </div>
+                        <div class="face-item">
+                            <img id="face2-image" class="face-image" src="{% static 'images/placeholder-face.png' %}" alt="Лицо 2">
+                            <p>Лицо 2 (эталон)</p>
+                        </div>
+                        <div class="face-item">
+                            <img id="test-image" class="face-image" src="{% static 'images/placeholder-face.png' %}" alt="Тестовое лицо">
+                            <p>Тестовое лицо</p>
+                        </div>
+                    </div>
+                    
+                    <div id="result-container" class="result-container" style="display: none;">
+                        <h5>Результаты распознавания:</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p>Сходство с лицом 1: <span id="similarity1" class="fw-bold">0%</span></p>
+                                <div class="progress mb-3">
+                                    <div id="progress1" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <p>Сходство с лицом 2: <span id="similarity2" class="fw-bold">0%</span></p>
+                                <div class="progress mb-3">
+                                    <div id="progress2" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="recognition-result" class="alert" style="display: none;"></div>
+                    </div>
+                    
+                    <div class="log-container">
+                        <div id="log-output"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Элементы DOM
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const face1Image = document.getElementById('face1-image');
+        const face2Image = document.getElementById('face2-image');
+        const testImage = document.getElementById('test-image');
+        const captureFace1Btn = document.getElementById('capture-face1');
+        const captureFace2Btn = document.getElementById('capture-face2');
+        const testRecognitionBtn = document.getElementById('test-recognition');
+        const resultContainer = document.getElementById('result-container');
+        const similarity1 = document.getElementById('similarity1');
+        const similarity2 = document.getElementById('similarity2');
+        const progress1 = document.getElementById('progress1');
+        const progress2 = document.getElementById('progress2');
+        const recognitionResult = document.getElementById('recognition-result');
+        const logOutput = document.getElementById('log-output');
+        
+        // Переменные для хранения данных
+        let stream = null;
+        let face1Data = null;
+        let face2Data = null;
+        let testFaceData = null;
+        
+        // Функция для логирования
+        function log(message, isError = false) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            if (isError) {
+                logEntry.style.color = 'red';
+            }
+            logOutput.appendChild(logEntry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+        
+        // Инициализация камеры
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+                video.srcObject = stream;
+                log('Камера успешно инициализирована');
+            } catch (err) {
+                log(`Ошибка при инициализации камеры: ${err.message}`, true);
+            }
+        }
+        
+        // Захват изображения с камеры
+        function captureImage() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg');
+        }
+        
+        // Обработчик для кнопки "Зарегистрировать лицо 1"
+        captureFace1Btn.addEventListener('click', function() {
+            face1Data = captureImage();
+            face1Image.src = face1Data;
+            log('Лицо 1 зарегистрировано');
+            
+            if (face2Data) {
+                testRecognitionBtn.disabled = false;
+            }
+        });
+        
+        // Обработчик для кнопки "Зарегистрировать лицо 2"
+        captureFace2Btn.addEventListener('click', function() {
+            face2Data = captureImage();
+            face2Image.src = face2Data;
+            log('Лицо 2 зарегистрировано');
+            
+            if (face1Data) {
+                testRecognitionBtn.disabled = false;
+            }
+        });
+        
+        // Обработчик для кнопки "Тестировать распознавание"
+        testRecognitionBtn.addEventListener('click', function() {
+            testFaceData = captureImage();
+            testImage.src = testFaceData;
+            log('Тестовое изображение захвачено');
+            
+            // Отправляем запрос на сервер для сравнения лиц
+            compareWithFace1();
+        });
+        
+        // Сравнение с лицом 1
+        function compareWithFace1() {
+            log('Сравниваем с лицом 1...');
+            
+            const formData = new FormData();
+            formData.append('face1', face1Data);
+            formData.append('face2', testFaceData);
+            
+            fetch('/face-recognition/compare/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                log(`Результат сравнения с лицом 1: ${JSON.stringify(data)}`);
+                
+                // Сохраняем результат сравнения с лицом 1
+                const similarity1Value = Math.round(data.similarity * 100);
+                similarity1.textContent = `${similarity1Value}%`;
+                progress1.style.width = `${similarity1Value}%`;
+                
+                // Переходим к сравнению с лицом 2
+                compareWithFace2(similarity1Value);
+            })
+            .catch(error => {
+                log(`Ошибка при сравнении с лицом 1: ${error.message}`, true);
+                compareWithFace2(0);
+            });
+        }
+        
+        // Сравнение с лицом 2
+        function compareWithFace2(similarity1Value) {
+            log('Сравниваем с лицом 2...');
+            
+            const formData = new FormData();
+            formData.append('face1', face2Data);
+            formData.append('face2', testFaceData);
+            
+            fetch('/face-recognition/compare/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                log(`Результат сравнения с лицом 2: ${JSON.stringify(data)}`);
+                
+                // Сохраняем результат сравнения с лицом 2
+                const similarity2Value = Math.round(data.similarity * 100);
+                similarity2.textContent = `${similarity2Value}%`;
+                progress2.style.width = `${similarity2Value}%`;
+                
+                // Показываем результаты
+                showResults(similarity1Value, similarity2Value);
+            })
+            .catch(error => {
+                log(`Ошибка при сравнении с лицом 2: ${error.message}`, true);
+                showResults(similarity1Value, 0);
+            });
+        }
+        
+        // Показать результаты сравнения
+        function showResults(similarity1Value, similarity2Value) {
+            resultContainer.style.display = 'block';
+            recognitionResult.style.display = 'block';
+            
+            const threshold = 75; // Порог для распознавания (в процентах)
+            
+            if (similarity1Value >= threshold && similarity2Value >= threshold) {
+                // Оба лица распознаны
+                recognitionResult.className = 'alert alert-warning';
+                recognitionResult.textContent = `Обнаружено сходство с обоими лицами! Лицо 1: ${similarity1Value}%, Лицо 2: ${similarity2Value}%`;
+            } else if (similarity1Value >= threshold) {
+                // Распознано только лицо 1
+                recognitionResult.className = 'alert alert-success';
+                recognitionResult.textContent = `Распознано как Лицо 1 с уверенностью ${similarity1Value}%`;
+            } else if (similarity2Value >= threshold) {
+                // Распознано только лицо 2
+                recognitionResult.className = 'alert alert-success';
+                recognitionResult.textContent = `Распознано как Лицо 2 с уверенностью ${similarity2Value}%`;
+            } else {
+                // Ни одно лицо не распознано
+                recognitionResult.className = 'alert alert-danger';
+                recognitionResult.textContent = 'Лицо не распознано. Возможно, человек не зарегистрирован в системе.';
+            }
+        }
+        
+        // Инициализация
+        initCamera();
+    });
+</script>
+{% endblock %}

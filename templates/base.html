@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/mobile.css">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
     <style>
         :root {
             --apple-bg: #ffffff;
@@ -421,9 +422,14 @@
 <body class="d-flex flex-column min-vh-100 {% if user.is_student %}user-student{% endif %}">
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'core:home' %}">
-                {% trans "Образовательный центр" %}
+            <a class="navbar-brand bg-light px-3 py-1 rounded shadow-sm" style="background:#f0f2f5; border-radius:16px; font-weight:600; color:var(--apple-primary)!important; font-size:1.1rem;" href="{% url 'core:home' %}">
+                {% if LANGUAGE_CODE == 'kk' %}Басты бет{% else %}Главная{% endif %}
             </a>
+            <!-- Language Switcher Buttons - Top Bar -->
+            <div class="d-inline-flex align-items-center ms-3" style="gap: 0.5rem;">
+    <a class="btn btn-outline-primary btn-sm px-3 py-1 {% if LANGUAGE_CODE == 'ru' %}active{% endif %}" href="{% url 'core:change_language' %}?lang=ru&next={{ request.path }}">Рус</a>
+    <a class="btn btn-outline-primary btn-sm px-3 py-1 {% if LANGUAGE_CODE == 'kk' %}active{% endif %}" href="{% url 'core:change_language' %}?lang=kk&next={{ request.path }}">Қаз</a>
+</div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -636,19 +642,7 @@
                         {% endif %}
                     {% endif %}
                 </ul>
-                <!-- Языковые кнопки -->
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% if LANGUAGE_CODE == 'ru' %}active{% endif %}" href="{% url 'core:change_language' %}?lang=ru&next={{ request.path }}">
-                            Рус
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if LANGUAGE_CODE == 'kk' %}active{% endif %}" href="{% url 'core:change_language' %}?lang=kk&next={{ request.path }}">
-                            Қаз
-                        </a>
-                    </li>
-                </ul>
+                
                 
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
@@ -678,7 +672,8 @@
 
     <footer class="py-4 bg-light mt-auto">
         <div class="container text-center">
-            <p class="mb-0 text-muted">&copy; {% now "Y" %} {% trans "Образовательный центр" %}. {% trans "Все права защищены" %}.</p>
+            <p class="mb-1 text-muted">&copy; 2025 Aqyl Gym</p>
+            <p class="mb-0 text-muted small">{% if LANGUAGE_CODE == 'kk' %}Барлық сұрақтар бойынша:{% else %}По всем вопросам:{% endif %} <a href="mailto:orynbekdulat6@gmail.com">orynbekdulat6@gmail.com</a></p>
         </div>
     </footer>
 

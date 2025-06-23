@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Распознавание лиц{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Распознавание лиц для отметки посещаемости</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Камера</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <video id="video" width="100%" height="auto" autoplay></video>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button id="startCamera" class="btn btn-secondary">Пересесть</button>
+                        <button id="capture" class="btn btn-primary">Распознать лицо</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Результат распознавания</h5>
+                </div>
+                <div class="card-body">
+                    <div id="result" class="alert d-none"></div>
+                    
+                    <!-- Топ-3 совпадения -->
+                    <div id="topMatches" class="mt-4">
+                        <h6>Топ-3 совпадения:</h6>
+                        <div id="topMatchesList">
+                            <!-- Здесь будут отображаться топ-3 совпадения -->
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <p><strong>Текущий порог распознавания:</strong> <span id="threshold">75</span>%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="canvas" style="display:none;"></canvas>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const startCameraBtn = document.getElementById('startCamera');
+    const captureBtn = document.getElementById('capture');
+    const resultDiv = document.getElementById('result');
+    const userScoresTable = document.getElementById('userScoresTable');
+    const thresholdSpan = document.getElementById('threshold');
+    const topMatchesList = document.getElementById('topMatchesList');
+    
+    // Получаем CSRF токен из cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+    
+    // Инициализация при загрузке
+    // Запускаем камеру при загрузке страницы
+    startCamera();
+    
+    // Загружаем список активных занятий
+    loadActiveClasses();
+    
+    // Обработчик кнопки запуска камеры
+    startCameraBtn.addEventListener('click', startCamera);
+    
+    // Обработчик кнопки захвата изображения
+    captureBtn.addEventListener('click', captureImage);
+    
+    // Обработчик кнопки отметки посещаемости
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('mark-attendance') || event.target.classList.contains('mark-attendance-table')) {
+            const userId = event.target.getAttribute('data-user-id');
+            const username = event.target.getAttribute('data-username');
+            const classId = document.getElementById('class-select').value;
+            
+            if (!classId || classId === '' || classId === 'no-classes') {
+                alert('Пожалуйста, выберите занятие');
+                return;
+            }
+            
+            fetch('/face-recognition/mark-attendance/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    username: username,
+                    class_id: classId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Посещение успешно отмечено для ${data.student_name} на занятии ${data.class_name}`);
+                } else {
+                    alert(`Ошибка: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error("Ошибка при отметке посещения:", error);
+                alert(`Ошибка при отметке посещения: ${error.message}`);
+            });
+        }
+    });
+    
+    // Загружаем список активных занятий
+    function loadActiveClasses(username = null, userId = null) {
+        let url = '/face-recognition/api/active-classes/';
+        
+        // Если есть имя пользователя или ID, добавляем их в URL запроса
+        if (username) {
+            url += `?username=${encodeURIComponent(username)}`;
+        } else if (userId) {
+            url += `?student_id=${encodeURIComponent(userId)}`;
+        }
+        
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const classSelect = document.getElementById('class-select');
+            classSelect.innerHTML = '<option value="">-- Выберите занятие --</option>';
+            
+            if (Array.isArray(data) && data.length > 0) {
+                data.forEach(classItem => {
+                    classSelect.innerHTML += `<option value="${classItem.id}">${classItem.subject_name} (${classItem.start_time}-${classItem.end_time}, ${classItem.room})</option>`;
+                });
+                
+                // Удаляем сообщение об отсутствии занятий, если оно есть
+                const classSelectContainer = document.querySelector('.class-select-container');
+                const existingMessage = classSelectContainer.querySelector('.alert');
+                if (existingMessage) {
+                    existingMessage.remove();
+                }
+            } else {
+                classSelect.innerHTML += '<option value="no-classes">Нет активных занятий</option>';
+                
+                // Если был указан пользователь, но занятий нет, показываем сообщение
+                if (username || userId) {
+                    const classSelectContainer = document.querySelector('.class-select-container');
+                    const noClassesMessage = document.createElement('div');
+                    noClassesMessage.className = 'alert alert-info mt-2';
+                    noClassesMessage.textContent = 'У этого студента нет занятий на сегодня';
+                    
+                    // Удаляем предыдущее сообщение, если оно есть
+                    const existingMessage = classSelectContainer.querySelector('.alert');
+                    if (existingMessage) {
+                        existingMessage.remove();
+                    }
+                    
+                    classSelectContainer.appendChild(noClassesMessage);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке активных занятий:', error);
+            const classSelect = document.getElementById('class-select');
+            classSelect.innerHTML = '<option value="">Ошибка загрузки занятий</option>';
+        });
+    }
+    
+    // Функция запуска камеры
+    function startCamera() {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(function(error) {
+                    console.error("Ошибка доступа к камере:", error);
+                    resultDiv.textContent = "Ошибка доступа к камере: " + error.message;
+                    resultDiv.className = "alert alert-danger";
+                    resultDiv.classList.remove('d-none');
+                });
+        } else {
+            resultDiv.textContent = "Ваш браузер не поддерживает доступ к камере";
+            resultDiv.className = "alert alert-danger";
+            resultDiv.classList.remove('d-none');
+        }
+    }
+    
+    // Функция захвата изображения
+    function captureImage() {
+        // Отображаем сообщение о загрузке
+                    });
+            } else {
+                console.error("Ваш браузер не поддерживает getUserMedia");
+                resultDiv.textContent = "Ваш браузер не поддерживает доступ к камере";
+                resultDiv.className = "alert alert-danger";
+                resultDiv.classList.remove('d-none');
+            }
+        }
+    });
+                            <button 
+                                    data-username="${score.username}">
+                                Отметить
+                            </button>
+                        </td>
+                    `;
+                    userScoresTable.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4" class="text-center">Нет данных о сходстве</td>';
+                userScoresTable.appendChild(row);
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка при отправке запроса:", error);
+            resultDiv.textContent = "Ошибка при отправке запроса: " + error.message;
+            resultDiv.className = "alert alert-danger";
+        });
+    }
+});
+</script>
+{% endblock %}

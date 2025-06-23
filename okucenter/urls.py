@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from instagram_bot.views import instagram_webhook
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,6 +30,8 @@ urlpatterns = [
     path('face-recognition/', include('face_recognition_app.urls')),
     path('crm/', include('crm.urls')),
     path('rosetta/', include('rosetta.urls')),  # Интерфейс для управления переводами
+    # Instagram bot URLs - includes webhook and admin dashboard
+    path('instagram/', include('instagram_bot.urls')),
     path('', include('core.urls')),
 ]
 

@@ -6,21 +6,14 @@
 
 {% block content %}
 <div class="container mt-2 px-2">
-    <!-- Переключатель языка -->
-    <div class="d-flex justify-content-end mb-3">
-        <div class="btn-group" role="group" aria-label="Переключатель языка">
-            <a href="{% url 'core:change_language' %}?lang=ru&next={{ request.path }}" class="btn btn-sm {% if user_language == 'ru' %}btn-primary{% else %}btn-outline-primary{% endif %}">Рус</a>
-            <a href="{% url 'core:change_language' %}?lang=kk&next={{ request.path }}" class="btn btn-sm {% if user_language == 'kk' %}btn-primary{% else %}btn-outline-primary{% endif %}">Қаз</a>
-        </div>
-    </div>
-    
+
     {% if user.is_authenticated %}
         
         {% if user.is_reception %}
             <h5 class="mb-3"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>{{ trans.quick_access }}</h5>
             <div class="row mb-4 text-center">
                 <div class="col">
-                    <a href="{% url 'face_recognition_app:face_attendance' %}" class="text-decoration-none">
+                    <a href="{% url 'face_recognition_app:simple_attendance_page' %}" class="text-decoration-none">
                         <div class="d-flex flex-column align-items-center">
                             <div class="rounded-circle bg-light p-3 mb-2" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
                                 <i class="bi bi-camera fs-3 text-success"></i>
@@ -214,7 +207,7 @@
             </div>
         {% elif user.is_admin %}
             <div class="row mb-5">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card h-100">
                         <div class="card-body text-center py-5">
                             <i class="bi bi-mortarboard display-1 text-primary mb-3"></i>
@@ -226,7 +219,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card h-100">
                         <div class="card-body text-center py-5">
                             <i class="bi bi-person-video3 display-1 text-success mb-3"></i>
@@ -238,7 +231,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card h-100">
                         <div class="card-body text-center py-5">
                             <i class="bi bi-book display-1 text-info mb-3"></i>
@@ -250,6 +243,21 @@
                         </div>
                     </div>
                 </div>
+                
+                {% if user.is_admin or user.is_reception %}
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-instagram display-1 text-danger mb-3"></i>
+                            <h3 class="card-title fw-bold">Instagram Бот</h3>
+                            <p class="display-4 my-4">{{ instagram_clients_count|default:"0" }}</p>
+                            <a href="{% url 'instagram_bot:instagram_bot_dashboard' %}" class="btn btn-outline-danger btn-lg w-100">
+                                <i class="bi bi-chat-dots me-2"></i> Управление ботом
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
             
             <div class="row">

@@ -103,6 +103,18 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="target_grade">Класс обучения</label>
+                            <select class="form-control" id="target_grade" name="target_grade">
+                                <option value="">Все классы обучения</option>
+                                {% for i in "123456789" %}
+                                <option value="{{ i }}">{{ i }} класс</option>
+                                {% endfor %}
+                                <option value="10">10 класс</option>
+                                <option value="11">11 класс</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="target_schedule">Расписание</label>
                             <select class="form-control" id="target_schedule" name="target_schedule">
                                 <option value="">Все расписания</option>
@@ -295,7 +307,8 @@
                 target_class: targetClassSelect.value,
                 target_day: targetDaySelect.value,
                 target_schedule: targetScheduleSelect.value,
-                recipient_type: recipientTypeSelect.value
+                recipient_type: recipientTypeSelect.value,
+                target_grade: document.getElementById('target_grade').value
             });
             
             // Запрашиваем список получателей

@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Тестирование распознавания лиц{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Базовые стили для страницы распознавания лиц */
+    #camera-container {
+        position: relative;
+        width: 400px;
+        height: 300px;
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        overflow: hidden;
+    }
+    #video, #canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .controls {
+        margin-top: 20px;
+        text-align: center;
+    }
+    .result-container {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .hidden {
+        display: none;
+    }
+    .debug-info {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">Тестирование распознавания лиц</h1>
+            <div class="alert alert-info">
+                Это тестовая страница для отладки распознавания лиц без проверки аутентификации и CSRF.
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div id="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" class="hidden"></canvas>
+            </div>
+            
+            <div class="controls">
+                <button id="capture-btn" class="btn btn-primary">Сделать снимок</button>
+                <button id="retake-btn" class="btn btn-secondary hidden">Переснять</button>
+                <button id="recognize-btn" class="btn btn-success hidden">Распознать лицо</button>
+            </div>
+            
+            <div id="recognition-result" class="result-container hidden">
+                <h4>Результат распознавания:</h4>
+                <p><strong>Пользователь:</strong> <span id="user-name"></span></p>
+                <p><strong>Тип пользователя:</strong> <span id="user-type"></span></p>
+                <p><strong>Уверенность:</strong> <span id="confidence"></span>%</p>
+            </div>
+            
+            <div id="recognition-error" class="result-container hidden alert alert-danger">
+                <h4>Ошибка распознавания:</h4>
+                <p id="error-message"></p>
+            </div>
+            
+            <div id="debug-info" class="debug-info hidden"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Элементы DOM
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const recognizeBtn = document.getElementById('recognize-btn');
+        const recognitionResult = document.getElementById('recognition-result');
+        const recognitionError = document.getElementById('recognition-error');
+        const userNameElement = document.getElementById('user-name');
+        const userTypeElement = document.getElementById('user-type');
+        const confidenceElement = document.getElementById('confidence');
+        const errorMessageElement = document.getElementById('error-message');
+        const debugInfoElement = document.getElementById('debug-info');
+        
+        // Переменные для хранения потока камеры и захваченного изображения
+        let stream = null;
+        let capturedImageData = null;
+        
+        // Запускаем камеру при загрузке страницы
+        startCamera();
+        
+        // Функция для запуска камеры
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                })
+                .catch(function(error) {
+                    console.error('Ошибка доступа к камере:', error);
+                    errorMessageElement.textContent = 'Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения браузера.';
+                    recognitionError.classList.remove('hidden');
+                });
+        }
+        
+        // Функция для остановки камеры
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+            }
+        }
+        
+        // Обработчик кнопки "Сделать снимок"
+        captureBtn.addEventListener('click', function() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Преобразуем изображение в base64
+            capturedImageData = canvas.toDataURL('image/jpeg');
+            
+            // Показываем изображение вместо видео
+            video.classList.add('hidden');
+            canvas.classList.remove('hidden');
+            captureBtn.classList.add('hidden');
+            retakeBtn.classList.remove('hidden');
+            recognizeBtn.classList.remove('hidden');
+            
+            // Скрываем предыдущие результаты
+            recognitionResult.classList.add('hidden');
+            recognitionError.classList.add('hidden');
+            debugInfoElement.classList.add('hidden');
+        });
+        
+        // Обработчик кнопки "Переснять"
+        retakeBtn.addEventListener('click', function() {
+            // Показываем видео и кнопку "Сделать снимок"
+            video.classList.remove('hidden');
+            canvas.classList.add('hidden');
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            recognizeBtn.classList.add('hidden');
+            
+            // Скрываем результаты
+            recognitionResult.classList.add('hidden');
+            recognitionError.classList.add('hidden');
+            debugInfoElement.classList.add('hidden');
+        });
+        
+        // Обработчик кнопки "Распознать лицо"
+        recognizeBtn.addEventListener('click', function() {
+            // Скрываем предыдущие результаты
+            recognitionResult.classList.add('hidden');
+            recognitionError.classList.add('hidden');
+            debugInfoElement.classList.add('hidden');
+            
+            // Отправляем захваченное изображение на сервер для распознавания
+            console.log('Отправляем запрос на тестовое распознавание лица');
+            
+            // Отправляем данные в формате JSON
+            const jsonData = JSON.stringify({
+                face_data: capturedImageData
+            });
+            
+            console.log('Отправляем данные в формате JSON');
+            
+            // Используем тестовый API без проверки аутентификации
+            fetch('/face-recognition/api/test-recognize/', {
+                method: 'POST',
+                body: jsonData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Получен ответ:', data);
+                
+                // Выводим отладочную информацию
+                debugInfoElement.textContent = JSON.stringify(data, null, 2);
+                debugInfoElement.classList.remove('hidden');
+                
+                if (data.success) {
+                    // Если распознавание успешно
+                    userNameElement.textContent = data.full_name;
+                    userTypeElement.textContent = data.user_type;
+                    confidenceElement.textContent = (data.confidence * 100).toFixed(2);
+                    recognitionResult.classList.remove('hidden');
+                } else {
+                    // Если распознавание не удалось
+                    errorMessageElement.textContent = data.message;
+                    recognitionError.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при распознавании лица:', error);
+                errorMessageElement.textContent = 'Произошла ошибка при распознавании лица: ' + error.message;
+                recognitionError.classList.remove('hidden');
+            });
+        });
+    });
+</script>
+{% endblock %}

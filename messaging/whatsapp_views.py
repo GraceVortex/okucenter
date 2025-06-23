@@ -71,6 +71,7 @@ def create_broadcast(request):
         target_class_id = request.POST.get('target_class')
         target_schedule_id = request.POST.get('target_schedule')
         target_day = request.POST.get('target_day')
+        target_grade = request.POST.get('target_grade')
         scheduled_at = request.POST.get('scheduled_at')
         
         # Проверяем обязательные поля
@@ -90,6 +91,10 @@ def create_broadcast(request):
             created_by=request.user,
             status='draft'
         )
+        
+        # Добавляем фильтр по классу обучения, если он указан
+        if target_grade:
+            broadcast.target_grade = int(target_grade)
         
         # Устанавливаем фильтры, если они указаны
         if target_class_id:
@@ -343,6 +348,7 @@ def api_get_recipients(request):
     target_class_id = request.GET.get('target_class')
     target_schedule_id = request.GET.get('target_schedule')
     target_day = request.GET.get('target_day')
+    target_grade = request.GET.get('target_grade')
     recipient_type = request.GET.get('recipient_type', 'parents')
     
     # Создаем временный объект рассылки для использования метода get_recipients
@@ -366,6 +372,10 @@ def api_get_recipients(request):
     
     if target_day and target_day.isdigit():
         broadcast.target_day = int(target_day)
+    
+    # Устанавливаем фильтр по классу обучения, если он указан
+    if target_grade and target_grade.isdigit():
+        broadcast.target_grade = int(target_grade)
     
     # Получаем список получателей
     recipients = broadcast.get_recipients()

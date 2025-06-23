@@ -24,6 +24,10 @@ class WhatsAppBroadcast(models.Model):
     target_day = models.IntegerField(null=True, blank=True, verbose_name="День недели", 
                                     choices=[(0, "Понедельник"), (1, "Вторник"), (2, "Среда"), 
                                             (3, "Четверг"), (4, "Пятница"), (5, "Суббота"), (6, "Воскресенье")])
+    # Фильтр по классу обучения (1-11)
+    target_grade = models.IntegerField(null=True, blank=True, verbose_name="Класс обучения", 
+                                    choices=[(i, str(i)) for i in range(1, 12)],
+                                    help_text="Выберите класс обучения (1-11) для фильтрации получателей")
     
     # Тип получателей
     RECIPIENT_CHOICES = (
@@ -61,6 +65,10 @@ class WhatsAppBroadcast(models.Model):
         # Базовый запрос для студентов
         students_query = Student.objects.filter(is_active=True)
         
+        # Фильтр по классу обучения (1-11)
+        if self.target_grade is not None:
+            students_query = students_query.filter(current_grade=self.target_grade)
+        
         # Применяем фильтры, если они указаны
         if self.target_class:
             # Получаем студентов, записанных на этот класс
@@ -71,26 +79,20 @@ class WhatsAppBroadcast(models.Model):
             # Получаем студентов, записанных на занятия по этому расписанию
             class_obj = self.target_schedule.class_obj
             students_query = students_query.filter(enrollments__class_obj=class_obj, 
+                                                 enrollments__class_schedule=self.target_schedule,
                                                  enrollments__is_active=True)
         
         if self.target_day is not None:
-            # Если указан день недели, фильтруем студентов, у которых есть занятия в этот день
-            if self.target_schedule:
-                # Если указано конкретное расписание, проверяем его день недели
-                if self.target_schedule.day_of_week != self.target_day:
-                    # День недели расписания не совпадает с указанным днем
-                    return []
-            else:
-                # Получаем все расписания на указанный день
-                schedules = ClassSchedule.objects.filter(day_of_week=self.target_day)
-                if self.target_class:
-                    # Если указан класс, фильтруем расписания только для этого класса
-                    schedules = schedules.filter(class_obj=self.target_class)
-                
-                # Получаем студентов, записанных на занятия по этим расписаниям
-                class_ids = schedules.values_list('class_obj_id', flat=True)
-                students_query = students_query.filter(enrollments__class_obj_id__in=class_ids, 
-                                                     enrollments__is_active=True)
+            # Получаем студентов, записанных на занятия в этот день недели
+            schedules = ClassSchedule.objects.filter(day_of_week=self.target_day)
+            if self.target_class:
+                # Если указан класс, фильтруем расписания только для этого класса
+                schedules = schedules.filter(class_obj=self.target_class)
+            
+            # Получаем студентов, записанных на занятия по этим расписаниям
+            class_ids = schedules.values_list('class_obj_id', flat=True)
+            students_query = students_query.filter(enrollments__class_obj_id__in=class_ids, 
+                                                 enrollments__is_active=True)
         
         # Получаем уникальных студентов
         students = students_query.distinct()

@@ -3,6 +3,46 @@
 
 {% block title %}Отметка посещаемости по лицу{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Базовые стили для страницы распознавания лиц */
+    #camera-container {
+        position: relative;
+        width: 400px;
+        height: 300px;
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        overflow: hidden;
+    }
+    #video, #canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .capture-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0,0,0,0.5);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+    .recognition-info {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    .student-photo {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
@@ -294,15 +334,25 @@
             recognitionError.style.display = 'none';
             attendanceSuccess.style.display = 'none';
             
-            // Отправляем запрос на распознавание лица
+            // Отправляем захваченное изображение на сервер для распознавания
             const formData = new FormData();
             formData.append('face_data', capturedImageData);
             
-            fetch('{% url "face_recognition:api_recognize_face" %}', {
+            console.log('Отправляем запрос на распознавание лица');
+            
+            fetch('/face-recognition/api/recognize/', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Если распознавание успешно
@@ -380,6 +430,7 @@
                 formData.append('teacher_id', selectedTeacher);
             }
             
+            console.log('Отправляем запрос на отметку посещаемости');
             // Отправляем данные на сервер
             fetch('/face-recognition/api/mark-attendance/', {
                 method: 'POST',

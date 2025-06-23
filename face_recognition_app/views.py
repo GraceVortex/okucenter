@@ -1,5 +1,8 @@
 import logging
 import os
+import json
+import base64
+from datetime import datetime
 
 # Настраиваем логгер
 logger = logging.getLogger(__name__)
@@ -12,12 +15,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db import transaction
 from django.conf import settings
-import json
 
 from accounts.models import User, Student, Teacher
 from classes.models import Class, ClassSchedule
 from attendance.models import Attendance
 from .models import FaceRecognitionLog, FaceAttendance
+from .facenet_utils import recognize_face, FACENET_THRESHOLD
 from .forms import FaceRegistrationForm, FaceAttendanceForm
 import base64
 from io import BytesIO
@@ -81,7 +84,11 @@ def face_attendance(request):
 @login_required
 def api_recognize_face(request):
     """API для распознавания лица"""
+    # Самое простое отладочное сообщение для проверки вызова функции
+    print("\n\n==== API RECOGNIZE FACE CALLED ====\n\n")
+    
     if request.method != 'POST':
+        print("Метод не POST:", request.method)
         return JsonResponse({'success': False, 'message': 'Метод не поддерживается'})
     
     # Получаем данные изображения из запроса
@@ -89,6 +96,15 @@ def api_recognize_face(request):
     
     if not face_data:
         return JsonResponse({'success': False, 'message': 'Данные изображения не предоставлены'})
+    
+    # Добавляем отладочную информацию о пользователях с зарегистрированными лицами
+    from accounts.models import User
+    users_with_faces = User.objects.exclude(face_id_data__isnull=True).exclude(face_id_data="")
+    logger.info(f"Найдено пользователей с зарегистрированными лицами: {users_with_faces.count()}")
+    
+    # Выводим информацию о каждом пользователе с зарегистрированным лицом
+    for user in users_with_faces:
+        logger.info(f"\tПользователь: {user.username}, Тип: {user.user_type}, Длина данных лица: {len(user.face_id_data)}")
     
     # Распознаем лицо
     try:
@@ -106,7 +122,14 @@ def api_recognize_face(request):
     
     if error:
         logger.warning(f"Ошибка распознавания: {error}")
-        return JsonResponse({'success': False, 'message': error})
+        return JsonResponse({
+            'success': False, 
+            'message': error,
+            'debug_info': {
+                'users_with_faces_count': users_with_faces.count(),
+                'threshold': FACENET_THRESHOLD
+            }
+        })
     
     if user:
         # Проверяем, является ли пользователь студентом

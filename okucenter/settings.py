@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'messaging',
     'face_recognition_app',
     'crm',
+    'instagram_bot',  # Instagram chatbot integration
 ]
 
 MIDDLEWARE = [
@@ -256,3 +257,12 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 1 день
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Instagram Bot Settings
+INSTAGRAM_APP_ID = os.environ.get('INSTAGRAM_APP_ID', '')
+INSTAGRAM_APP_SECRET = os.environ.get('INSTAGRAM_APP_SECRET', '')
+INSTAGRAM_ACCESS_TOKEN = os.environ.get('INSTAGRAM_ACCESS_TOKEN', '')
+INSTAGRAM_VERIFY_TOKEN = os.environ.get('INSTAGRAM_VERIFY_TOKEN', 'okucenter_instagram_verify_token')
+
+# OpenAI API Settings
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
